@@ -3,8 +3,6 @@ import {
   BrowserWindow,
   ipcMain,
   dialog,
-  net,
-  session,
   shell,
   WebContentsView,
 } from "electron";
@@ -269,10 +267,10 @@ ipcMain.handle(
       case "openworkServerInfo":
         return {
           running: true,
-          baseUrl: "http://127.0.0.1:4096",
+          baseUrl: "http://127.0.0.1:9999",
           ownerToken: "openhub-local",
           clientToken: "openhub-local",
-          port: 4096,
+          port: 9999,
           remoteAccessEnabled: false,
         };
 
@@ -368,94 +366,7 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
   }
 });
 
-// ── OpenWork workspace API interceptor ──
-// OpenWork calls POST http://127.0.0.1:4096/workspaces/local etc.
-// opencode serve doesn't have these endpoints. We intercept at the
-// Electron network level (protocol.handle) so it works regardless of
-// how the renderer's fetch is bundled or captured.
-function makeWsList(wsPath: string, wsName?: string) {
-  const id = `openhub-${Date.now()}`;
-  const name = wsName || wsPath.split("/").pop() || "workspace";
-  return {
-    selectedId: id,
-    activeId: id,
-    workspaces: [
-      {
-        id,
-        name,
-        path: wsPath,
-        preset: "default",
-        workspaceType: "local",
-        displayName: name,
-      },
-    ],
-  };
-}
-
-function jsonRes(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-function setupWorkspaceProtocol(): void {
-  session.defaultSession.protocol.handle("http", (request) => {
-    const url = new URL(request.url);
-    const isOpencodeServe =
-      url.hostname === "127.0.0.1" && url.port === "4096";
-
-    if (!isOpencodeServe || !url.pathname.startsWith("/workspaces")) {
-      return net.fetch(request);
-    }
-
-    const p = url.pathname;
-    const m = request.method.toUpperCase();
-
-    if (p === "/workspaces/local" && m === "POST") {
-      return request.text().then((body) => {
-        try {
-          const parsed = JSON.parse(body);
-          return jsonRes(makeWsList(parsed.folderPath || "/", parsed.name));
-        } catch {
-          return jsonRes(makeWsList("/"));
-        }
-      });
-    }
-
-    if (p === "/workspaces" && m === "GET") {
-      return jsonRes({ selectedId: null, activeId: null, workspaces: [] });
-    }
-
-    if (p === "/workspaces/remote" && m === "POST") {
-      return request.text().then((body) => {
-        try {
-          const parsed = JSON.parse(body);
-          return jsonRes(makeWsList(parsed.baseUrl || "/", parsed.name));
-        } catch {
-          return jsonRes(makeWsList("/"));
-        }
-      });
-    }
-
-    if (/^\/workspaces\/[^/]+\/activate/.test(p) && m === "POST") {
-      return jsonRes({ ok: true });
-    }
-    if (/^\/workspaces\/[^/]+\/display-name$/.test(p) && m === "PUT") {
-      return jsonRes({ ok: true });
-    }
-    if (/^\/workspaces\/[^/]+$/.test(p) && m === "DELETE") {
-      return jsonRes({ ok: true });
-    }
-
-    // Not a workspace endpoint — pass through to opencode serve
-    return net.fetch(request);
-  });
-}
-
 app.whenReady().then(async () => {
-  setupWorkspaceProtocol();
-
   const proxyToken = await startProxy();
   processManager = new ProcessManager(proxyToken);
 

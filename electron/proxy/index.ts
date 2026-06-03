@@ -11,8 +11,48 @@ export async function startProxy(): Promise<string> {
   const app = express();
   app.use(express.json({ limit: "10mb" }));
 
-  // Strict auth — every request must carry the session token
+  // ── OpenWork workspace API (before auth — OpenWork sends its own token) ──
+  app.get("/workspaces", (_req, res) => {
+    res.json({ selectedId: null, activeId: null, workspaces: [] });
+  });
+
+  app.post("/workspaces/local", (req: Request, res: Response) => {
+    const body = req.body as { folderPath?: string; name?: string };
+    const wsPath = body.folderPath || "/";
+    const id = `openhub-${Date.now()}`;
+    const name = body.name || wsPath.split("/").pop() || "workspace";
+    res.json({
+      selectedId: id,
+      activeId: id,
+      workspaces: [
+        { id, name, path: wsPath, preset: "default", workspaceType: "local", displayName: name },
+      ],
+    });
+  });
+
+  app.post("/workspaces/remote", (req: Request, res: Response) => {
+    const body = req.body as { baseUrl?: string; name?: string };
+    const id = `openhub-${Date.now()}`;
+    res.json({
+      selectedId: id,
+      activeId: id,
+      workspaces: [
+        { id, name: body.name || "remote", path: body.baseUrl || "/", preset: "default", workspaceType: "remote", displayName: body.name || "remote" },
+      ],
+    });
+  });
+
+  app.post(/^\/workspaces\/[^/]+\/activate/, (_req, res) => res.json({ ok: true }));
+  app.put(/^\/workspaces\/[^/]+\/display-name$/, (_req, res) => res.json({ ok: true }));
+  app.delete(/^\/workspaces\/[^/]+$/, (_req, res) => res.json({ ok: true }));
+  app.get("/status", (_req, res) => res.json({ running: true, version: "openhub" }));
+
+  // ── Auth middleware for LLM proxy routes ──
   app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/workspaces") || req.path === "/status") {
+      next();
+      return;
+    }
     const auth = req.headers["authorization"] ?? "";
     if (!auth.startsWith("Bearer ") || auth.slice(7) !== sessionToken) {
       res.status(401).json({ error: "Unauthorized" });
