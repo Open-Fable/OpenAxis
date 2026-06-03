@@ -3,7 +3,7 @@
     "theme": true,
     "layout": true
   },
-  "openwork": {},
+  "openwork": { "bridge": true },
   "opencode": {},
   "open-design": {}
 }

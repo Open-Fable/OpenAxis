@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, dialog, WebContentsView } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell, WebContentsView } from "electron";
 import path from "path";
+import { homedir } from "os";
 import { fileURLToPath } from "url";
 import { ProcessManager } from "./process-manager.js";
 import { startProxy } from "./proxy/index.js";
@@ -206,6 +207,38 @@ ipcMain.handle("export-pdf", async () => {
 });
 
 ipcMain.handle("get-slot-status", () => processManager?.getStatus() ?? {});
+
+// OpenWork desktop bridge — polyfills window.__OPENWORK_ELECTRON__.invokeDesktop()
+ipcMain.handle(
+  "openwork-desktop-invoke",
+  async (_e, command: string, ...args: unknown[]) => {
+    switch (command) {
+      case "pickDirectory": {
+        const result = await dialog.showOpenDialog({
+          properties: ["openDirectory", "createDirectory"],
+        });
+        return result.canceled ? null : (result.filePaths[0] ?? null);
+      }
+      case "pickFile": {
+        const result = await dialog.showOpenDialog({
+          properties: ["openFile"],
+        });
+        return result.canceled ? null : (result.filePaths[0] ?? null);
+      }
+      case "__homeDir":
+        return homedir();
+      case "__joinPath":
+        return path.join(...(args as string[]));
+      case "__openPath":
+        return shell.openPath(args[0] as string);
+      case "__revealItemInDir":
+        shell.showItemInFolder(args[0] as string);
+        return null;
+      default:
+        return null;
+    }
+  },
+);
 
 ipcMain.handle("get-api-keys", async () => {
   const { readAllApiKeys } = await import("./keychain.js");
