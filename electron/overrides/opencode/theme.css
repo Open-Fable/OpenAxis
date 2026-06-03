@@ -1,0 +1,34 @@
+/*
+ * OpenHub → OpenCode unified palette
+ * Remaps OC-2 surface/text/border variables to neutral OpenHub tones.
+ * Only overrides in dark mode (media query matches color-scheme: dark).
+ */
+
+:root {
+  /* Base backgrounds */
+  --background-base: #111114 !important;
+  --background-weak: #19191d !important;
+  --background-strong: #131316 !important;
+  --background-stronger: #161619 !important;
+
+  /* Surfaces */
+  --surface-float-base: #19191d !important;
+  --surface-float-base-hover: #222228 !important;
+  --surface-raised-stronger-non-alpha: #222228 !important;
+
+  /* Inputs */
+  --input-base: #19191d !important;
+  --input-hover: #222228 !important;
+
+  /* Text — slightly brighter for readability */
+  --text-strong: rgba(237, 237, 240, 0.94) !important;
+  --text-base: rgba(176, 176, 190, 0.62) !important;
+
+  /* Borders — unified neutral tone */
+  --border-weak-base: #282830 !important;
+  --border-weaker-base: #222228 !important;
+
+  /* Buttons */
+  --button-primary-base: #ededf0 !important;
+  --button-secondary-base: #19191d !important;
+}

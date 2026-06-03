@@ -40,7 +40,9 @@
         if (localStorage.getItem("openwork.react.settings.theme-mode") !== "dark") {
           localStorage.setItem("openwork.react.settings.theme-mode", "dark");
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
 
       // Open Design: localStorage config
       try {
