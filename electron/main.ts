@@ -225,12 +225,12 @@ ipcMain.handle(
         });
         return result.canceled ? null : (result.filePaths[0] ?? null);
       }
-      // OpenWork workspace bootstrap — return empty list so boot flows to
-      // startServerWithoutDesktopWorkspace() which calls openworkServerRestart
+      // ── OpenWork boot ──────────────────────────────────────────────────────
+      // workspaceBootstrap: empty list → boot goes to startServerWithoutDesktop
       case "workspaceBootstrap":
         return { workspaces: [], selectedId: null, activeId: null };
 
-      // OpenWork server restart — point to our running opencode serve instance
+      // openworkServerRestart/Info: point to our running opencode serve
       // isOpenworkServerReady() requires running=true + baseUrl + ownerToken
       case "openworkServerRestart":
       case "openworkServerInfo":
@@ -238,11 +238,12 @@ ipcMain.handle(
           running: true,
           baseUrl: "http://127.0.0.1:4096",
           ownerToken: "openhub-local",
+          clientToken: "openhub-local",
           port: 4096,
           remoteAccessEnabled: false,
         };
 
-      // Electron runtimeBootstrap — skipped=true bypasses isOpenworkServerReady check
+      // runtimeBootstrap (Electron path): skipped=true bypasses server check
       case "runtimeBootstrap":
         return {
           ok: true,
@@ -251,11 +252,54 @@ ipcMain.handle(
             running: true,
             baseUrl: "http://127.0.0.1:4096",
             ownerToken: "openhub-local",
+            clientToken: "openhub-local",
             port: 4096,
             remoteAccessEnabled: false,
           },
           engine: { baseUrl: "http://127.0.0.1:4096" },
         };
+
+      // ── OpenWork engine ────────────────────────────────────────────────────
+      // engineInfo / engineStart: report opencode serve as the running engine
+      case "engineInfo":
+      case "engineStart":
+        return {
+          running: true,
+          runtime: "direct",
+          baseUrl: "http://127.0.0.1:4096",
+          projectDir: (args[0] as string) || null,
+          hostname: "127.0.0.1",
+          port: 4096,
+          opencodeUsername: null,
+          opencodePassword: null,
+          opencodeBinPath: null,
+          opencodeBinSource: null,
+          pid: null,
+          lastStdout: null,
+          lastStderr: null,
+          execution: null,
+        };
+
+      // ── OpenWork workspace mutations ───────────────────────────────────────
+      case "workspaceCreate": {
+        const wsPath = (args[0] as string) ?? "";
+        return {
+          id: `openhub-${Date.now()}`,
+          name: wsPath.split("/").pop() || "workspace",
+          path: wsPath,
+          preset: "default",
+          workspaceType: "local",
+          displayName: wsPath.split("/").pop() || "workspace",
+        };
+      }
+      case "workspaceSetSelected":
+      case "workspaceSetRuntimeActive":
+      case "workspaceUpdateDisplayName":
+      case "workspaceForget":
+      case "workspaceAddAuthorizedRoot":
+      case "engineStop":
+      case "engineRestart":
+        return { ok: true };
 
       case "__homeDir":
         return homedir();
