@@ -46,4 +46,11 @@
   --text-muted: #8888a0 !important;
   --text-soft: #5c5c72 !important;
   --text-faint: #404050 !important;
+
+  /* Remap orange accent → OpenHub violet */
+  --accent: #7c6af2 !important;
+  --accent-strong: #8b7bf5 !important;
+  --accent-soft: rgba(124, 106, 242, 0.18) !important;
+  --accent-tint: rgba(124, 106, 242, 0.10) !important;
+  --accent-hover: #8b7bf5 !important;
 }
