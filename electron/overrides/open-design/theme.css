@@ -1,14 +1,33 @@
 /*
- * OpenHub → Open Design — unified neutral palette + hide native nav
+ * OpenHub → Open Design — unified neutral palette + collapse native nav
  */
 
-/* Hide native left nav rail */
-.entry-nav-rail { display: none !important; }
-.entry-shell--no-header { --entry-rail-width: 0px !important; }
+/* Collapse native left nav rail to 0px (display:none breaks the grid layout) */
+.entry-nav-rail {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
-/* Hide top chrome bar */
-.workspace-tabs-chrome.app-chrome-header { display: none !important; }
+.entry-shell--no-header {
+  --entry-rail-width: 0px !important;
+}
 
+/* Collapse top chrome bar */
+.workspace-tabs-chrome.app-chrome-header {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+}
+
+/* ── Color overrides ── */
 [data-theme="dark"],
 :root {
   --bg: #0e0e12 !important;
