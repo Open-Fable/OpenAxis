@@ -101,20 +101,34 @@ async function loadViewUrl(view: WebContentsView, url: string): Promise<void> {
   }
 }
 
+const CONFIG_PANEL_HEIGHT = 160;
+let configOpen = false;
+
 function repositionViews(): void {
   if (!mainWindow) return;
   const [width, height] = mainWindow.getContentSize();
   const contentX = SIDEBAR_WIDTH;
   const contentWidth = width - SIDEBAR_WIDTH;
+  const offsetY = configOpen ? CONFIG_PANEL_HEIGHT : 0;
 
   for (const [slot, view] of views) {
     const isActive = slot === activeSlot;
     view.setVisible(isActive);
     if (isActive) {
-      view.setBounds({ x: contentX, y: 0, width: contentWidth, height });
+      view.setBounds({
+        x: contentX,
+        y: offsetY,
+        width: contentWidth,
+        height: height - offsetY,
+      });
     }
   }
 }
+
+ipcMain.on("config-visibility", (_e, open: boolean) => {
+  configOpen = open;
+  repositionViews();
+});
 
 async function switchSlot(slot: SlotName): Promise<void> {
   console.warn(`\n[main] ── switchSlot("${slot}") ──`);
