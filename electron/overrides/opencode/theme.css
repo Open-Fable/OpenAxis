@@ -1,34 +1,30 @@
 /*
- * OpenHub → OpenCode unified palette
- * Remaps OC-2 surface/text/border variables to neutral OpenHub tones.
- * Only overrides in dark mode (media query matches color-scheme: dark).
+ * OpenHub → OpenCode — unified palette
+ * OpenCode uses OC-2 tokens in prefers-color-scheme:dark media query.
+ * We override the key visible variables directly on :root.
  */
 
 :root {
-  /* Base backgrounds */
+  /* Base backgrounds — match OpenHub neutral */
   --background-base: #111114 !important;
-  --background-weak: #19191d !important;
+  --background-weak: #18181c !important;
   --background-strong: #131316 !important;
-  --background-stronger: #161619 !important;
+  --background-stronger: #151518 !important;
 
   /* Surfaces */
-  --surface-float-base: #19191d !important;
-  --surface-float-base-hover: #222228 !important;
-  --surface-raised-stronger-non-alpha: #222228 !important;
+  --surface-float-base: #18181c !important;
+  --surface-float-base-hover: #1e1e22 !important;
+  --surface-raised-stronger-non-alpha: #1e1e22 !important;
 
   /* Inputs */
-  --input-base: #19191d !important;
-  --input-hover: #222228 !important;
+  --input-base: #18181c !important;
+  --input-hover: #1e1e22 !important;
 
-  /* Text — slightly brighter for readability */
+  /* Borders — neutral tone */
+  --border-weak-base: #262630 !important;
+  --border-weaker-base: #202028 !important;
+
+  /* Text */
   --text-strong: rgba(237, 237, 240, 0.94) !important;
   --text-base: rgba(176, 176, 190, 0.62) !important;
-
-  /* Borders — unified neutral tone */
-  --border-weak-base: #282830 !important;
-  --border-weaker-base: #222228 !important;
-
-  /* Buttons */
-  --button-primary-base: #ededf0 !important;
-  --button-secondary-base: #19191d !important;
 }

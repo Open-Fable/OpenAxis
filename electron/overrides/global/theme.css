@@ -1,48 +1,22 @@
 /*
- * OpenHub — Unified dark theme
- * Injected into ALL app webviews via insertCSS().
- *
- * Forces dark color-scheme and applies consistent styling:
- * - Dark backgrounds and light text
- * - Consistent font stack (SF Pro)
- * - Smooth scrollbars matching the dark theme
- * - Accent color override
+ * OpenHub — Unified dark theme (global)
+ * Applied to ALL app webviews.
  */
 
 :root {
   color-scheme: dark !important;
-
-  /* OpenHub palette — consumed by per-app overrides if needed */
-  --openhub-bg-primary: #1a1a1a;
-  --openhub-bg-secondary: #242424;
-  --openhub-bg-tertiary: #2e2e2e;
-  --openhub-text-primary: #e8e8e8;
-  --openhub-text-secondary: #a0a0a0;
-  --openhub-accent: #7c6af2;
-  --openhub-border: #333333;
   --openhub-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
-body {
+html, body {
+  background-color: #111114 !important;
+  color: #ededf0 !important;
   font-family: var(--openhub-font) !important;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dark scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
+/* Unified scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }

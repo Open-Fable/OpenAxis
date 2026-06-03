@@ -1,31 +1,26 @@
 /*
- * OpenHub → OpenWork unified palette
- * Remaps Radix slate colors and shadcn variables to neutral OpenHub tones.
+ * OpenHub → OpenWork — unified palette
+ * Remaps Radix slate + shadcn variables to neutral OpenHub tones.
  */
 
 [data-theme="dark"] {
-  /* Remap base slate palette to neutral grays (no blue/warm tint) */
+  /* Remap slate to neutral grays (no blue tint) */
   --slate-1: #111114 !important;
-  --slate-2: #19191d !important;
-  --slate-3: #222228 !important;
-  --slate-4: #292930 !important;
-  --slate-5: #303038 !important;
-  --slate-6: #3a3a44 !important;
-  --slate-7: #484856 !important;
-  --slate-8: #606070 !important;
-  --slate-9: #6e6e7e !important;
-  --slate-10: #7c7c8e !important;
-  --slate-11: #b0b0be !important;
+  --slate-2: #18181c !important;
+  --slate-3: #212128 !important;
+  --slate-4: #282830 !important;
+  --slate-5: #2e2e38 !important;
+  --slate-6: #383842 !important;
+  --slate-7: #464654 !important;
+  --slate-8: #5e5e6e !important;
+  --slate-9: #6c6c7c !important;
+  --slate-10: #7a7a8c !important;
+  --slate-11: #aeaebc !important;
   --slate-12: #ededf0 !important;
 
-  /* DLS overrides */
-  --dls-border: #282830 !important;
-  --dls-accent: #7c6af2 !important;
-  --dls-accent-hover: #8d7df5 !important;
-  --dls-accent-fg: #ffffff !important;
+  /* DLS */
+  --dls-border: #262630 !important;
 
-  /* Shadcn accent → OpenHub purple */
-  --primary: #7c6af2 !important;
-  --ring: #7c6af2 !important;
-  --sidebar-primary: #7c6af2 !important;
+  /* Shadcn border */
+  --border: #212128 !important;
 }
