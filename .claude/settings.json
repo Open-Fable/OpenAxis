@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": "echo 'File written — remember: never modify files in apps/'"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "echo 'Session complete. Run npm test before committing.'"
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm test)",
+      "Bash(npm run check:selectors)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(find *)",
+      "Bash(ls *)"
+    ]
+  }
+}
