@@ -1,5 +1,7 @@
 /*
- * OpenHub → OpenCode — unified neutral palette
+ * OpenHub → OpenCode — unified neutral palette + violet accents
+ * OpenCode defines dark vars inside @media (prefers-color-scheme: dark),
+ * so our overrides must live there too to win specificity.
  */
 
 :root {
@@ -24,7 +26,7 @@
   --button-primary-base: #ededf4 !important;
   --button-secondary-base: #141418 !important;
 
-  /* Remap blue/neutral accents → OpenHub violet */
+  /* Violet accents */
   --border-selected: #7c6af2 !important;
   --border-interactive-base: #9d8af7 !important;
   --border-interactive-hover: #8b7bf5 !important;
@@ -41,4 +43,47 @@
   --surface-interactive-weak: rgba(124, 106, 242, 0.06) !important;
   --surface-brand-base: #7c6af2 !important;
   --surface-brand-hover: #8b7bf5 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-base: #0e0e12 !important;
+    --background-weak: #141418 !important;
+    --background-strong: #101014 !important;
+    --background-stronger: #121216 !important;
+
+    --surface-float-base: #141418 !important;
+    --surface-float-base-hover: #1c1c24 !important;
+    --surface-raised-stronger-non-alpha: #1c1c24 !important;
+
+    --input-base: #141418 !important;
+    --input-hover: #1c1c24 !important;
+
+    --text-strong: rgba(237, 237, 244, 0.94) !important;
+    --text-base: rgba(174, 174, 190, 0.62) !important;
+
+    --border-weak-base: #1e1e28 !important;
+    --border-weaker-base: #1a1a22 !important;
+
+    --button-primary-base: #ededf4 !important;
+    --button-secondary-base: #141418 !important;
+
+    /* Violet accents — must repeat inside media query to override */
+    --border-selected: #7c6af2 !important;
+    --border-interactive-base: #9d8af7 !important;
+    --border-interactive-hover: #8b7bf5 !important;
+    --border-interactive-active: #7c6af2 !important;
+    --border-interactive-selected: #7c6af2 !important;
+    --border-weak-selected: rgba(124, 106, 242, 0.3) !important;
+    --border-strong-selected: rgba(124, 106, 242, 0.5) !important;
+    --text-interactive-base: #9d8af7 !important;
+    --icon-interactive-base: #7c6af2 !important;
+    --icon-agent-build-base: #9d8af7 !important;
+    --icon-agent-ask-base: #7c6af2 !important;
+    --surface-interactive-base: rgba(124, 106, 242, 0.12) !important;
+    --surface-interactive-hover: rgba(124, 106, 242, 0.16) !important;
+    --surface-interactive-weak: rgba(124, 106, 242, 0.06) !important;
+    --surface-brand-base: #7c6af2 !important;
+    --surface-brand-hover: #8b7bf5 !important;
+  }
 }
