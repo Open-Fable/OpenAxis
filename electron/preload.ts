@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld("openhub", {
 
   getApiKeys: () => ipcRenderer.invoke("get-api-keys"),
 
+  notifyConfigVisibility: (open: boolean) =>
+    ipcRenderer.send("config-visibility", open),
+
   saveApiKeys: (keys: {
     anthropic?: string;
     openai?: string;

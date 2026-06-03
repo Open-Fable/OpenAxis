@@ -182,16 +182,14 @@
     .config-card {
       background: #1e1e1e;
       border-bottom: 1px solid var(--border);
-      border-left: none;
-      border-right: none;
-      border-top: none;
       border-radius: 0 0 14px 14px;
-      padding: 20px 32px 24px;
-      transform: translateY(-100%);
+      padding: 16px 28px 20px;
+      height: 160px;
+      transform: translateY(-160px);
       transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
-      gap: 32px;
-      align-items: flex-start;
+      gap: 28px;
+      align-items: center;
     }
 
     #config-panel.open .config-card {
@@ -512,8 +510,14 @@
 
   const backdrop = document.getElementById('config-backdrop');
 
-  function openConfig() { configPanel.classList.add('open'); }
-  function closeConfig() { configPanel.classList.remove('open'); }
+  function openConfig() {
+    configPanel.classList.add('open');
+    window.openhub.notifyConfigVisibility(true);
+  }
+  function closeConfig() {
+    configPanel.classList.remove('open');
+    window.openhub.notifyConfigVisibility(false);
+  }
 
   window.openhub.onShowConfig(openConfig);
   document.getElementById('close-config').addEventListener('click', closeConfig);
