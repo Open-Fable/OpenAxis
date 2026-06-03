@@ -151,99 +151,137 @@
       50% { opacity: 0.3; }
     }
 
-    /* Config panel overlay */
+    /* ── Config top-sheet ── */
     #config-panel {
-      display: none;
       position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
+      left: 72px;
+      top: 0; right: 0;
       z-index: 100;
-      align-items: center;
-      justify-content: center;
+      pointer-events: none;
     }
 
-    #config-panel.open { display: flex; }
+    #config-panel.open { pointer-events: all; }
+
+    /* semi-transparent backdrop, only below the sheet */
+    #config-backdrop {
+      position: fixed;
+      left: 72px;
+      top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    #config-panel.open ~ #config-backdrop {
+      opacity: 1;
+      pointer-events: all;
+    }
 
     .config-card {
-      background: #222;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      width: 380px;
-      max-height: 80vh;
-      overflow-y: auto;
+      background: #1e1e1e;
+      border-bottom: 1px solid var(--border);
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      padding: 20px 32px 24px;
+      transform: translateY(-100%);
+      transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+    }
+
+    #config-panel.open .config-card {
+      transform: translateY(0);
     }
 
     .config-card h2 {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 20px;
+      margin-bottom: 14px;
+      white-space: nowrap;
     }
 
-    .config-section { margin-bottom: 20px; }
+    .config-sections {
+      display: flex;
+      gap: 32px;
+      flex: 1;
+    }
+
+    .config-section { flex: 1; min-width: 160px; }
 
     .config-section h3 {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .config-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
+      padding: 5px 0;
+      gap: 12px;
     }
 
     .config-row label {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text);
+      white-space: nowrap;
     }
 
     .config-row input[type="password"],
     .config-row input[type="text"] {
-      background: #2e2e2e;
+      background: #2a2a2a;
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text);
       font-size: 12px;
-      padding: 5px 10px;
-      width: 180px;
+      padding: 4px 8px;
+      width: 160px;
       outline: none;
     }
 
-    .config-row input:focus {
-      border-color: var(--accent);
+    .config-row input:focus { border-color: var(--accent); }
+
+    .config-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 24px;
     }
 
     .btn-save {
-      width: 100%;
-      padding: 10px;
-      margin-top: 16px;
+      padding: 8px 20px;
       background: var(--accent);
       border: none;
       border-radius: 8px;
       color: #fff;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .btn-close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       line-height: 1;
+      padding: 4px;
     }
+
+    .btn-close:hover { color: var(--text); }
 
     /* ── Welcome screen ── */
     #welcome {
@@ -380,47 +418,49 @@
   </div>
 </div>
 
-<!-- Config panel -->
+<!-- Config top-sheet (slides down from top of content area) -->
 <div id="config-panel">
-  <div class="config-card" style="position:relative">
-    <button class="btn-close" id="close-config">✕</button>
-    <h2>Configuration</h2>
-
-    <div class="config-section">
-      <h3>Clés API</h3>
-      <div class="config-row">
-        <label>Anthropic</label>
-        <input type="password" id="key-anthropic" placeholder="sk-ant-..." />
+  <div class="config-card">
+    <div>
+      <h2>⚙ Configuration</h2>
+    </div>
+    <div class="config-sections">
+      <div class="config-section">
+        <h3>Clés API</h3>
+        <div class="config-row">
+          <label>Anthropic</label>
+          <input type="password" id="key-anthropic" placeholder="sk-ant-..." />
+        </div>
+        <div class="config-row">
+          <label>OpenAI</label>
+          <input type="password" id="key-openai" placeholder="sk-..." />
+        </div>
+        <div class="config-row">
+          <label>Ollama URL</label>
+          <input type="text" id="key-ollama" placeholder="http://localhost:11434" />
+        </div>
       </div>
-      <div class="config-row">
-        <label>OpenAI</label>
-        <input type="password" id="key-openai" placeholder="sk-..." />
-      </div>
-      <div class="config-row">
-        <label>Ollama URL</label>
-        <input type="text" id="key-ollama" placeholder="http://localhost:11434" />
+      <div class="config-section">
+        <h3>OAuth</h3>
+        <div class="config-row">
+          <label>GitHub Token</label>
+          <input type="password" id="key-github" placeholder="ghp_..." />
+        </div>
+        <h3 style="margin-top:12px">Web Search</h3>
+        <div class="config-row">
+          <label>Brave Search</label>
+          <input type="password" id="key-brave" placeholder="BSA..." />
+        </div>
       </div>
     </div>
-
-    <div class="config-section">
-      <h3>OAuth</h3>
-      <div class="config-row">
-        <label>GitHub Token</label>
-        <input type="password" id="key-github" placeholder="ghp_..." />
-      </div>
+    <div class="config-actions">
+      <button class="btn-close" id="close-config">✕</button>
+      <button class="btn-save" id="save-config">Enregistrer</button>
     </div>
-
-    <div class="config-section">
-      <h3>Web Search</h3>
-      <div class="config-row">
-        <label>Brave Search API</label>
-        <input type="password" id="key-brave" placeholder="BSA..." />
-      </div>
-    </div>
-
-    <button class="btn-save" id="save-config">Enregistrer dans le Keychain</button>
   </div>
 </div>
+<!-- Backdrop — click outside to close -->
+<div id="config-backdrop"></div>
 
 <script>
   const buttons = document.querySelectorAll('.slot-btn[data-slot]');
@@ -470,11 +510,14 @@
     });
   });
 
-  window.openhub.onShowConfig(() => configPanel.classList.add('open'));
+  const backdrop = document.getElementById('config-backdrop');
 
-  document.getElementById('close-config').addEventListener('click', () => {
-    configPanel.classList.remove('open');
-  });
+  function openConfig() { configPanel.classList.add('open'); }
+  function closeConfig() { configPanel.classList.remove('open'); }
+
+  window.openhub.onShowConfig(openConfig);
+  document.getElementById('close-config').addEventListener('click', closeConfig);
+  backdrop.addEventListener('click', closeConfig);
 
   document.getElementById('save-config').addEventListener('click', async () => {
     await window.openhub.saveApiKeys({
