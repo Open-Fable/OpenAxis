@@ -1,9 +1,18 @@
 /*
  * OpenHub — Unified dark theme
  * Injected into ALL app webviews via insertCSS().
+ *
+ * Forces dark color-scheme and applies consistent styling:
+ * - Dark backgrounds and light text
+ * - Consistent font stack (SF Pro)
+ * - Smooth scrollbars matching the dark theme
+ * - Accent color override
  */
 
 :root {
+  color-scheme: dark !important;
+
+  /* OpenHub palette — consumed by per-app overrides if needed */
   --openhub-bg-primary: #1a1a1a;
   --openhub-bg-secondary: #242424;
   --openhub-bg-tertiary: #2e2e2e;
@@ -11,12 +20,29 @@
   --openhub-text-secondary: #a0a0a0;
   --openhub-accent: #7c6af2;
   --openhub-border: #333333;
-  --openhub-radius: 8px;
-  --openhub-radius-lg: 12px;
   --openhub-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
 body {
   font-family: var(--openhub-font) !important;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Dark scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
