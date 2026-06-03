@@ -21,8 +21,10 @@ contextBridge.exposeInMainWorld("openhub", {
 
   getApiKeys: () => ipcRenderer.invoke("get-api-keys"),
 
-  notifyConfigVisibility: (open: boolean) =>
-    ipcRenderer.send("config-visibility", open),
+  notifyConfigVisibility: (open: boolean) => ipcRenderer.send("config-visibility", open),
+
+  openworkDesktopInvoke: (command: string, ...args: unknown[]) =>
+    ipcRenderer.invoke("openwork-desktop-invoke", command, ...args),
 
   saveApiKeys: (keys: {
     anthropic?: string;
