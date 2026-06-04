@@ -4,6 +4,7 @@ import { request as httpRequest } from "http";
 import { homedir } from "os";
 import { readAllApiKeys } from "../keychain.js";
 import { getActiveProject } from "../project-store.js";
+import { buildMemoryBlock } from "../memory-store.js";
 
 const PROXY_PORT = 9999;
 const PROXY_HOST = "127.0.0.1";
@@ -397,7 +398,7 @@ export async function startProxy(): Promise<string> {
 
   app.get("/v1/models", async (_req, res) => {
     const keys = await readAllApiKeys();
-    res.json({ object: "list", data: buildModelList(keys) });
+    res.json({ object: "list", data: await buildModelList(keys) });
   });
 
   app.post("/v1/chat/completions", async (req: Request, res: Response) => {
@@ -405,6 +406,25 @@ export async function startProxy(): Promise<string> {
       const keys = await readAllApiKeys();
       const { model, ...rest } = req.body as { model: string; [k: string]: unknown };
       const { targetUrl, headers } = resolveRoute(model, keys);
+
+      const messages = rest.messages as
+        | Array<{ role: string; content: string }>
+        | undefined;
+
+      if (messages) {
+        const memBlock = await buildMemoryBlock();
+        if (memBlock) {
+          const sysIdx = messages.findIndex((m) => m.role === "system");
+          if (sysIdx >= 0) {
+            messages[sysIdx] = {
+              ...messages[sysIdx],
+              content: memBlock + "\n\n" + messages[sysIdx].content,
+            };
+          } else {
+            messages.unshift({ role: "system", content: memBlock });
+          }
+        }
+      }
 
       const upstream = await fetch(targetUrl, {
         method: "POST",
@@ -438,10 +458,19 @@ export async function startProxy(): Promise<string> {
   return sessionToken;
 }
 
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+
 function resolveRoute(
   model: string,
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
 ): { targetUrl: string; headers: Record<string, string> } {
+  // OpenRouter models use provider/model-name format
+  if (model.includes("/") && keys.openrouterKey) {
+    return {
+      targetUrl: `${OPENROUTER_BASE}/chat/completions`,
+      headers: { Authorization: `Bearer ${keys.openrouterKey}` },
+    };
+  }
   if (model.startsWith("claude-")) {
     return {
       targetUrl: "https://api.anthropic.com/v1/messages",
@@ -457,13 +486,44 @@ function resolveRoute(
   return { targetUrl: `${keys.ollamaUrl}/v1/chat/completions`, headers: {} };
 }
 
-function buildModelList(
+// Cache OpenRouter model list for 5 minutes to avoid hammering their API
+let orModelCache: Array<{ id: string; object: string }> | null = null;
+let orModelCacheExpiry = 0;
+
+async function fetchOpenRouterModels(
+  apiKey: string,
+): Promise<Array<{ id: string; object: string }>> {
+  const now = Date.now();
+  if (orModelCache && now < orModelCacheExpiry) return orModelCache;
+
+  try {
+    const res = await fetch(`${OPENROUTER_BASE}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return orModelCache ?? [];
+    const data = (await res.json()) as { data?: Array<{ id: string }> };
+    const list = (data.data ?? []).map((m) => ({ id: m.id, object: "model" }));
+    orModelCache = list;
+    orModelCacheExpiry = now + 5 * 60 * 1000;
+    return list;
+  } catch {
+    return orModelCache ?? [];
+  }
+}
+
+async function buildModelList(
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
-): Array<{ id: string; object: string }> {
-  const models: string[] = [];
+): Promise<Array<{ id: string; object: string }>> {
+  const direct: string[] = [];
   if (keys.anthropic)
-    models.push("claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5");
-  if (keys.openai) models.push("gpt-4o", "gpt-4o-mini", "o3-mini");
-  models.push("llama3", "mistral", "phi3");
-  return models.map((id) => ({ id, object: "model" }));
+    direct.push("claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5");
+  if (keys.openai) direct.push("gpt-4o", "gpt-4o-mini", "o3-mini");
+  direct.push("llama3", "mistral", "phi3");
+
+  const orModels = keys.openrouterKey
+    ? await fetchOpenRouterModels(keys.openrouterKey)
+    : [];
+
+  return [...direct.map((id) => ({ id, object: "model" })), ...orModels];
 }

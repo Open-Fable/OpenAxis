@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-type SlotName = "work" | "code" | "design" | "config";
+type SlotName = "work" | "code" | "design" | "chat" | "config";
 
 contextBridge.exposeInMainWorld("openhub", {
   switchSlot: (slot: SlotName) => ipcRenderer.invoke("switch-slot", slot),
@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld("openhub", {
     ipcRenderer.on("show-config", () => cb());
   },
 
+  onApiKeysUpdated: (cb: () => void) => {
+    ipcRenderer.on("api-keys-updated", () => cb());
+  },
+
   webSearch: (query: string) => ipcRenderer.invoke("web-search", query),
 
   getApiKeys: () => ipcRenderer.invoke("get-api-keys"),
@@ -29,6 +33,7 @@ contextBridge.exposeInMainWorld("openhub", {
   saveApiKeys: (keys: {
     anthropic?: string;
     openai?: string;
+    openrouterKey?: string;
     ollamaUrl?: string;
     githubToken?: string;
     braveSearchKey?: string;
@@ -44,4 +49,17 @@ contextBridge.exposeInMainWorld("openhub", {
     color: string;
   }) => ipcRenderer.invoke("save-project", project),
   deleteProject: (id: string) => ipcRenderer.invoke("delete-project", id),
+
+  getChatConfig: () => ipcRenderer.invoke("get-chat-config"),
+
+  exportHtmlToPdf: (html: string) => ipcRenderer.invoke("export-html-to-pdf", html),
+
+  getMemory: () => ipcRenderer.invoke("get-memory"),
+  setMemoryEnabled: (enabled: boolean) => ipcRenderer.invoke("set-memory-enabled", enabled),
+  setMemoryProfile: (profile: string) => ipcRenderer.invoke("set-memory-profile", profile),
+  addMemoryFact: (text: string, tags: string[]) =>
+    ipcRenderer.invoke("add-memory-fact", text, tags),
+  removeMemoryFact: (id: string) => ipcRenderer.invoke("remove-memory-fact", id),
+  updateMemoryFact: (id: string, patch: { text?: string; tags?: string[] }) =>
+    ipcRenderer.invoke("update-memory-fact", id, patch),
 });

@@ -207,13 +207,17 @@
       transform: translateY(-50%) translateX(0);
     }
 
-    /* ── Config top-sheet ── */
+    /* ── Config modal ── */
     #config-panel {
       position: fixed;
       left: 72px;
-      top: 0; right: 0;
+      top: 0; right: 0; bottom: 0;
       z-index: 100;
       pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
     #config-panel.open { pointer-events: all; }
@@ -222,9 +226,9 @@
       position: fixed;
       left: 72px;
       top: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 99;
       opacity: 0;
       pointer-events: none;
@@ -237,62 +241,83 @@
     }
 
     .config-card {
-      background: rgba(20, 20, 28, 0.92);
-      backdrop-filter: blur(20px) saturate(140%);
-      -webkit-backdrop-filter: blur(20px) saturate(140%);
-      border-bottom: 1px solid var(--border-strong);
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      padding: 20px 32px 24px;
-      transform: translateY(-100%);
-      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
-      display: flex;
-      gap: 32px;
-      align-items: flex-start;
+      position: relative;
+      z-index: 100;
+      background: #15151c;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      width: 560px;
+      max-width: 100%;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+      transition: opacity 200ms ease, transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     #config-panel.open .config-card {
-      transform: translateY(0);
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
 
-    .config-header {
+    .config-card-header {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 100px;
-      padding-top: 2px;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .config-header h2 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-bright);
+    .config-card-title {
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-bright);
     }
 
-    .config-header h2 svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 1.75; }
+    .config-card-title svg {
+      width: 16px; height: 16px;
+      stroke: var(--accent); fill: none; stroke-width: 1.75;
+    }
 
-    .config-header p {
+    .config-card-sub {
+      display: block;
       font-size: 11px;
       color: var(--text-muted);
+      margin-top: 4px;
     }
 
-    .config-sections {
-      display: flex;
-      gap: 36px;
-      flex: 1;
+    .config-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 20px 24px 8px;
     }
 
-    .config-section { flex: 1; min-width: 170px; }
+    .config-col:first-child {
+      padding-right: 22px;
+      border-right: 1px solid var(--border);
+    }
 
-    .config-section h3 {
+    .config-col:last-child {
+      padding-left: 22px;
+    }
+
+    .config-col h3 {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       font-weight: 600;
+    }
+
+    .config-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 14px 24px 20px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
     }
 
     .config-field { margin-bottom: 10px; }
@@ -350,21 +375,13 @@
     .btn-reveal:hover { color: var(--text); }
     .btn-reveal svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.75; }
 
-    .config-actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 10px;
-      padding-top: 4px;
-    }
-
     .btn-save {
-      padding: 8px 18px;
+      padding: 9px 22px;
       background: var(--accent);
       border: none;
       border-radius: var(--radius-sm);
       color: #fff;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       font-family: var(--font);
       cursor: pointer;
@@ -377,7 +394,7 @@
 
     .btn-save:hover {
       background: #8b7bf5;
-      box-shadow: 0 0 12px var(--accent-glow);
+      box-shadow: 0 0 16px var(--accent-glow);
     }
 
     .btn-save svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
@@ -398,6 +415,196 @@
     .btn-close-cfg:hover { color: var(--text); background: var(--hover-bg); }
 
     .btn-close-cfg svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ── Memory section ── */
+    .memory-section {
+      padding: 0 24px 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .memory-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0 10px;
+    }
+
+    .memory-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .toggle-wrap {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle-wrap input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 200ms;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: transform 200ms, background 200ms;
+    }
+
+    .toggle-wrap input:checked + .toggle-track {
+      background: var(--accent);
+    }
+
+    .toggle-wrap input:checked + .toggle-track::after {
+      transform: translateX(16px);
+      background: #fff;
+    }
+
+    .memory-profile-field {
+      margin-bottom: 10px;
+    }
+
+    .memory-profile-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font);
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .memory-profile-field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .memory-profile-field input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+    .memory-profile-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .memory-facts-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .fact-list {
+      max-height: 140px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .fact-list::-webkit-scrollbar { width: 4px; }
+    .fact-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+
+    .fact-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .fact-item span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .fact-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      flex-shrink: 0;
+      transition: color 120ms;
+    }
+
+    .fact-remove:hover { color: var(--error, #ef4444); }
+    .fact-remove svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    .add-fact-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .add-fact-row input {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 11px;
+      font-family: var(--font);
+      padding: 6px 8px;
+      outline: none;
+    }
+
+    .add-fact-row input:focus { border-color: var(--accent); }
+    .add-fact-row input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+    .btn-add-fact {
+      background: var(--accent-soft);
+      border: 1px solid rgba(124,106,242,0.2);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 0 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 120ms;
+    }
+
+    .btn-add-fact:hover { background: rgba(124,106,242,0.2); }
+
+    .memory-token-hint {
+      font-size: 10px;
+      color: var(--text-muted);
+      opacity: 0.7;
+      margin-top: 6px;
+    }
 
     /* ── Welcome screen ── */
     #welcome {
@@ -490,6 +697,7 @@
     .welcome-card:nth-child(1) { animation-delay: 80ms; }
     .welcome-card:nth-child(2) { animation-delay: 150ms; }
     .welcome-card:nth-child(3) { animation-delay: 220ms; }
+    .welcome-card:nth-child(4) { animation-delay: 290ms; }
 
     @keyframes card-in {
       from { opacity: 0; transform: translateY(16px); }
@@ -574,6 +782,14 @@
       <span class="slot-label">Design</span>
       <span class="tooltip">Open Design</span>
     </button>
+
+    <button class="slot-btn" data-slot="chat">
+      <span class="slot-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </span>
+      <span class="slot-label">Chat</span>
+      <span class="tooltip">Chat IA</span>
+    </button>
   </div>
 
   <div class="divider"></div>
@@ -620,21 +836,33 @@
       <span class="welcome-card-name">Design</span>
       <span class="welcome-card-desc">Générer des prototypes, slides et visuels par prompt</span>
     </div>
+    <div class="welcome-card" data-slot="chat">
+      <div class="welcome-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <span class="welcome-card-name">Chat</span>
+      <span class="welcome-card-desc">Converser directement avec les modèles IA</span>
+    </div>
   </div>
 </div>
 
-<!-- Config top-sheet -->
+<!-- Config modal -->
 <div id="config-panel">
   <div class="config-card">
-    <div class="config-header">
-      <h2>
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Configuration
-      </h2>
-      <p>Clés API stockées dans le Keychain macOS</p>
+    <div class="config-card-header">
+      <div>
+        <div class="config-card-title">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Configuration
+        </div>
+        <span class="config-card-sub">Clés API stockées dans le Keychain macOS</span>
+      </div>
+      <button class="btn-close-cfg" id="close-config" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div class="config-sections">
-      <div class="config-section">
+    <div class="config-body">
+      <div class="config-col">
         <h3>Modèles IA</h3>
         <div class="config-field">
           <label>Anthropic</label>
@@ -655,13 +883,22 @@
           </div>
         </div>
         <div class="config-field">
+          <label>OpenRouter</label>
+          <div class="config-input-wrap">
+            <input type="password" id="key-openrouter" placeholder="sk-or-v1-..." />
+            <button class="btn-reveal" data-target="key-openrouter" aria-label="Afficher">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="config-field">
           <label>Ollama URL</label>
           <div class="config-input-wrap">
             <input type="text" id="key-ollama" placeholder="http://localhost:11434" />
           </div>
         </div>
       </div>
-      <div class="config-section">
+      <div class="config-col">
         <h3>Intégrations</h3>
         <div class="config-field">
           <label>GitHub Token</label>
@@ -683,10 +920,29 @@
         </div>
       </div>
     </div>
-    <div class="config-actions">
-      <button class="btn-close-cfg" id="close-config" aria-label="Fermer">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+    <div class="memory-section">
+      <div class="memory-header">
+        <span class="memory-title">Mémoire IA</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="memory-toggle" checked />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div id="memory-body">
+        <div class="memory-profile-field">
+          <label>Profil (YAML compact)</label>
+          <input type="text" id="memory-profile" placeholder="lang:fr style:concis stack:ts,electron" />
+        </div>
+        <div class="memory-facts-label">Faits</div>
+        <div class="fact-list" id="fact-list"></div>
+        <div class="add-fact-row">
+          <input type="text" id="new-fact" placeholder="Ex: proxy :9999 bearer auth localhost" />
+          <button class="btn-add-fact" id="btn-add-fact">+ Ajouter</button>
+        </div>
+        <div class="memory-token-hint" id="memory-token-hint"></div>
+      </div>
+    </div>
+    <div class="config-footer">
       <button class="btn-save" id="save-config">
         <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Enregistrer
@@ -757,12 +1013,14 @@
         if (!keys) return;
         if (keys.anthropic) document.getElementById('key-anthropic').value = keys.anthropic;
         if (keys.openai) document.getElementById('key-openai').value = keys.openai;
+        if (keys.openrouterKey) document.getElementById('key-openrouter').value = keys.openrouterKey;
         if (keys.ollamaUrl && keys.ollamaUrl !== 'http://127.0.0.1:11434')
           document.getElementById('key-ollama').value = keys.ollamaUrl;
         if (keys.githubToken) document.getElementById('key-github').value = keys.githubToken;
         if (keys.braveSearchKey) document.getElementById('key-brave').value = keys.braveSearchKey;
       }).catch(function() {});
     }
+    loadMemoryUI();
   }
 
   function closeConfig() {
@@ -780,6 +1038,7 @@
     window.openhub.saveApiKeys({
       anthropic: document.getElementById('key-anthropic').value,
       openai: document.getElementById('key-openai').value,
+      openrouterKey: document.getElementById('key-openrouter').value,
       ollamaUrl: document.getElementById('key-ollama').value,
       githubToken: document.getElementById('key-github').value,
       braveSearchKey: document.getElementById('key-brave').value,
@@ -821,6 +1080,101 @@
         svg.replaceWith(newSvg);
       }
     });
+  });
+
+  // ── Memory UI ──
+
+  var memToggle = document.getElementById('memory-toggle');
+  var memBody = document.getElementById('memory-body');
+  var memProfile = document.getElementById('memory-profile');
+  var factListEl = document.getElementById('fact-list');
+  var newFactInput = document.getElementById('new-fact');
+  var tokenHint = document.getElementById('memory-token-hint');
+
+  function approxTokens(text) {
+    return Math.ceil(text.length / 3.5);
+  }
+
+  function loadMemoryUI() {
+    if (!window.openhub.getMemory) return;
+    window.openhub.getMemory().then(function(mem) {
+      if (!mem) return;
+      memToggle.checked = mem.enabled;
+      memBody.style.display = mem.enabled ? '' : 'none';
+      memProfile.value = mem.profile || '';
+      renderFacts(mem.facts || []);
+      updateTokenHint(mem);
+    }).catch(function() {});
+  }
+
+  function renderFacts(facts) {
+    factListEl.innerHTML = '';
+    for (var i = 0; i < facts.length; i++) {
+      var f = facts[i];
+      var div = document.createElement('div');
+      div.className = 'fact-item';
+      div.dataset.id = f.id;
+      var span = document.createElement('span');
+      span.textContent = f.text;
+      span.title = f.text;
+      var btn = document.createElement('button');
+      btn.className = 'fact-remove';
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      btn.dataset.id = f.id;
+      btn.addEventListener('click', function() {
+        var id = this.dataset.id;
+        window.openhub.removeMemoryFact(id).then(loadMemoryUI);
+      });
+      div.appendChild(span);
+      div.appendChild(btn);
+      factListEl.appendChild(div);
+    }
+  }
+
+  function updateTokenHint(mem) {
+    var profileTokens = approxTokens(mem.profile || '');
+    var facts = (mem.facts || []).slice().sort(function(a, b) { return b.lastUsedAt - a.lastUsedAt; });
+    var budget = mem.maxFactTokens || 150;
+    var factTokens = 0;
+    var includedFacts = 0;
+    for (var i = 0; i < facts.length; i++) {
+      var cost = approxTokens('- ' + facts[i].text);
+      if (cost > budget) continue;
+      budget -= cost;
+      factTokens += cost;
+      includedFacts++;
+    }
+    var total = profileTokens + factTokens + 6; // 6 ≈ <memory> tags overhead
+    tokenHint.textContent = '~' + total + ' tokens injectés · ' + includedFacts + '/' + (mem.facts || []).length + ' faits · ' + (mem.facts || []).length + '/50 max';
+  }
+
+  memToggle.addEventListener('change', function() {
+    var enabled = memToggle.checked;
+    memBody.style.display = enabled ? '' : 'none';
+    window.openhub.setMemoryEnabled(enabled);
+  });
+
+  var profileTimer = null;
+  memProfile.addEventListener('input', function() {
+    clearTimeout(profileTimer);
+    profileTimer = setTimeout(function() {
+      window.openhub.setMemoryProfile(memProfile.value);
+      loadMemoryUI();
+    }, 600);
+  });
+
+  document.getElementById('btn-add-fact').addEventListener('click', function() {
+    var text = newFactInput.value.trim();
+    if (!text) return;
+    newFactInput.value = '';
+    window.openhub.addMemoryFact(text, []).then(loadMemoryUI);
+  });
+
+  newFactInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('btn-add-fact').click();
+    }
   });
 </script>
 

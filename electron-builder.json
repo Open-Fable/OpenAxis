@@ -5,7 +5,8 @@
     "dist/**/*",
     "electron/overrides/**/*",
     "electron/settings/**/*",
-    "electron/sidebar.html"
+    "electron/sidebar.html",
+    "electron/chat.html"
   ],
   "extraMetadata": {
     "main": "dist/electron/main.js"

@@ -39,7 +39,7 @@ export class ProcessManager {
     this.apiKeys = apiKeys;
   }
 
-  async ensureRunning(slot: Exclude<SlotName, "config">): Promise<number | null> {
+  async ensureRunning(slot: Exclude<SlotName, "config" | "chat">): Promise<number | null> {
     if (this.running.has(slot)) return this.running.get(slot)!.port;
 
     // Deduplicate concurrent calls — only one spawn per slot at a time
@@ -54,7 +54,7 @@ export class ProcessManager {
     }
   }
 
-  private async doStart(slot: Exclude<SlotName, "config">): Promise<number | null> {
+  private async doStart(slot: Exclude<SlotName, "config" | "chat">): Promise<number | null> {
     // Use localhost (not 127.0.0.1) — Vite/opencode bind to ::1 on modern macOS
     const knownUrls: Partial<Record<string, string>> = {
       work: "http://localhost:5173",

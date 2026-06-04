@@ -1,6 +1,6 @@
 // OpenHub — Shared type definitions
 
-export type SlotName = "work" | "code" | "design" | "config";
+export type SlotName = "work" | "code" | "design" | "chat" | "config";
 
 export interface SlotConfig {
   readonly name: SlotName;

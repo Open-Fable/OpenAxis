@@ -24,15 +24,17 @@ export async function deleteSecret(service: string, account: string): Promise<vo
 export async function readAllApiKeys(): Promise<{
   anthropic: string | null;
   openai: string | null;
+  openrouterKey: string | null;
   googleAiKey: string | null;
   githubToken: string | null;
   braveSearchKey: string | null;
   ollamaUrl: string;
 }> {
-  const [anthropic, openai, googleAiKey, githubToken, braveSearchKey, ollamaUrl] =
+  const [anthropic, openai, openrouterKey, googleAiKey, githubToken, braveSearchKey, ollamaUrl] =
     await Promise.all([
       keytar.getPassword(SERVICE, "anthropic-api-key"),
       keytar.getPassword(SERVICE, "openai-api-key"),
+      keytar.getPassword(SERVICE, "openrouter-api-key"),
       keytar.getPassword(SERVICE, "google-ai-key"),
       keytar.getPassword(SERVICE, "github-token"),
       keytar.getPassword(SERVICE, "brave-search-key"),
@@ -42,6 +44,7 @@ export async function readAllApiKeys(): Promise<{
   return {
     anthropic,
     openai,
+    openrouterKey,
     googleAiKey,
     githubToken,
     braveSearchKey,

@@ -14,6 +14,14 @@ import {
   setActiveProject,
   getActiveProject,
 } from "./project-store.js";
+import {
+  getMemory,
+  setEnabled as setMemoryEnabled,
+  setProfile as setMemoryProfile,
+  addFact,
+  removeFact,
+  updateFact,
+} from "./memory-store.js";
 import type { SlotName } from "./types.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +31,7 @@ const MIN_WIDTH = 900;
 const MIN_HEIGHT = 600;
 
 // Use localhost (not 127.0.0.1) — Vite/opencode bind to ::1 (IPv6) on modern macOS
-const SLOT_URLS: Record<Exclude<SlotName, "config">, string> = {
+const SLOT_URLS: Record<Exclude<SlotName, "config" | "chat">, string> = {
   work: "http://localhost:5173",
   code: "http://127.0.0.1:4096",
   design: "", // captured at spawn
@@ -33,6 +41,7 @@ let mainWindow: BrowserWindow | null = null;
 const views = new Map<SlotName, WebContentsView>();
 let activeSlot: SlotName = "work";
 let processManager: ProcessManager | null = null;
+let proxyToken = "";
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
@@ -60,7 +69,7 @@ async function createWindow(): Promise<void> {
   });
 }
 
-function createSlotView(slot: Exclude<SlotName, "config">): WebContentsView {
+function createSlotView(slot: Exclude<SlotName, "config" | "chat">): WebContentsView {
   const view = new WebContentsView({
     webPreferences: {
       contextIsolation: true,
@@ -89,7 +98,7 @@ function createSlotView(slot: Exclude<SlotName, "config">): WebContentsView {
 }
 
 async function injectOverrides(
-  slot: Exclude<SlotName, "config">,
+  slot: Exclude<SlotName, "config" | "chat">,
   view: WebContentsView,
 ): Promise<void> {
   const cssBlocks = await loadOverrides(slot, "css");
@@ -121,7 +130,6 @@ async function loadViewUrl(view: WebContentsView, url: string): Promise<void> {
   }
 }
 
-const CONFIG_PANEL_HEIGHT = 180;
 let configOpen = false;
 
 function repositionViews(): void {
@@ -129,18 +137,13 @@ function repositionViews(): void {
   const [width, height] = mainWindow.getContentSize();
   const contentX = SIDEBAR_WIDTH;
   const contentWidth = width - SIDEBAR_WIDTH;
-  const offsetY = configOpen ? CONFIG_PANEL_HEIGHT : 0;
 
   for (const [slot, view] of views) {
     const isActive = slot === activeSlot;
-    view.setVisible(isActive);
+    // Hide active view when config modal is open so sidebar.html shows through
+    view.setVisible(isActive && !configOpen);
     if (isActive) {
-      view.setBounds({
-        x: contentX,
-        y: offsetY,
-        width: contentWidth,
-        height: height - offsetY,
-      });
+      view.setBounds({ x: contentX, y: 0, width: contentWidth, height });
     }
   }
 }
@@ -160,6 +163,35 @@ async function switchSlot(slot: SlotName): Promise<void> {
   }
 
   if (!mainWindow) return;
+
+  if (slot === "chat") {
+    if (!views.has("chat")) {
+      const view = new WebContentsView({
+        webPreferences: {
+          contextIsolation: true,
+          sandbox: true,
+          nodeIntegration: false,
+          preload: path.join(__dirname, "preload.js"),
+        },
+      });
+      view.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+          shell.openExternal(url);
+        }
+        return { action: "deny" };
+      });
+      mainWindow.contentView.addChildView(view);
+      views.set("chat", view);
+      await view.webContents.loadFile(path.join(__dirname, "chat.html"));
+    } else {
+      mainWindow.contentView.addChildView(views.get("chat")!);
+    }
+    activeSlot = "chat";
+    repositionViews();
+    mainWindow.webContents.send("slot-changed", "chat");
+    mainWindow.setTitle("OpenHub — Chat");
+    return;
+  }
 
   // Start the service (or reuse if already running)
   if (processManager) {
@@ -209,6 +241,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
     work: "OpenHub — Work",
     code: "OpenHub — Code",
     design: "OpenHub — Design",
+    chat: "OpenHub — Chat",
   };
   mainWindow.setTitle(slotTitles[slot] ?? "OpenHub");
 
@@ -377,6 +410,53 @@ ipcMain.handle(
 );
 ipcMain.handle("delete-project", (_e, id: string) => deleteProject(id));
 
+// ── Memory management ───────────────────────────────────────────────────────
+ipcMain.handle("get-memory", () => getMemory());
+ipcMain.handle("set-memory-enabled", (_e, enabled: boolean) => setMemoryEnabled(enabled));
+ipcMain.handle("set-memory-profile", (_e, profile: string) => setMemoryProfile(profile));
+ipcMain.handle("add-memory-fact", (_e, text: string, tags: string[]) => addFact(text, tags));
+ipcMain.handle("remove-memory-fact", (_e, id: string) => removeFact(id));
+ipcMain.handle(
+  "update-memory-fact",
+  (_e, id: string, patch: { text?: string; tags?: string[] }) => updateFact(id, patch),
+);
+
+ipcMain.handle("get-chat-config", () => ({
+  proxyUrl: "http://127.0.0.1:9999",
+  token: proxyToken,
+}));
+
+ipcMain.handle("export-html-to-pdf", async (_e, html: string) => {
+  const win = new BrowserWindow({
+    show: false,
+    width: 800,
+    height: 600,
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+  });
+
+  try {
+    await win.loadURL(
+      "data:text/html;charset=utf-8," + encodeURIComponent(html),
+    );
+
+    const { filePath } = await dialog.showSaveDialog({
+      defaultPath: "document.pdf",
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    });
+
+    if (!filePath) return false;
+
+    const { promises: fs } = await import("fs");
+    const pdf = await win.webContents.printToPDF({
+      printBackground: true,
+    });
+    await fs.writeFile(filePath, pdf);
+    return true;
+  } finally {
+    win.destroy();
+  }
+});
+
 ipcMain.handle("get-api-keys", async () => {
   const { readAllApiKeys } = await import("./keychain.js");
   return readAllApiKeys();
@@ -387,6 +467,7 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
   const map: Record<string, string> = {
     anthropic: "anthropic-api-key",
     openai: "openai-api-key",
+    openrouterKey: "openrouter-api-key",
     googleAiKey: "google-ai-key",
     ollamaUrl: "ollama-url",
     githubToken: "github-token",
@@ -395,17 +476,21 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
   for (const [field, account] of Object.entries(map)) {
     if (keys[field]) await writeSecret("openhub", account, keys[field]);
   }
+  // Notify chat view to refresh its model list
+  const chatView = views.get("chat");
+  if (chatView) chatView.webContents.send("api-keys-updated");
 });
 
 app.whenReady().then(async () => {
-  const proxyToken = await startProxy();
+  proxyToken = await startProxy();
 
   const anthropicKey = await readSecret("openhub", "anthropic-api-key");
   const openaiKey = await readSecret("openhub", "openai-api-key");
+  const openrouterKey = await readSecret("openhub", "openrouter-api-key");
   const googleAiKey = await readSecret("openhub", "google-ai-key");
 
   processManager = new ProcessManager(proxyToken, { googleAiKey });
-  await generateOpenCodeConfig({ proxyToken, anthropicKey, openaiKey });
+  await generateOpenCodeConfig({ proxyToken, anthropicKey, openaiKey, openrouterKey });
 
   // Start opencode in the background — Work slot needs the opencode engine
   // for workspace sessions. Don't await: let it start while window loads.

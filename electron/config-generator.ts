@@ -8,6 +8,7 @@ interface GenerateOptions {
   proxyToken: string;
   anthropicKey: string | null;
   openaiKey: string | null;
+  openrouterKey: string | null;
 }
 
 export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<void> {
@@ -30,6 +31,14 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
   if (opts.openaiKey) {
     models["gpt-4o"] = { name: "GPT-4o" };
     models["gpt-4o-mini"] = { name: "GPT-4o Mini" };
+  }
+  if (opts.openrouterKey) {
+    models["anthropic/claude-opus-4"] = { name: "Claude Opus 4 (OpenRouter)" };
+    models["anthropic/claude-sonnet-4-5"] = { name: "Claude Sonnet 4.5 (OpenRouter)" };
+    models["openai/gpt-4o"] = { name: "GPT-4o (OpenRouter)" };
+    models["google/gemini-2.0-flash-001"] = { name: "Gemini 2.0 Flash (OpenRouter)" };
+    models["deepseek/deepseek-r1"] = { name: "DeepSeek R1 (OpenRouter)" };
+    models["meta-llama/llama-3.3-70b-instruct"] = { name: "Llama 3.3 70B (OpenRouter)" };
   }
   models["llama3"] = { name: "Llama 3 (local)" };
   models["mistral"] = { name: "Mistral (local)" };
