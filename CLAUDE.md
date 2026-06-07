@@ -8,6 +8,7 @@ For trivial tasks, use judgment.
 Don't assume. Don't hide confusion. Surface tradeoffs.
 
 Before implementing:
+
 - State assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -30,12 +31,14 @@ Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 Touch only what you must. Clean up only your own mess.
 
 When editing existing code:
+
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it — don't delete it.
 
 When your changes create orphans:
+
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
@@ -46,11 +49,13 @@ The test: Every changed line should trace directly to the user's request.
 Define success criteria. Loop until verified.
 
 Transform tasks into verifiable goals:
+
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
+
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]
@@ -88,12 +93,12 @@ scripts/            ← Setup, update, selector-check utilities
 
 ### Apps & Ports
 
-| Slot | App | Port | Start command |
-|------|-----|------|---------------|
-| Work | openwork `apps/app` | 5173 | `pnpm dev:ui` (dev) / serve build (prod) |
-| Code | opencode | 4096 | `opencode serve` + `opencode web` |
-| Design | open-design | captured at spawn | `od` daemon |
-| Proxy | internal Express | 9999 | started by Electron main |
+| Slot   | App                 | Port              | Start command                            |
+| ------ | ------------------- | ----------------- | ---------------------------------------- |
+| Work   | openwork `apps/app` | 5173              | `pnpm dev:ui` (dev) / serve build (prod) |
+| Code   | opencode            | 4096              | `opencode serve` + `opencode web`        |
+| Design | open-design         | captured at spawn | `od` daemon                              |
+| Proxy  | internal Express    | 9999              | started by Electron main                 |
 
 ### Stack
 
@@ -155,6 +160,7 @@ npm run typecheck        # tsc --noEmit
 ### Override System Rules
 
 When creating/editing files in `electron/overrides/`:
+
 - Target semantic selectors (`data-*`, `aria-*`, `role`, `id`) over utility classes
 - Each override = 1 file, 1 purpose
 - Register in `electron/overrides/index.json`
@@ -165,6 +171,7 @@ When creating/editing files in `electron/overrides/`:
 ### Hooks
 
 Pre-commit hooks are configured via Husky + lint-staged:
+
 - ESLint + Prettier on staged files
 - `tsc --noEmit` verifies types
 - Graphify knowledge graph updated daily via terminal hook (no AI needed)

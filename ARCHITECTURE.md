@@ -9,17 +9,87 @@
 **Statut :** V1 figée — vérifiée sur le code source réel des dépôts.
 **Date :** 2026-06-03.
 
+## RÈGLES CRITIQUES : PROTECTION ABSOLUE DU CACHE DEEPSEEK (PREFIX CACHING)
+
+Le fichier `electron/proxy/index.ts` contient une logique critique optimisée pour le "Prefix Caching" de DeepSeek.  
+Toute modification de la structure du préfixe, de l’ordre des messages, de la composition des blocs système, ou de l’historique conversationnel peut provoquer une chute majeure du cache hit rate, augmenter fortement les tokens recalculés, dégrader les performances et augmenter les coûts API. [cite:11][cite:12]
+
+### INTERDICTION ABSOLUE
+
+Il est strictement interdit de modifier automatiquement, refactoriser, réordonner, simplifier, nettoyer, dédupliquer, factoriser ou “améliorer” les zones suivantes sans validation explicite de l’utilisateur :
+
+- la structure des messages système dans `electron/proxy/index.ts`
+- l’ordre exact des 5 blocs système
+- la présence de 5 blocs système fixes, même vides
+- la valeur et la gestion de `userQuery` (actuellement figée à `""`)
+- toute logique liée à `structuredMessages.push(...)`
+- toute logique qui change la position, le contenu ou l’ordre des messages avant l’appel provider
+- toute logique de suppression de doublons dans l’historique
+- toute mutation automatique d’un fichier ou contenu injecté dans le préfixe, notamment `AGENT-MEMORY.md`
+- toute logique de mémoire ou skills pouvant faire varier le préfixe d’un tour à l’autre
+- toute logique de réinjection sur les sous-agents
+- toute logique liée à `bypassInjection`
+- toute logique touchant `buildMemoryBlock` et `buildDynamicSkillsSnippet`
+
+### INVARIANTS NON NÉGOCIABLES
+
+Les invariants suivants doivent être considérés comme contractuels et ne doivent jamais être cassés :
+
+1. Le prompt système doit toujours conserver exactement 5 blocs système, dans le même ordre, avec la même forme JSON, même si certains blocs sont vides.
+2. Le préfixe doit rester le plus stable possible entre deux requêtes successives.
+3. Aucun contenu volatil ne doit être injecté tôt dans le prompt si cela modifie le préfixe.
+4. L’historique ne doit pas être dédupliqué si cette déduplication change la séquence exacte des messages envoyés au provider.
+5. Aucun mécanisme automatique ne doit réécrire ou enrichir un contenu injecté dans le préfixe sans accord explicite.
+6. Les sous-agents ne doivent jamais subir une double injection architecture/mémoire/skills.
+7. Toute modification impactant la stabilité du préfixe doit être considérée comme une régression potentielle de performance.
+
+### COMPORTEMENT OBLIGATOIRE DE L’AGENT
+
+Si une tâche, un patch, une correction, une optimisation, une refactorisation ou un nettoyage implique l’un des éléments protégés ci-dessus, l’agent doit obligatoirement :
+
+1. stopper immédiatement toute tentative de modification ;
+2. expliquer explicitement que le changement risque de casser le prefix caching DeepSeek ;
+3. décrire textuellement l’impact probable sur le cache hit rate, les coûts et les performances ;
+4. attendre une confirmation explicite de l’utilisateur ;
+5. ne produire aucun diff, aucun patch, aucune réécriture de code tant que cette confirmation n’a pas été donnée.
+
+### INTERDICTIONS SPÉCIFIQUES
+
+Les actions suivantes sont interdites par défaut :
+
+- supprimer des doublons dans l’historique si cela modifie la séquence transmise au provider ;
+- modifier automatiquement `AGENT-MEMORY.md` ou tout équivalent injecté dans les blocs système ;
+- changer l’ordre des blocs système ;
+- remplacer une structure fixe par une structure conditionnelle ;
+- fusionner, compresser ou supprimer des messages système “vides” ;
+- réactiver une injection sur des appels sous-agents protégés ;
+- modifier les zones liées à `userQuery`, `structuredMessages`, `bypassInjection`, `buildMemoryBlock`, `buildDynamicSkillsSnippet` ;
+- faire un refactor “cosmétique” ou “clean code” sur ces zones.
+
+### POLITIQUE PAR DÉFAUT
+
+Sur toutes les zones protégées de `electron/proxy/index.ts`, la politique par défaut est :
+
+**NE PAS TOUCHER.**
+**NE PAS OPTIMISER.**
+**NE PAS REFACTORISER.**
+**NE PAS DÉDUPLIQUER.**
+**NE PAS RÉINJECTER.**
+**NE PAS MUTER LE PRÉFIXE.**
+
+En cas de doute, l’agent doit considérer que le changement est dangereux pour le cache et s’arrêter.
+
 ---
 
 ## 1. Périmètre V1
 
 3 slots dans la sidebar : **Work**, **Code**, **Design**. (Chat reporté en V2.)
 
-| Slot | Dépôt | Mode embarqué | Port |
-|------|-------|---------------|------|
-| Work | `different-ai/openwork` (`apps/app`, Vite SPA) | build statique servi | `5173` |
-| Code | `anomalyco/opencode` (`opencode serve` / `opencode web`) | serveur HTTP | `4096` |
-| Design | `nexu-io/open-design` (daemon Express + build) | daemon local | capturé au spawn |
+| Slot   | Dépôt                                                    | Mode embarqué        | Port             |
+| ------ | -------------------------------------------------------- | -------------------- | ---------------- |
+| Work   | `different-ai/openwork` (`apps/app`, Vite SPA)           | build statique servi | `5173`           |
+| Code   | `anomalyco/opencode` (`opencode serve` / `opencode web`) | serveur HTTP         | `4096`           |
+| Design | `nexu-io/open-design` (daemon Express + build)           | daemon local         | capturé au spawn |
 
 Hors périmètre V1 : slot Chat, stack cloud « den »/EE d'openwork (MySQL, better-auth), Docker.
 
@@ -27,16 +97,16 @@ Hors périmètre V1 : slot Chat, stack cloud « den »/EE d'openwork (MySQL, bet
 
 ## 2. Stack technique
 
-| Composant | Choix | Justification |
-|-----------|-------|---------------|
-| Shell desktop | **Electron** (pas Tauri) | Multi-`WebContentsView` mature ; openwork est déjà Tauri → Electron évite le conflit |
-| Vues apps | `WebContentsView` (1 par app, lazy, gardée vivante) | État/sessions préservés en changeant de slot |
-| Runtime apps | **Natif uniquement** (zéro Docker) | Les apps doivent accéder au filesystem (elles éditent code/design) |
-| Proxy LLM | Serveur Express intégré au main, `127.0.0.1:9999` | Passerelle OpenAI-compatible unique + détention des secrets |
-| Secrets | **macOS Keychain** (`keytar` ou `security`) | Jamais sur disque, jamais dans les apps |
-| Config cascade | `~/.config/opencode/opencode.json` | Un seul fichier configure les 3 apps (toutes pilotent opencode) |
-| Personnalisation | Injection CSS/JS runtime (`insertCSS` / bridge) | Indépendant des updates upstream |
-| Updates | `git pull` / `npm update` par dossier | Code source jamais modifié |
+| Composant        | Choix                                               | Justification                                                                        |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Shell desktop    | **Electron** (pas Tauri)                            | Multi-`WebContentsView` mature ; openwork est déjà Tauri → Electron évite le conflit |
+| Vues apps        | `WebContentsView` (1 par app, lazy, gardée vivante) | État/sessions préservés en changeant de slot                                         |
+| Runtime apps     | **Natif uniquement** (zéro Docker)                  | Les apps doivent accéder au filesystem (elles éditent code/design)                   |
+| Proxy LLM        | Serveur Express intégré au main, `127.0.0.1:9999`   | Passerelle OpenAI-compatible unique + détention des secrets                          |
+| Secrets          | **macOS Keychain** (`keytar` ou `security`)         | Jamais sur disque, jamais dans les apps                                              |
+| Config cascade   | `~/.config/opencode/opencode.json`                  | Un seul fichier configure les 3 apps (toutes pilotent opencode)                      |
+| Personnalisation | Injection CSS/JS runtime (`insertCSS` / bridge)     | Indépendant des updates upstream                                                     |
+| Updates          | `git pull` / `npm update` par dossier               | Code source jamais modifié                                                           |
 
 ---
 
@@ -72,7 +142,8 @@ ELECTRON (shell + proxy + secrets) ─ seul détenteur des clés réelles
 ## 4. "Configurer une fois" — mécanisme confirmé
 
 Les 3 apps tournent sur le **même moteur opencode** :
-- **opencode** *est* le moteur.
+
+- **opencode** _est_ le moteur.
 - **openwork** l'utilise via `@opencode-ai/sdk`.
 - **open-design** détecte et pilote le code-agent CLI installé (→ opencode).
 
@@ -103,15 +174,15 @@ détient les vraies clés (Anthropic/OpenAI/OAuth) lues depuis le Keychain.
 
 ## 5. Modèle de sécurité
 
-| Verrou | Détail |
-|--------|--------|
-| Isolation webviews | `contextIsolation:true` + `sandbox:true` + `nodeIntegration:false` |
-| Bridge | minuscule, validé, **sans chemin disque** (chemins choisis par `dialog` native) |
-| Joyau à protéger | `opencode serve` exécute des commandes shell → bind `127.0.0.1` strict + `OPENCODE_SERVER_PASSWORD` généré, jamais loggé |
-| Proxy | `127.0.0.1` + `Authorization: Bearer` obligatoire (aucun autre process local ne crame ta clé) |
-| Secrets réels | Keychain → RAM du main → env au spawn ; jamais disque/localStorage/webview |
-| JS injecté | UI uniquement, aucun secret inline ; actions sensibles via bridge isolé |
-| Stack den d'openwork | **désactivé** (sinon secrets faibles par défaut + MySQL) |
+| Verrou               | Détail                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Isolation webviews   | `contextIsolation:true` + `sandbox:true` + `nodeIntegration:false`                                                       |
+| Bridge               | minuscule, validé, **sans chemin disque** (chemins choisis par `dialog` native)                                          |
+| Joyau à protéger     | `opencode serve` exécute des commandes shell → bind `127.0.0.1` strict + `OPENCODE_SERVER_PASSWORD` généré, jamais loggé |
+| Proxy                | `127.0.0.1` + `Authorization: Bearer` obligatoire (aucun autre process local ne crame ta clé)                            |
+| Secrets réels        | Keychain → RAM du main → env au spawn ; jamais disque/localStorage/webview                                               |
+| JS injecté           | UI uniquement, aucun secret inline ; actions sensibles via bridge isolé                                                  |
+| Stack den d'openwork | **désactivé** (sinon secrets faibles par défaut + MySQL)                                                                 |
 
 ---
 
@@ -141,25 +212,25 @@ natifs (centralisés dans le panel Config).
 
 ## 7. Traçabilité — 17 demandes initiales → toutes couvertes
 
-| # | Demande | État |
-|---|---------|------|
-| 1 | Ergonomie Claude macOS | ✅ |
-| 2 | Réunir sans fusionner les sources | ✅ |
-| 3 | Wrapper Tauri/Electron | ✅ Electron |
-| 4 | Démarrage auto des serveurs | ✅ |
-| 5 | Sidebar + webview + état indépendant | ✅ |
-| 6 | Masquer sidebars + thème sombre unique | ✅ |
-| 7 | Configurer API/modèles une fois (local+distant) | ✅✅ via opencode.json + proxy |
-| 8 | OAuth/secrets en coffre, injectés au démarrage | ✅ Keychain |
-| 9 | Résilience aux updates upstream | ✅ |
-| 10 | Pas de chat qui contrôle les autres | ✅ apps indépendantes |
-| 11 | Une API sans la remettre par fenêtre | ✅ |
-| 12 | Ajouter/supprimer des options | ✅ overrides |
-| 13 | Web search dans OpenWork (pas natif) | ✅ proxy |
-| 14 | Supprimer settings des apps, centraliser | ✅ |
-| 15 | Génération PDF comme Claude (pas natif) | ✅ |
-| 16 | Mettre à jour chaque projet | ✅ |
-| 17 | Zéro Docker | ✅ |
+| #   | Demande                                         | État                           |
+| --- | ----------------------------------------------- | ------------------------------ |
+| 1   | Ergonomie Claude macOS                          | ✅                             |
+| 2   | Réunir sans fusionner les sources               | ✅                             |
+| 3   | Wrapper Tauri/Electron                          | ✅ Electron                    |
+| 4   | Démarrage auto des serveurs                     | ✅                             |
+| 5   | Sidebar + webview + état indépendant            | ✅                             |
+| 6   | Masquer sidebars + thème sombre unique          | ✅                             |
+| 7   | Configurer API/modèles une fois (local+distant) | ✅✅ via opencode.json + proxy |
+| 8   | OAuth/secrets en coffre, injectés au démarrage  | ✅ Keychain                    |
+| 9   | Résilience aux updates upstream                 | ✅                             |
+| 10  | Pas de chat qui contrôle les autres             | ✅ apps indépendantes          |
+| 11  | Une API sans la remettre par fenêtre            | ✅                             |
+| 12  | Ajouter/supprimer des options                   | ✅ overrides                   |
+| 13  | Web search dans OpenWork (pas natif)            | ✅ proxy                       |
+| 14  | Supprimer settings des apps, centraliser        | ✅                             |
+| 15  | Génération PDF comme Claude (pas natif)         | ✅                             |
+| 16  | Mettre à jour chaque projet                     | ✅                             |
+| 17  | Zéro Docker                                     | ✅                             |
 
 Chat (4e pilule du brief initial) : **reporté V2** par décision.
 
