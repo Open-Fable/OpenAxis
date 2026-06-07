@@ -1,1182 +1,2761 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
-  <title>OpenHub</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0e0e12;
-      --sidebar-bg: #111116;
-      --border: #1e1e28;
-      --border-strong: #2a2a36;
-      --text-muted: #5c5c72;
-      --text: #cdcde0;
-      --text-bright: #ededf4;
-      --accent: #7c6af2;
-      --accent-soft: rgba(124, 106, 242, 0.12);
-      --accent-glow: rgba(124, 106, 242, 0.25);
-      --active-bg: rgba(124, 106, 242, 0.08);
-      --hover-bg: rgba(255, 255, 255, 0.04);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --radius-lg: 16px;
-      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
-      --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    html, body {
-      width: 100%; height: 100%;
-      background: var(--sidebar-bg);
-      overflow: hidden;
-      font-family: var(--font);
-      -webkit-font-smoothing: antialiased;
-      user-select: none;
-      color: var(--text);
-    }
-
-    /* ── Sidebar ── */
-    .drag-region {
-      -webkit-app-region: drag;
-      height: 38px;
-      width: 100%;
-      flex-shrink: 0;
-    }
-
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      width: 72px;
-      height: 100vh;
-      background: var(--sidebar-bg);
-      border-right: 1px solid var(--border);
-      padding-bottom: 12px;
-    }
-
-    .slots {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      padding: 4px 8px 0;
-      flex: 1;
-    }
-
-    .slot-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      width: 54px;
-      height: 52px;
-      border: none;
-      border-radius: var(--radius);
-      background: transparent;
-      cursor: pointer;
-      color: var(--text-muted);
-      transition: background var(--transition), color var(--transition), box-shadow var(--transition);
-      position: relative;
-      outline: none;
-    }
-
-    .slot-btn:hover {
-      background: var(--hover-bg);
-      color: var(--text);
-    }
-
-    .slot-btn:focus-visible {
-      box-shadow: 0 0 0 2px var(--accent-soft);
-    }
-
-    .slot-btn.active {
-      background: var(--active-bg);
-      color: var(--accent);
-    }
-
-    .slot-btn.active::before {
-      content: "";
-      position: absolute;
-      left: -8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 18px;
-      background: var(--accent);
-      border-radius: 0 3px 3px 0;
-      box-shadow: 0 0 8px var(--accent-glow);
-    }
-
-    .slot-icon {
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .slot-icon svg {
-      width: 20px;
-      height: 20px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.75;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .slot-label {
-      font-size: 9px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      opacity: 0.85;
-    }
-
-    .divider {
-      width: 32px;
-      height: 1px;
-      background: var(--border-strong);
-      margin: 6px auto;
-    }
-
-    .bottom-slots {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      padding: 0 8px;
-    }
-
-    /* Status glow ring */
-    .slot-btn .status-ring {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      opacity: 0;
-      transition: opacity 200ms, box-shadow 300ms;
-    }
-
-    .slot-btn.loading .status-ring {
-      opacity: 1;
-      background: #f0b429;
-      box-shadow: 0 0 6px rgba(240, 180, 41, 0.5);
-      animation: glow-pulse 1.5s ease-in-out infinite;
-    }
-
-    .slot-btn.ready .status-ring {
-      opacity: 1;
-      background: #4caf50;
-      box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
-    }
-
-    @keyframes glow-pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(240, 180, 41, 0.5); }
-      50% { opacity: 0.5; box-shadow: 0 0 3px rgba(240, 180, 41, 0.2); }
-    }
-
-    /* Tooltip */
-    .tooltip {
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      transform: translateY(-50%) translateX(-4px);
-      background: #1e1e28;
-      color: var(--text-bright);
-      font-size: 11px;
-      font-weight: 500;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 120ms ease, transform 120ms ease;
-      border: 1px solid var(--border-strong);
-      z-index: 200;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    .slot-btn:hover .tooltip {
-      opacity: 1;
-      transform: translateY(-50%) translateX(0);
-    }
-
-    /* ── Config modal ── */
-    #config-panel {
-      position: fixed;
-      left: 72px;
-      top: 0; right: 0; bottom: 0;
-      z-index: 100;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    #config-panel.open { pointer-events: all; }
-
-    #config-backdrop {
-      position: fixed;
-      left: 72px;
-      top: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 99;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 220ms ease;
-    }
-
-    #config-panel.open ~ #config-backdrop {
-      opacity: 1;
-      pointer-events: all;
-    }
-
-    .config-card {
-      position: relative;
-      z-index: 100;
-      background: #15151c;
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-lg);
-      width: 560px;
-      max-width: 100%;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
-      opacity: 0;
-      transform: translateY(10px) scale(0.97);
-      transition: opacity 200ms ease, transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
-    }
-
-    #config-panel.open .config-card {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .config-card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 22px 24px 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .config-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-bright);
-    }
-
-    .config-card-title svg {
-      width: 16px; height: 16px;
-      stroke: var(--accent); fill: none; stroke-width: 1.75;
-    }
-
-    .config-card-sub {
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .config-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      padding: 20px 24px 8px;
-    }
-
-    .config-col:first-child {
-      padding-right: 22px;
-      border-right: 1px solid var(--border);
-    }
-
-    .config-col:last-child {
-      padding-left: 22px;
-    }
-
-    .config-col h3 {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      font-weight: 600;
-    }
-
-    .config-footer {
-      display: flex;
-      justify-content: flex-end;
-      padding: 14px 24px 20px;
-      border-top: 1px solid var(--border);
-      margin-top: 8px;
-    }
-
-    .config-field { margin-bottom: 10px; }
-
-    .config-field label {
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-
-    .config-input-wrap {
-      position: relative;
-      display: flex;
-    }
-
-    .config-field input {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 12px;
-      font-family: var(--font);
-      padding: 7px 32px 7px 10px;
-      outline: none;
-      transition: border-color var(--transition), box-shadow var(--transition);
-      width: 100%;
-    }
-
-    .config-field input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    .config-field input::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-    .btn-reveal {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 2px;
-      display: flex;
-      align-items: center;
-      border-radius: 4px;
-      transition: color var(--transition);
-    }
-
-    .btn-reveal:hover { color: var(--text); }
-    .btn-reveal svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.75; }
-
-    .btn-save {
-      padding: 9px 22px;
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius-sm);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: var(--font);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background var(--transition), box-shadow var(--transition);
-      white-space: nowrap;
-    }
-
-    .btn-save:hover {
-      background: #8b7bf5;
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-
-    .btn-save svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
-
-    .btn-save.saved { background: #2d8a4e; pointer-events: none; }
-
-    .btn-close-cfg {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      display: flex;
-      transition: color var(--transition), background var(--transition);
-    }
-
-    .btn-close-cfg:hover { color: var(--text); background: var(--hover-bg); }
-
-    .btn-close-cfg svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
-
-    /* ── Memory section ── */
-    .memory-section {
-      padding: 0 24px 12px;
-      border-top: 1px solid var(--border);
-    }
-
-    .memory-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 0 10px;
-    }
-
-    .memory-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .toggle-wrap {
-      position: relative;
-      width: 36px;
-      height: 20px;
-    }
-
-    .toggle-wrap input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      position: absolute;
-    }
-
-    .toggle-track {
-      position: absolute;
-      inset: 0;
-      background: rgba(255,255,255,0.08);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 200ms;
-    }
-
-    .toggle-track::after {
-      content: "";
-      position: absolute;
-      left: 2px;
-      top: 2px;
-      width: 16px;
-      height: 16px;
-      background: var(--text-muted);
-      border-radius: 50%;
-      transition: transform 200ms, background 200ms;
-    }
-
-    .toggle-wrap input:checked + .toggle-track {
-      background: var(--accent);
-    }
-
-    .toggle-wrap input:checked + .toggle-track::after {
-      transform: translateX(16px);
-      background: #fff;
-    }
-
-    .memory-profile-field {
-      margin-bottom: 10px;
-    }
-
-    .memory-profile-field input {
-      width: 100%;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 12px;
-      font-family: var(--font);
-      padding: 7px 10px;
-      outline: none;
-      transition: border-color var(--transition);
-    }
-
-    .memory-profile-field input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    .memory-profile-field input::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-    .memory-profile-field label {
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-
-    .memory-facts-label {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 500;
-      margin-bottom: 6px;
-    }
-
-    .fact-list {
-      max-height: 140px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 8px;
-    }
-
-    .fact-list::-webkit-scrollbar { width: 4px; }
-    .fact-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
-
-    .fact-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 8px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 11px;
-      color: var(--text);
-    }
-
-    .fact-item span {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .fact-remove {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 0;
-      display: flex;
-      flex-shrink: 0;
-      transition: color 120ms;
-    }
-
-    .fact-remove:hover { color: var(--error, #ef4444); }
-    .fact-remove svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
-
-    .add-fact-row {
-      display: flex;
-      gap: 6px;
-    }
-
-    .add-fact-row input {
-      flex: 1;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 11px;
-      font-family: var(--font);
-      padding: 6px 8px;
-      outline: none;
-    }
-
-    .add-fact-row input:focus { border-color: var(--accent); }
-    .add-fact-row input::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-    .btn-add-fact {
-      background: var(--accent-soft);
-      border: 1px solid rgba(124,106,242,0.2);
-      border-radius: 6px;
-      color: var(--accent);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 0 10px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 120ms;
-    }
-
-    .btn-add-fact:hover { background: rgba(124,106,242,0.2); }
-
-    .memory-token-hint {
-      font-size: 10px;
-      color: var(--text-muted);
-      opacity: 0.7;
-      margin-top: 6px;
-    }
-
-    /* ── Welcome screen ── */
-    #welcome {
-      position: fixed;
-      left: 72px;
-      top: 0; right: 0; bottom: 0;
-      background:
-        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(124, 106, 242, 0.06) 0%, transparent 70%),
-        var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 52px;
-      z-index: 10;
-      animation: welcome-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    @keyframes welcome-in {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    #welcome.hidden { display: none; }
-
-    .welcome-brand {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .welcome-logo {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, var(--accent), #9d8af7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 24px rgba(124, 106, 242, 0.3);
-    }
-
-    .welcome-logo svg {
-      width: 28px;
-      height: 28px;
-      stroke: #fff;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .welcome-brand h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--text-bright);
-      letter-spacing: -0.03em;
-    }
-
-    .welcome-brand p {
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
-    .welcome-cards {
-      display: flex;
-      gap: 16px;
-    }
-
-    .welcome-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      width: 200px;
-      padding: 32px 20px 28px;
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      transition: background var(--transition), border-color var(--transition),
-                  transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  box-shadow 200ms ease;
-      -webkit-app-region: no-drag;
-      animation: card-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    .welcome-card:nth-child(1) { animation-delay: 80ms; }
-    .welcome-card:nth-child(2) { animation-delay: 150ms; }
-    .welcome-card:nth-child(3) { animation-delay: 220ms; }
-    .welcome-card:nth-child(4) { animation-delay: 290ms; }
-
-    @keyframes card-in {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .welcome-card:hover {
-      background: rgba(124, 106, 242, 0.06);
-      border-color: rgba(124, 106, 242, 0.3);
-      transform: translateY(-4px);
-      box-shadow: 0 8px 32px rgba(124, 106, 242, 0.12);
-    }
-
-    .welcome-card:active {
-      transform: translateY(-1px);
-      transition-duration: 60ms;
-    }
-
-    .welcome-card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius);
-      background: var(--accent-soft);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .welcome-card-icon svg {
-      width: 22px;
-      height: 22px;
-      stroke: var(--accent);
-      fill: none;
-      stroke-width: 1.75;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .welcome-card-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-bright);
-    }
-
-    .welcome-card-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-      line-height: 1.55;
-    }
-  </style>
-</head>
-<body>
-
-<div class="sidebar">
-  <div class="drag-region"></div>
-
-  <div class="slots">
-    <button class="slot-btn" data-slot="work">
-      <div class="status-ring"></div>
-      <span class="slot-icon">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      </span>
-      <span class="slot-label">Work</span>
-      <span class="tooltip">OpenWork</span>
-    </button>
-
-    <button class="slot-btn" data-slot="code">
-      <div class="status-ring"></div>
-      <span class="slot-icon">
-        <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      </span>
-      <span class="slot-label">Code</span>
-      <span class="tooltip">OpenCode</span>
-    </button>
-
-    <button class="slot-btn" data-slot="design">
-      <div class="status-ring"></div>
-      <span class="slot-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </span>
-      <span class="slot-label">Design</span>
-      <span class="tooltip">Open Design</span>
-    </button>
-
-    <button class="slot-btn" data-slot="chat">
-      <span class="slot-icon">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      </span>
-      <span class="slot-label">Chat</span>
-      <span class="tooltip">Chat IA</span>
-    </button>
-  </div>
-
-  <div class="divider"></div>
-
-  <div class="bottom-slots">
-    <button class="slot-btn" data-slot="config">
-      <span class="slot-icon">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      </span>
-      <span class="slot-label">Config</span>
-      <span class="tooltip">Paramètres</span>
-    </button>
-  </div>
-</div>
-
-<!-- Welcome screen -->
-<div id="welcome">
-  <div class="welcome-brand">
-    <div class="welcome-logo">
-      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-    </div>
-    <h1>OpenHub</h1>
-    <p>Choisissez un espace pour commencer</p>
-  </div>
-  <div class="welcome-cards">
-    <div class="welcome-card" data-slot="work">
-      <div class="welcome-card-icon">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      </div>
-      <span class="welcome-card-name">Work</span>
-      <span class="welcome-card-desc">Planifier, collaborer et piloter vos projets avec l'IA</span>
-    </div>
-    <div class="welcome-card" data-slot="code">
-      <div class="welcome-card-icon">
-        <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      </div>
-      <span class="welcome-card-name">Code</span>
-      <span class="welcome-card-desc">Coder, déboguer et déployer avec un assistant IA intégré</span>
-    </div>
-    <div class="welcome-card" data-slot="design">
-      <div class="welcome-card-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </div>
-      <span class="welcome-card-name">Design</span>
-      <span class="welcome-card-desc">Générer des prototypes, slides et visuels par prompt</span>
-    </div>
-    <div class="welcome-card" data-slot="chat">
-      <div class="welcome-card-icon">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      </div>
-      <span class="welcome-card-name">Chat</span>
-      <span class="welcome-card-desc">Converser directement avec les modèles IA</span>
-    </div>
-  </div>
-</div>
-
-<!-- Config modal -->
-<div id="config-panel">
-  <div class="config-card">
-    <div class="config-card-header">
-      <div>
-        <div class="config-card-title">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Configuration
-        </div>
-        <span class="config-card-sub">Clés API stockées dans le Keychain macOS</span>
-      </div>
-      <button class="btn-close-cfg" id="close-config" aria-label="Fermer">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="config-body">
-      <div class="config-col">
-        <h3>Modèles IA</h3>
-        <div class="config-field">
-          <label>Anthropic</label>
-          <div class="config-input-wrap">
-            <input type="password" id="key-anthropic" placeholder="sk-ant-..." />
-            <button class="btn-reveal" data-target="key-anthropic" aria-label="Afficher">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="config-field">
-          <label>OpenAI</label>
-          <div class="config-input-wrap">
-            <input type="password" id="key-openai" placeholder="sk-..." />
-            <button class="btn-reveal" data-target="key-openai" aria-label="Afficher">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="config-field">
-          <label>OpenRouter</label>
-          <div class="config-input-wrap">
-            <input type="password" id="key-openrouter" placeholder="sk-or-v1-..." />
-            <button class="btn-reveal" data-target="key-openrouter" aria-label="Afficher">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="config-field">
-          <label>Ollama URL</label>
-          <div class="config-input-wrap">
-            <input type="text" id="key-ollama" placeholder="http://localhost:11434" />
-          </div>
-        </div>
-      </div>
-      <div class="config-col">
-        <h3>Intégrations</h3>
-        <div class="config-field">
-          <label>GitHub Token</label>
-          <div class="config-input-wrap">
-            <input type="password" id="key-github" placeholder="ghp_..." />
-            <button class="btn-reveal" data-target="key-github" aria-label="Afficher">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="config-field">
-          <label>Brave Search API</label>
-          <div class="config-input-wrap">
-            <input type="password" id="key-brave" placeholder="BSA..." />
-            <button class="btn-reveal" data-target="key-brave" aria-label="Afficher">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="memory-section">
-      <div class="memory-header">
-        <span class="memory-title">Mémoire IA</span>
-        <label class="toggle-wrap">
-          <input type="checkbox" id="memory-toggle" checked />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <div id="memory-body">
-        <div class="memory-profile-field">
-          <label>Profil (YAML compact)</label>
-          <input type="text" id="memory-profile" placeholder="lang:fr style:concis stack:ts,electron" />
-        </div>
-        <div class="memory-facts-label">Faits</div>
-        <div class="fact-list" id="fact-list"></div>
-        <div class="add-fact-row">
-          <input type="text" id="new-fact" placeholder="Ex: proxy :9999 bearer auth localhost" />
-          <button class="btn-add-fact" id="btn-add-fact">+ Ajouter</button>
-        </div>
-        <div class="memory-token-hint" id="memory-token-hint"></div>
-      </div>
-    </div>
-    <div class="config-footer">
-      <button class="btn-save" id="save-config">
-        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Enregistrer
-      </button>
-    </div>
-  </div>
-</div>
-<div id="config-backdrop"></div>
-
-<script>
-  var buttons = document.querySelectorAll('.slot-btn[data-slot]');
-  var configPanel = document.getElementById('config-panel');
-  var welcome = document.getElementById('welcome');
-  var backdrop = document.getElementById('config-backdrop');
-
-  // SVG templates for reveal toggle
-  var eyeOpenSVG = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  var eyeClosedSVG = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  var saveSVGContent = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Enregistrer';
-  var checkSVGContent = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg> Enregistré';
-
-  // Welcome screen cards
-  document.querySelectorAll('.welcome-card[data-slot]').forEach(function(card) {
-    card.addEventListener('click', function() {
-      var slot = card.dataset.slot;
-      welcome.classList.add('hidden');
-      setLoading(slot, true);
-      window.openhub.switchSlot(slot).catch(function(err) {
-        console.error('[sidebar] welcome switchSlot failed:', err);
-        setLoading(slot, false);
-      });
-    });
-  });
-
-  function setLoading(slot, isLoading) {
-    var btn = document.querySelector('.slot-btn[data-slot="' + slot + '"]');
-    if (btn) btn.classList.toggle('loading', isLoading);
-  }
-
-  // Sidebar slot buttons
-  buttons.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var slot = btn.dataset.slot;
-      if (!slot || slot === 'config') return;
-      welcome.classList.add('hidden');
-      setLoading(slot, true);
-      window.openhub.switchSlot(slot).catch(function(err) {
-        console.error('[sidebar] switchSlot failed:', err);
-        setLoading(slot, false);
-      });
-    });
-  });
-
-  // Sync active state
-  window.openhub.onSlotChanged(function(slot) {
-    buttons.forEach(function(b) {
-      b.classList.toggle('active', b.dataset.slot === slot);
-      b.classList.remove('loading');
-    });
-  });
-
-  // Config panel
-  function openConfig() {
-    configPanel.classList.add('open');
-    window.openhub.notifyConfigVisibility(true);
-    if (window.openhub.getApiKeys) {
-      window.openhub.getApiKeys().then(function(keys) {
-        if (!keys) return;
-        if (keys.anthropic) document.getElementById('key-anthropic').value = keys.anthropic;
-        if (keys.openai) document.getElementById('key-openai').value = keys.openai;
-        if (keys.openrouterKey) document.getElementById('key-openrouter').value = keys.openrouterKey;
-        if (keys.ollamaUrl && keys.ollamaUrl !== 'http://127.0.0.1:11434')
-          document.getElementById('key-ollama').value = keys.ollamaUrl;
-        if (keys.githubToken) document.getElementById('key-github').value = keys.githubToken;
-        if (keys.braveSearchKey) document.getElementById('key-brave').value = keys.braveSearchKey;
-      }).catch(function() {});
-    }
-    loadMemoryUI();
-  }
-
-  function closeConfig() {
-    configPanel.classList.remove('open');
-    window.openhub.notifyConfigVisibility(false);
-  }
-
-  window.openhub.onShowConfig(openConfig);
-  document.getElementById('close-config').addEventListener('click', closeConfig);
-  backdrop.addEventListener('click', closeConfig);
-
-  // Save with feedback
-  document.getElementById('save-config').addEventListener('click', function() {
-    var btn = this;
-    window.openhub.saveApiKeys({
-      anthropic: document.getElementById('key-anthropic').value,
-      openai: document.getElementById('key-openai').value,
-      openrouterKey: document.getElementById('key-openrouter').value,
-      ollamaUrl: document.getElementById('key-ollama').value,
-      githubToken: document.getElementById('key-github').value,
-      braveSearchKey: document.getElementById('key-brave').value,
-    }).then(function() {
-      btn.classList.add('saved');
-      btn.textContent = '';
-      var tmp = document.createElement('span');
-      tmp.insertAdjacentHTML('afterbegin', checkSVGContent);
-      while (tmp.firstChild) btn.appendChild(tmp.firstChild);
-      setTimeout(function() {
-        btn.classList.remove('saved');
-        btn.textContent = '';
-        var tmp2 = document.createElement('span');
-        tmp2.insertAdjacentHTML('afterbegin', saveSVGContent);
-        while (tmp2.firstChild) btn.appendChild(tmp2.firstChild);
-        closeConfig();
-      }, 1200);
-    });
-  });
-
-  // Config button
-  document.querySelector('[data-slot="config"]').addEventListener('click', function() {
-    if (window.openhub) window.openhub.switchSlot('config');
-  });
-
-  // Reveal/hide password
-  document.querySelectorAll('.btn-reveal').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var input = document.getElementById(btn.dataset.target);
-      if (!input) return;
-      var isPass = input.type === 'password';
-      input.type = isPass ? 'text' : 'password';
-      var svg = btn.querySelector('svg');
-      if (svg) {
-        var tmp = document.createElement('span');
-        tmp.insertAdjacentHTML('afterbegin', '<svg viewBox="0 0 24 24">' + (isPass ? eyeClosedSVG : eyeOpenSVG) + '</svg>');
-        var newSvg = tmp.querySelector('svg');
-        newSvg.style.cssText = 'width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75';
-        svg.replaceWith(newSvg);
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src http://127.0.0.1:9999; img-src 'self' data:;"
+    />
+    <title>OpenHub</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    });
-  });
 
-  // ── Memory UI ──
+      :root {
+        /* OpenHub Brand Tokens Dark (Default) */
+        --oh-color-bg-deepest: #18181e;
+        --oh-color-bg-panel: #202028;
+        --oh-color-bg-surface: #282834;
+        --oh-color-bg-elevated: #30303e;
+        --oh-color-bg-overlay: #1e1e28;
 
-  var memToggle = document.getElementById('memory-toggle');
-  var memBody = document.getElementById('memory-body');
-  var memProfile = document.getElementById('memory-profile');
-  var factListEl = document.getElementById('fact-list');
-  var newFactInput = document.getElementById('new-fact');
-  var tokenHint = document.getElementById('memory-token-hint');
+        --oh-color-border-subtle: #242432;
+        --oh-color-border-default: #2e2e3e;
+        --oh-color-border-strong: #3a3a4c;
 
-  function approxTokens(text) {
-    return Math.ceil(text.length / 3.5);
-  }
+        --oh-color-text-primary: #eaeaf0;
+        --oh-color-text-secondary: #acacbe;
+        --oh-color-text-muted: #747488;
+        --oh-color-text-disabled: #4e4e5e;
 
-  function loadMemoryUI() {
-    if (!window.openhub.getMemory) return;
-    window.openhub.getMemory().then(function(mem) {
-      if (!mem) return;
-      memToggle.checked = mem.enabled;
-      memBody.style.display = mem.enabled ? '' : 'none';
-      memProfile.value = mem.profile || '';
-      renderFacts(mem.facts || []);
-      updateTokenHint(mem);
-    }).catch(function() {});
-  }
+        --oh-color-accent-primary: #7c6af2;
+        --oh-color-accent-hover: #9180f5;
+        --oh-color-accent-active: #6b58d8;
 
-  function renderFacts(facts) {
-    factListEl.innerHTML = '';
-    for (var i = 0; i < facts.length; i++) {
-      var f = facts[i];
-      var div = document.createElement('div');
-      div.className = 'fact-item';
-      div.dataset.id = f.id;
-      var span = document.createElement('span');
-      span.textContent = f.text;
-      span.title = f.text;
-      var btn = document.createElement('button');
-      btn.className = 'fact-remove';
-      btn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-      btn.dataset.id = f.id;
-      btn.addEventListener('click', function() {
-        var id = this.dataset.id;
-        window.openhub.removeMemoryFact(id).then(loadMemoryUI);
+        /* Tool active colors */
+        --oh-color-accent-chat: #60a5fa;
+        --oh-color-bg-chat-active: rgba(96, 165, 250, 0.12);
+
+        --oh-color-accent-work: #2dd4bf;
+        --oh-color-bg-work-active: rgba(45, 212, 191, 0.12);
+
+        --oh-color-accent-code: #a78bfa;
+        --oh-color-bg-code-active: rgba(167, 139, 250, 0.12);
+
+        --oh-color-accent-design: #fbbf24;
+        --oh-color-bg-design-active: rgba(251, 191, 36, 0.12);
+
+        --oh-color-accent-projects: #7c6af2;
+        --oh-color-bg-projects-active: rgba(124, 106, 242, 0.12);
+
+        /* Semantic colors */
+        --oh-color-success: #34d399;
+        --oh-color-warning: #fbbf24;
+        --oh-color-error: #f87171;
+
+        --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        --font:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-lg: 16px;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          /* OpenHub Brand Tokens Light */
+          --oh-color-bg-deepest: #fbfbf9;
+          --oh-color-bg-panel: #f6f6f3;
+          --oh-color-bg-surface: #efefec;
+          --oh-color-bg-elevated: #ffffff;
+          --oh-color-bg-overlay: #f2f2ef;
+
+          --oh-color-border-subtle: #ebebe6;
+          --oh-color-border-default: #deded8;
+          --oh-color-border-strong: #cecec6;
+
+          --oh-color-text-primary: #1e1e2c;
+          --oh-color-text-secondary: #62627a;
+          --oh-color-text-muted: #9494a6;
+          --oh-color-text-disabled: #c6c6d4;
+
+          --oh-color-accent-primary: #6352d0;
+          --oh-color-accent-hover: #5846c0;
+          --oh-color-accent-active: #4c3aac;
+
+          --oh-color-accent-chat: #3b82f6;
+          --oh-color-bg-chat-active: rgba(59, 130, 246, 0.1);
+
+          --oh-color-accent-work: #0d9488;
+          --oh-color-bg-work-active: rgba(13, 148, 136, 0.1);
+
+          --oh-color-accent-code: #7c3aed;
+          --oh-color-bg-code-active: rgba(124, 58, 237, 0.1);
+
+          --oh-color-accent-design: #d97706;
+          --oh-color-bg-design-active: rgba(217, 119, 6, 0.1);
+
+          --oh-color-accent-projects: #6352d0;
+          --oh-color-bg-projects-active: rgba(99, 82, 208, 0.1);
+
+          --oh-color-success: #10b981;
+          --oh-color-warning: #f59e0b;
+          --oh-color-error: #ef4444;
+        }
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--oh-color-bg-deepest);
+        overflow: hidden;
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+        color: var(--oh-color-text-primary);
+      }
+
+      /* ── Header Layout ── */
+      .header {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 82px;
+        background: var(--oh-color-bg-panel);
+        border-bottom: 1px solid var(--oh-color-border-subtle);
+        position: relative;
+        z-index: 50;
+      }
+
+      .top-row {
+        -webkit-app-region: drag;
+        height: 38px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      }
+
+      .window-controls-spacer {
+        width: 80px; /* Space for traffic lights on macOS */
+        flex-shrink: 0;
+      }
+
+      .brand-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--oh-color-text-secondary);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        letter-spacing: 0.02em;
+        user-select: none;
+      }
+
+      .brand-logo {
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .brand-logo svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .window-right-spacer {
+        width: 80px;
+        flex-shrink: 0;
+      }
+
+      .bottom-row {
+        height: 44px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        position: relative;
+      }
+
+      .tabs-container {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        -webkit-app-region: no-drag;
+      }
+
+      @media (max-width: 680px) {
+        .tabs-container {
+          margin-left: 0;
+        }
+      }
+
+      /* ── Tabs Buttons (plus de rondeur) ── */
+      .slot-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 14px;
+        border: none;
+        border-radius: var(--radius);
+        background: transparent;
+        cursor: pointer;
+        color: var(--oh-color-text-secondary);
+        transition: var(--transition);
+        position: relative;
+        outline: none;
+        -webkit-app-region: no-drag;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .slot-btn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--oh-color-text-primary);
+      }
+
+      @media (prefers-color-scheme: light) {
+        .slot-btn:hover {
+          background: rgba(0, 0, 0, 0.03);
+        }
+      }
+
+      .slot-btn:focus-visible {
+        box-shadow: 0 0 0 2px var(--oh-color-accent-primary);
+      }
+
+      .slot-icon {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .slot-icon svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .slot-label {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+      }
+
+      /* Responsiveness (Hiding tab text labels on small screens) */
+      @media (max-width: 680px) {
+        .slot-label {
+          display: none;
+        }
+        .slot-btn {
+          padding: 0 10px;
+          width: 34px;
+          height: 32px;
+        }
+      }
+
+      /* ── Brand colors for active tabs ── */
+      .slot-btn[data-slot="chat"].active {
+        background: var(--oh-color-bg-chat-active);
+        color: var(--oh-color-accent-chat);
+        font-weight: 600;
+      }
+      .slot-btn[data-slot="work"].active {
+        background: var(--oh-color-bg-work-active);
+        color: var(--oh-color-accent-work);
+        font-weight: 600;
+      }
+      .slot-btn[data-slot="code"].active {
+        background: var(--oh-color-bg-code-active);
+        color: var(--oh-color-accent-code);
+        font-weight: 600;
+      }
+      .slot-btn[data-slot="design"].active {
+        background: var(--oh-color-bg-design-active);
+        color: var(--oh-color-accent-design);
+        font-weight: 600;
+      }
+      .slot-btn[data-slot="projects"].active {
+        background: var(--oh-color-bg-projects-active);
+        color: var(--oh-color-accent-projects);
+        font-weight: 600;
+      }
+
+      /* Settings gear button */
+      .btn-config {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: var(--radius);
+        background: transparent;
+        cursor: pointer;
+        color: var(--oh-color-text-secondary);
+        transition: var(--transition);
+        -webkit-app-region: no-drag;
+        outline: none;
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      .btn-config:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--oh-color-text-primary);
+      }
+
+      @media (prefers-color-scheme: light) {
+        .btn-config:hover {
+          background: rgba(0, 0, 0, 0.03);
+        }
+      }
+
+      .btn-config svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+      }
+
+      /* Status dot styling */
+      .slot-btn .status-ring {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        opacity: 0;
+        transition:
+          opacity 200ms,
+          box-shadow 300ms;
+        pointer-events: none;
+      }
+
+      .slot-btn.loading .status-ring {
+        opacity: 1;
+        background: var(--oh-color-warning);
+        box-shadow: 0 0 6px var(--oh-color-warning);
+        animation: glow-pulse 1.5s ease-in-out infinite;
+      }
+
+      .slot-btn.ready .status-ring {
+        opacity: 1;
+        background: var(--oh-color-success);
+        box-shadow: 0 0 4px var(--oh-color-success);
+      }
+
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 6px var(--oh-color-warning);
+        }
+        50% {
+          opacity: 0.5;
+          box-shadow: 0 0 3px rgba(240, 180, 41, 0.2);
+        }
+      }
+
+      /* Tooltip (under buttons) */
+      .tooltip {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-4px);
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-primary);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+        border: 1px solid var(--oh-color-border-strong);
+        z-index: 200;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+
+      .slot-btn:hover .tooltip,
+      .btn-config:hover .tooltip {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ── Config modal (brand redesign) ── */
+      #config-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        -webkit-app-region: no-drag;
+      }
+
+      #config-panel.open {
+        pointer-events: all;
+      }
+
+      #config-backdrop {
+        position: fixed;
+        inset: 0;
+        background: var(--overlay-modal, rgba(0, 0, 0, 0.08));
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 99;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        -webkit-app-region: no-drag;
+      }
+      @media (prefers-color-scheme: dark) {
+        #config-backdrop {
+          background: var(--overlay-modal, rgba(0, 0, 0, 0.35));
+        }
+      }
+      #config-panel.open ~ #config-backdrop {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .config-card {
+        position: relative;
+        z-index: 100;
+        background: var(--oh-color-bg-elevated);
+        border: 1px solid var(--oh-color-border-default);
+        border-radius: 20px;
+        width: 540px;
+        max-width: 100%;
+        max-height: calc(100vh - 48px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 32px 80px rgba(0, 0, 0, 0.55),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+        opacity: 0;
+        transform: translateY(14px) scale(0.96);
+        transition:
+          opacity 220ms ease,
+          transform 260ms var(--ease-default);
+        -webkit-app-region: no-drag;
+      }
+      @media (prefers-color-scheme: light) {
+        .config-card {
+          box-shadow:
+            0 24px 60px rgba(0, 0, 0, 0.12),
+            0 0 0 1px rgba(0, 0, 0, 0.04);
+        }
+      }
+      #config-panel.open .config-card {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .config-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px 16px;
+        flex-shrink: 0;
+      }
+
+      .config-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .config-header-icon {
+        width: 34px;
+        height: 34px;
+        background: var(--oh-color-accent-subtle);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .config-header-icon svg {
+        width: 16px;
+        height: 16px;
+        stroke: var(--oh-color-accent-primary);
+        fill: none;
+        stroke-width: 1.75;
+      }
+
+      .config-header-text h2 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--oh-color-text-primary);
+      }
+      .config-header-text p {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+        margin-top: 1px;
+      }
+
+      .btn-close-cfg {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--oh-color-text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 150ms var(--ease-default);
+        flex-shrink: 0;
+      }
+      .btn-close-cfg:hover {
+        background: var(--oh-color-bg-surface);
+        color: var(--oh-color-text-primary);
+        border-color: var(--oh-color-border-default);
+      }
+      .btn-close-cfg svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+
+      /* ── Tabs ── */
+      .config-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 4px 24px 0;
+        flex-shrink: 0;
+      }
+
+      .config-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--oh-color-text-muted);
+        cursor: pointer;
+        transition: all 150ms var(--ease-default);
+        font-family: var(--font);
+        outline: none;
+      }
+      .config-tab svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+      }
+      .config-tab:hover {
+        color: var(--oh-color-text-primary);
+        background: var(--oh-color-bg-surface);
+      }
+      .config-tab.active {
+        color: var(--oh-color-accent-primary);
+        background: var(--oh-color-accent-subtle);
+        font-weight: 600;
+      }
+
+      /* ── Tab content ── */
+      .config-tab-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 24px 0;
+        scrollbar-width: thin;
+      }
+      .config-tab-content::-webkit-scrollbar {
+        width: 4px;
+      }
+      .config-tab-content::-webkit-scrollbar-thumb {
+        background: var(--oh-color-border-subtle);
+        border-radius: 2px;
+      }
+
+      .config-pane {
+        display: none;
+      }
+      .config-pane.active {
+        display: block;
+      }
+
+      .config-group {
+        margin-bottom: 20px;
+      }
+
+      .config-group-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--oh-color-text-muted);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      /* ── API fields ── */
+      .api-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 10px;
+        margin-bottom: 6px;
+        transition: border-color 150ms var(--ease-default);
+      }
+      .api-field:focus-within {
+        border-color: var(--oh-color-accent-primary);
+        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
+      }
+
+      .api-field-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 500;
+        font-family: -apple-system, monospace;
+        user-select: none;
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-muted);
+        border: 1px solid var(--oh-color-border-subtle);
+      }
+
+      .api-field-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .api-field-label {
+        font-size: 11px;
+        color: var(--oh-color-text-secondary);
+        font-weight: 500;
+        margin-bottom: 3px;
+      }
+      .api-field-input-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .api-field input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--oh-color-text-primary);
+        font-size: 12px;
+        font-family: "SF Mono", "Monaco", "Menlo", monospace;
+        padding: 0;
+        outline: none;
+        min-width: 0;
+        width: 0;
+      }
+      .api-field input::placeholder {
+        color: var(--oh-color-text-disabled);
+        font-family: var(--font);
+        font-size: 11px;
+      }
+
+      .btn-reveal {
+        background: none;
+        border: none;
+        color: var(--oh-color-text-muted);
+        cursor: pointer;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+        border-radius: 4px;
+        transition: color 150ms var(--ease-default);
+        flex-shrink: 0;
+      }
+      .btn-reveal:hover {
+        color: var(--oh-color-text-primary);
+      }
+      .btn-reveal svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.75;
+      }
+
+      /* ── Memory section ── */
+      .memory-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 10px;
+        margin-bottom: 8px;
+      }
+      .memory-row-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--oh-color-text-primary);
+      }
+      .memory-row-sub {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── Toggle ── */
+      .toggle-wrap {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .toggle-wrap input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+      }
+      .toggle-track {
+        position: absolute;
+        inset: 0;
+        background: var(--oh-color-border-default);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 200ms var(--ease-default);
+        border: 1px solid transparent;
+      }
+      .toggle-track::after {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 14px;
+        background: var(--oh-color-bg-elevated);
+        border-radius: 50%;
+        transition:
+          transform 200ms var(--ease-default),
+          background 200ms;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      .toggle-wrap input:checked + .toggle-track {
+        background: var(--oh-color-accent-primary);
+      }
+      .toggle-wrap input:checked + .toggle-track::after {
+        transform: translateY(-50%) translateX(16px);
+        background: #fff;
+      }
+
+      /* ── Profile input ── */
+      .profile-field input {
+        width: 100%;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 10px;
+        color: var(--oh-color-text-primary);
+        font-size: 12px;
+        font-family: var(--font);
+        padding: 9px 12px;
+        outline: none;
+        transition: border-color 150ms var(--ease-default);
+      }
+      .profile-field input:focus {
+        border-color: var(--oh-color-accent-primary);
+        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
+      }
+      .profile-field input::placeholder {
+        color: var(--oh-color-text-disabled);
+        font-size: 11px;
+      }
+
+      /* ── Facts ── */
+      .facts-section {
+        margin-top: 8px;
+      }
+      .facts-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .facts-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--oh-color-text-muted);
+        font-weight: 600;
+      }
+
+      .fact-list {
+        max-height: 120px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .fact-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .fact-list::-webkit-scrollbar-thumb {
+        background: var(--oh-color-border-subtle);
+        border-radius: 2px;
+      }
+
+      .fact-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 8px;
+        font-size: 11px;
+        color: var(--oh-color-text-primary);
+      }
+      .fact-item span {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .fact-remove {
+        background: none;
+        border: none;
+        color: var(--oh-color-text-muted);
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        flex-shrink: 0;
+        transition: color 120ms;
+      }
+      .fact-remove:hover {
+        color: var(--oh-color-error);
+      }
+      .fact-remove svg {
+        width: 11px;
+        height: 11px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+
+      .add-fact-row input {
+        flex: 1;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 8px;
+        color: var(--oh-color-text-primary);
+        font-size: 11px;
+        font-family: var(--font);
+        padding: 7px 10px;
+        outline: none;
+        transition: border-color 150ms var(--ease-default);
+      }
+      .add-fact-row input:focus {
+        border-color: var(--oh-color-accent-primary);
+        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
+      }
+      .add-fact-row input::placeholder {
+        color: var(--oh-color-text-disabled);
+        font-size: 10px;
+      }
+
+      .btn-add-fact {
+        background: var(--oh-color-accent-subtle);
+        border: 1px solid var(--oh-color-accent-subtle-hover);
+        border-radius: 8px;
+        color: var(--oh-color-accent-primary);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 0 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: var(--font);
+        transition: background 120ms var(--ease-default);
+      }
+      .btn-add-fact:hover {
+        background: var(--oh-color-accent-subtle-hover);
+      }
+
+      .memory-token-hint {
+        font-size: 10px;
+        color: var(--oh-color-text-muted);
+        margin-top: 8px;
+      }
+
+      /* ── Update items ── */
+      .update-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 10px;
+        margin-bottom: 6px;
+      }
+      .update-item-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 500;
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-muted);
+        border: 1px solid var(--oh-color-border-subtle);
+      }
+      .update-item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .update-item-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--oh-color-text-primary);
+      }
+      .update-item-status {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+        margin-top: 1px;
+      }
+      .update-item-status.latest {
+        color: var(--oh-color-success);
+      }
+      .update-item-status.available {
+        color: var(--oh-color-warning);
+      }
+      .update-item-status.error {
+        color: var(--oh-color-error);
+      }
+      .update-item-status.updating {
+        color: var(--oh-color-info);
+      }
+
+      .btn-update {
+        padding: 6px 14px;
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 8px;
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-primary);
+        font-size: 11px;
+        font-weight: 500;
+        font-family: var(--font);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 150ms var(--ease-default);
+        flex-shrink: 0;
+      }
+      .btn-update:hover {
+        border-color: var(--oh-color-accent-primary);
+        color: var(--oh-color-accent-primary);
+      }
+      .btn-update:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-update.primary {
+        background: var(--oh-color-accent-primary);
+        border-color: var(--oh-color-accent-primary);
+        color: #fff;
+      }
+      .btn-update.primary:hover {
+        background: var(--oh-color-accent-hover);
+      }
+      .btn-update.checking {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+
+      /* ── Ollama Model Manager ── */
+      #ollama-model-manager {
+        margin-top: 10px;
+        display: none;
+      }
+      .ollama-model-card {
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+      .ollama-model-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .ollama-model-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--oh-color-text-primary);
+      }
+      .ollama-model-status {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+      }
+      .ollama-progress-container {
+        height: 6px;
+        background: var(--oh-color-bg-deepest);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .ollama-progress-bar {
+        height: 100%;
+        background: var(--oh-color-accent-primary);
+        width: 0%;
+        transition: width 0.2s ease;
+      }
+      .ollama-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-ollama {
+        flex: 1;
+        padding: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid var(--oh-color-border-subtle);
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-primary);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: var(--font);
+      }
+      .btn-ollama:hover {
+        border-color: var(--oh-color-accent-primary);
+        color: var(--oh-color-accent-primary);
+      }
+      .btn-ollama.cancel {
+        color: var(--oh-color-error);
+      }
+      .btn-ollama.cancel:hover {
+        background: rgba(248, 113, 113, 0.1);
+        border-color: var(--oh-color-error);
+      }
+
+      /* ── Footer ── */
+      .config-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 24px 20px;
+        border-top: 1px solid var(--oh-color-border-subtle);
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+
+      .config-footer-hint {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .config-footer-hint svg {
+        width: 12px;
+        height: 12px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.75;
+        flex-shrink: 0;
+      }
+
+      .btn-save {
+        padding: 9px 20px;
+        background: var(--oh-color-accent-primary);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: var(--font);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition:
+          background 150ms var(--ease-default),
+          box-shadow 150ms var(--ease-default),
+          transform 100ms;
+      }
+      .btn-save:hover {
+        background: var(--oh-color-accent-hover);
+        box-shadow: 0 0 20px var(--oh-color-accent-subtle-hover);
+      }
+      .btn-save:active {
+        transform: scale(0.97);
+      }
+      .btn-save svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .btn-save.saved {
+        background: var(--oh-color-success);
+        pointer-events: none;
+      }
+
+      /* ── Button Secondary ── */
+      .btn-secondary {
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-default);
+        border-radius: 8px;
+        color: var(--oh-color-text-secondary);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 6px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: var(--font);
+        transition: all 120ms var(--ease-default);
+        outline: none;
+      }
+      .btn-secondary:hover {
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-primary);
+        border-color: var(--oh-color-border-strong);
+      }
+
+      /* ── Cache Dashboard ── */
+      .cache-stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .cache-stat-card {
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .cache-stat-label {
+        font-size: 11px;
+        color: var(--oh-color-text-secondary);
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      .cache-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--oh-color-text-primary);
+        font-family: var(--font);
+      }
+      .cache-stat-sub {
+        font-size: 10px;
+        color: var(--oh-color-text-muted);
+        margin-top: 4px;
+      }
+      .cache-stat-bar-container {
+        height: 6px;
+        background: var(--oh-color-bg-deepest);
+        border-radius: 3px;
+        margin-top: 10px;
+        overflow: hidden;
+      }
+      .cache-stat-bar {
+        height: 100%;
+        background: var(--oh-color-accent-primary);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+      .cache-table-wrapper {
+        background: var(--oh-color-bg-surface);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .cache-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 11px;
+      }
+      .cache-table th {
+        background: var(--oh-color-bg-panel);
+        color: var(--oh-color-text-secondary);
+        font-weight: 600;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--oh-color-border-subtle);
+      }
+      .cache-table td {
+        padding: 10px 14px;
+        color: var(--oh-color-text-primary);
+        border-bottom: 1px solid var(--oh-color-border-subtle);
+      }
+      .cache-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      @media (max-width: 560px) {
+        .config-card {
+          border-radius: 16px;
+        }
+      }
+      /* ── Models IA specific styles ── */
+      .config-group-desc {
+        font-size: 11px;
+        color: var(--oh-color-text-muted);
+        margin-bottom: 12px;
+        line-height: 1.4;
+      }
+      .field-hint {
+        font-size: 10px;
+        color: var(--oh-color-text-muted);
+        margin-top: 4px;
+        font-style: italic;
+      }
+      .model-select {
+        width: 100%;
+        background: var(--oh-color-bg-elevated);
+        border: 1px solid var(--oh-color-border-subtle);
+        border-radius: 6px;
+        color: var(--oh-color-text-primary);
+        font-size: 12px;
+        padding: 6px 8px;
+        outline: none;
+        cursor: pointer;
+        font-family: "SF Mono", "Monaco", "Menlo", monospace;
+      }
+      .model-select:focus {
+        border-color: var(--oh-color-accent-primary);
+      }
+      .model-select option {
+        background: var(--oh-color-bg-elevated);
+        color: var(--oh-color-text-primary);
+      }
+      .model-select optgroup {
+        font-style: normal;
+        font-weight: 600;
+        color: var(--oh-color-text-secondary);
+        padding: 4px 0;
+      }
+      .model-select optgroup option {
+        font-weight: 400;
+        color: var(--oh-color-text-primary);
+        padding-left: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="top-row">
+        <div class="window-controls-spacer"></div>
+        <div class="brand-title">
+          <div class="brand-logo">
+            <svg viewBox="0 0 32 32" fill="none">
+              <circle
+                cx="16"
+                cy="16"
+                r="8"
+                stroke="#7B67EE"
+                stroke-width="2.5"
+                opacity="0.9"
+              />
+              <circle cx="16" cy="16" r="3.5" fill="#7B67EE" opacity="0.9" />
+            </svg>
+          </div>
+          <span>OpenHub</span>
+        </div>
+        <div class="window-right-spacer"></div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="tabs-container">
+          <button class="slot-btn" data-slot="chat">
+            <span class="slot-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </span>
+            <span class="slot-label">Chat</span>
+            <span class="tooltip">Chat IA</span>
+          </button>
+
+          <button class="slot-btn" data-slot="work">
+            <div class="status-ring"></div>
+            <span class="slot-icon">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </span>
+            <span class="slot-label">Work</span>
+            <span class="tooltip">OpenWork</span>
+          </button>
+
+          <button class="slot-btn" data-slot="code">
+            <div class="status-ring"></div>
+            <span class="slot-icon">
+              <svg viewBox="0 0 24 24">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+            </span>
+            <span class="slot-label">Code</span>
+            <span class="tooltip">OpenCode</span>
+          </button>
+
+          <button class="slot-btn" data-slot="design">
+            <div class="status-ring"></div>
+            <span class="slot-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </span>
+            <span class="slot-label">Design</span>
+            <span class="tooltip">Open Design</span>
+          </button>
+
+          <button class="slot-btn" data-slot="projects">
+            <span class="slot-icon">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+                ></path>
+              </svg>
+            </span>
+            <span class="slot-label">Projets</span>
+            <span class="tooltip">Orchestration</span>
+          </button>
+        </div>
+
+        <button class="btn-config" data-slot="config" aria-label="Configuration">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            />
+          </svg>
+          <span class="tooltip">Paramètres</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Welcome screen -->
+    <!-- Config modal (redesigned) -->
+    <div id="config-panel">
+      <div class="config-card">
+        <!-- Header -->
+        <div class="config-card-header">
+          <div class="config-header-left">
+            <div class="config-header-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+                />
+              </svg>
+            </div>
+            <div class="config-header-text">
+              <h2>Configuration</h2>
+              <p>Clés API stockées dans le Keychain macOS</p>
+            </div>
+          </div>
+          <button class="btn-close-cfg" id="close-config" aria-label="Fermer">
+            <svg viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="config-tabs">
+          <button class="config-tab active" data-tab="keys" id="cfg-tab-keys">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
+              />
+            </svg>
+            Clés API
+          </button>
+          <button class="config-tab" data-tab="models" id="cfg-tab-models">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4m0 16v4M2 12h4m16 0h4m-3.5-8.5l-3 3m-11 11l-3 3m14 0l-3-3m-11-11l-3-3" />
+            </svg>
+            Modèles IA
+          </button>
+          <button class="config-tab" data-tab="memory" id="cfg-tab-memory">
+            <svg viewBox="0 0 24 24">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+              <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
+            </svg>
+            Mémoire & Profil
+          </button>
+          <button class="config-tab" data-tab="updates" id="cfg-tab-updates">
+            <svg viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+            </svg>
+            Mises à jour
+          </button>
+          <button class="config-tab" data-tab="cache" id="cfg-tab-cache">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 3v18h18" />
+              <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+            </svg>
+            Tableau de Bord
+          </button>
+        </div>
+
+        <!-- Tab Body -->
+        <div class="config-tab-content">
+          <!-- Pane: Clés API -->
+          <div class="config-pane active" id="pane-keys">
+            <div class="config-group">
+              <div class="config-group-label">Modèles IA</div>
+
+              <div class="api-field">
+                <div class="api-field-icon anthropic">A</div>
+                <div class="api-field-body">
+                  <div class="api-field-label">Anthropic</div>
+                  <div class="api-field-input-row">
+                    <input type="password" id="key-anthropic" placeholder="sk-ant-..." />
+                    <button
+                      class="btn-reveal"
+                      data-target="key-anthropic"
+                      aria-label="Afficher"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="api-field">
+                <div
+                  class="api-field-icon openai"
+                  style="font-size: 16px; letter-spacing: 0"
+                >
+                  ✦
+                </div>
+                <div class="api-field-body">
+                  <div class="api-field-label">OpenAI</div>
+                  <div class="api-field-input-row">
+                    <input type="password" id="key-openai" placeholder="sk-..." />
+                    <button
+                      class="btn-reveal"
+                      data-target="key-openai"
+                      aria-label="Afficher"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="api-field">
+                <div
+                  class="api-field-icon openrouter"
+                  style="font-size: 15px; letter-spacing: 0"
+                >
+                  ⇋
+                </div>
+                <div class="api-field-body">
+                  <div class="api-field-label">OpenRouter</div>
+                  <div class="api-field-input-row">
+                    <input
+                      type="password"
+                      id="key-openrouter"
+                      placeholder="sk-or-v1-..."
+                    />
+                    <button
+                      class="btn-reveal"
+                      data-target="key-openrouter"
+                      aria-label="Afficher"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="api-field">
+                <div class="api-field-icon ollama" style="font-size: 15px">◎</div>
+                <div class="api-field-body">
+                  <div class="api-field-label">Ollama URL</div>
+                  <div class="api-field-input-row">
+                    <input
+                      type="text"
+                      id="key-ollama"
+                      placeholder="http://localhost:11434"
+                    />
+                  </div>
+                </div>
+              </div>
+              <!-- Ollama Model Manager UI -->
+              <div id="ollama-model-manager">
+                <div class="config-group-label" style="margin-top: 15px;">Modèles Ollama Requis</div>
+                <div id="ollama-model-list"></div>
+              </div>
+            </div>
+
+            <div class="config-group">
+              <div class="config-group-label">Intégrations</div>
+
+              <div class="api-field">
+                <div class="api-field-icon github">
+                  <svg
+                    viewBox="0 0 24 24"
+                    style="width: 14px; height: 14px; fill: currentColor; stroke: none"
+                  >
+                    <path
+                      d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                    />
+                  </svg>
+                </div>
+                <div class="api-field-body">
+                  <div class="api-field-label">GitHub Token</div>
+                  <div class="api-field-input-row">
+                    <input type="password" id="key-github" placeholder="ghp_..." />
+                    <button
+                      class="btn-reveal"
+                      data-target="key-github"
+                      aria-label="Afficher"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="api-field">
+                <div class="api-field-icon brave">B</div>
+                <div class="api-field-body">
+                  <div class="api-field-label">Brave Search API</div>
+                  <div class="api-field-input-row">
+                    <input type="password" id="key-brave" placeholder="BSA..." />
+                    <button
+                      class="btn-reveal"
+                      data-target="key-brave"
+                      aria-label="Afficher"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane: Modèles IA -->
+          <div class="config-pane" id="pane-models">
+            <div class="config-group">
+              <div class="config-group-label">🧠 Classifieur Mémoire</div>
+              
+              <div class="api-field">
+                <div class="api-field-icon" style="font-size: 14px">🧠</div>
+                <div class="api-field-body">
+                  <div class="api-field-label">Modèle de Classification (Mémoire)</div>
+                  <div class="api-field-input-row">
+                    <select id="ai-classifier" class="model-select"></select>
+                  </div>
+                  <p class="field-hint">Analyse si une info mérite d'être retenue dans AGENT-MEMORY.md.</p>
+                </div>
+              </div>
+
+              <div class="memory-row" style="margin-top: 10px;">
+                <div>
+                  <div class="memory-row-label">Recherche Internet Automatique</div>
+                  <div class="memory-row-sub">Sollicite Brave Search si les données sont trop anciennes.</div>
+                </div>
+                <label class="toggle-wrap">
+                  <input type="checkbox" id="web-search-toggle" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="config-group">
+              <div class="config-group-label">Vision (Analyse d'images)</div>
+              
+              <div class="memory-row">
+                <div>
+                  <div class="memory-row-label">Vision Proxy Local</div>
+                  <div class="memory-row-sub">Permet de "voir" des images même avec des modèles sans vision native.</div>
+                </div>
+                <label class="toggle-wrap">
+                  <input type="checkbox" id="vision-proxy-toggle" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+
+              <div id="vision-options-group" style="margin-top: 8px;">
+                <div class="api-field">
+                  <div class="api-field-icon">👁</div>
+                  <div class="api-field-body">
+                    <div class="api-field-label">Modèle de Vision (Ollama)</div>
+                    <div class="api-field-input-row">
+                      <select id="vision-model" class="model-select"></select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="memory-row">
+                  <div>
+                    <div class="memory-row-label">Niveau de détail</div>
+                    <div class="memory-row-sub">"High" pour analyse complète, "Low" pour économiser des tokens.</div>
+                  </div>
+                  <select id="vision-detail-level" style="background: var(--oh-color-bg-elevated); color: var(--oh-color-text-primary); border: 1px solid var(--oh-color-border-subtle); border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
+                    <option value="high">High</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane: Mémoire & Profil -->
+          <div class="config-pane" id="pane-memory">
+            <div class="config-group">
+              <div class="memory-row">
+                <div>
+                  <div class="memory-row-label">Mémoire IA Active</div>
+                  <div class="memory-row-sub">Active l'injection des faits dans les requêtes.</div>
+                </div>
+                <label class="toggle-wrap">
+                  <input type="checkbox" id="memory-toggle" checked />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </div>
+
+            <div id="memory-body">
+              <div class="config-group">
+                <div class="config-group-label">Profil Utilisateur</div>
+                <p class="config-group-desc">Tes préférences globales injectées dans chaque prompt.</p>
+                <div class="profile-field" style="margin-top: 10px;">
+                  <label class="api-field-label" style="display:block; margin-bottom:4px;">Instructions de Profil (YAML)</label>
+                  <input type="text" id="memory-profile" placeholder="lang:fr style:concis stack:ts,electron" />
+                </div>
+              </div>
+
+              <div class="config-group">
+                <div class="config-group-label">Mémorisation Automatique</div>
+                <div class="memory-row">
+                  <div>
+                    <div class="memory-row-label">Extraction de Faits (Ollama)</div>
+                    <div class="memory-row-sub">Apprend de nouveaux faits après chaque réponse.</div>
+                  </div>
+                  <label class="toggle-wrap">
+                    <input type="checkbox" id="memory-auto-extract-toggle" />
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="config-group">
+                <div class="config-group-label">Base de Connaissances</div>
+                <div class="facts-section">
+                  <div class="fact-list" id="fact-list"></div>
+                  <div class="add-fact-row" style="display: flex; gap: 8px; margin-top: 10px;">
+                    <input type="text" id="new-fact" placeholder="Ajouter un fait manuellement..." />
+                    <button class="btn-add-fact" id="btn-add-fact">+ Ajouter</button>
+                  </div>
+                  <div class="memory-token-hint" id="memory-token-hint"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane: Mises à jour -->
+          <div class="config-pane" id="pane-updates">
+            <div class="config-group">
+              <div
+                class="memory-row"
+                style="
+                  margin-bottom: 15px;
+                  padding-bottom: 12px;
+                  border-bottom: 1px solid var(--oh-color-border-subtle);
+                "
+              >
+                <div>
+                  <div class="memory-row-label">Mise à jour automatique</div>
+                  <div class="memory-row-sub">
+                    Télécharge et applique automatiquement les versions officielles
+                  </div>
+                </div>
+                <label class="toggle-wrap">
+                  <input type="checkbox" id="auto-update-toggle" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </div>
+            <div class="config-group">
+              <div class="config-group-label">Applications</div>
+              <div id="update-list"></div>
+            </div>
+          </div>
+
+          <!-- Pane: Hit Dashboard -->
+          <div class="config-pane" id="pane-cache">
+            <div class="config-group" style="margin-bottom: 15px;">
+              <div class="config-group-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                <span>Efficacité du Caching</span>
+                <button class="btn-secondary" id="btn-reset-cache" style="font-size: 11px; padding: 4px 10px; border-radius: 6px;">
+                  Réinitialiser
+                </button>
+              </div>
+              
+              <!-- Stats Grid -->
+              <div class="cache-stats-grid">
+                <div class="cache-stat-card">
+                  <div class="cache-stat-label">Ratio Cache Hit Global</div>
+                  <div class="cache-stat-value" id="cache-hit-ratio">0.0%</div>
+                  <div class="cache-stat-bar-container">
+                    <div class="cache-stat-bar" id="cache-hit-ratio-bar" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <div class="cache-stat-card">
+                  <div class="cache-stat-label">Tokens Économisés</div>
+                  <div class="cache-stat-value" id="cache-saved-tokens">0</div>
+                  <div class="cache-stat-sub">sur <span id="cache-total-tokens">0</span> analysés au total</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detailed Tables -->
+            <div id="cache-details-container" style="display:none;">
+              <!-- Table: Breakdown by Model -->
+              <div class="config-group" style="margin-bottom: 18px;">
+                <div class="config-group-label">Gains par Modèle</div>
+                <div class="cache-table-wrapper">
+                  <table class="cache-table">
+                    <thead>
+                      <tr>
+                        <th>Modèle</th>
+                        <th style="text-align: right;">Requêtes</th>
+                        <th style="text-align: right;">Gains (Tokens)</th>
+                        <th style="text-align: right;">Ratio Hit</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cache-model-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Table: Breakdown by Workspace -->
+              <div class="config-group" style="margin-bottom: 18px;">
+                <div class="config-group-label">Gains par Espace de Travail</div>
+                <div class="cache-table-wrapper">
+                  <table class="cache-table">
+                    <thead>
+                      <tr>
+                        <th>Workspace</th>
+                        <th style="text-align: right;">Requêtes</th>
+                        <th style="text-align: right;">Gains (Tokens)</th>
+                        <th style="text-align: right;">Ratio Hit</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cache-workspace-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="cache-empty-state" style="text-align: center; padding: 40px 20px; color: var(--oh-color-text-muted);">
+              <svg viewBox="0 0 24 24" style="width: 42px; height: 42px; stroke: currentColor; fill: none; stroke-width: 1.5; margin-bottom: 12px; opacity: 0.6;">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              <div style="font-size: 13px; font-weight: 500; color: var(--oh-color-text-secondary); margin-bottom: 4px;">Aucune statistique disponible</div>
+              <div style="font-size: 11px;">Envoyez des requêtes pour mesurer et valider vos gains de prompt caching.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="config-footer">
+          <span class="config-footer-hint">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+            Keychain macOS
+          </span>
+          <button class="btn-save" id="save-config">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="config-backdrop"></div>
+
+    <script>
+      var buttons = document.querySelectorAll(".slot-btn[data-slot]");
+      var configPanel = document.getElementById("config-panel");
+      var backdrop = document.getElementById("config-backdrop");
+
+      // SVG templates for reveal toggle
+      var eyeOpenSVG =
+        '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      var eyeClosedSVG =
+        '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+      var saveSVGContent =
+        '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Enregistrer';
+      var checkSVGContent =
+        '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg> Enregistré';
+
+      function setLoading(slot, isLoading) {
+        var btn = document.querySelector('.slot-btn[data-slot="' + slot + '"]');
+        if (btn) btn.classList.toggle("loading", isLoading);
+      }
+
+      // Sidebar slot buttons
+      buttons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var slot = btn.dataset.slot;
+          if (!slot || slot === "config") return;
+          setLoading(slot, true);
+          window.openhub.switchSlot(slot).catch(function (err) {
+            console.error("[sidebar] switchSlot failed:", err);
+            setLoading(slot, false);
+          });
+        });
       });
-      div.appendChild(span);
-      div.appendChild(btn);
-      factListEl.appendChild(div);
-    }
-  }
 
-  function updateTokenHint(mem) {
-    var profileTokens = approxTokens(mem.profile || '');
-    var facts = (mem.facts || []).slice().sort(function(a, b) { return b.lastUsedAt - a.lastUsedAt; });
-    var budget = mem.maxFactTokens || 150;
-    var factTokens = 0;
-    var includedFacts = 0;
-    for (var i = 0; i < facts.length; i++) {
-      var cost = approxTokens('- ' + facts[i].text);
-      if (cost > budget) continue;
-      budget -= cost;
-      factTokens += cost;
-      includedFacts++;
-    }
-    var total = profileTokens + factTokens + 6; // 6 ≈ <memory> tags overhead
-    tokenHint.textContent = '~' + total + ' tokens injectés · ' + includedFacts + '/' + (mem.facts || []).length + ' faits · ' + (mem.facts || []).length + '/50 max';
-  }
+      // Auto-open chat on startup
+      document.addEventListener("DOMContentLoaded", function () {
+        setLoading("chat", true);
+        window.openhub.switchSlot("chat").catch(function (err) {
+          console.error("[sidebar] startup switch to chat failed:", err);
+          setLoading("chat", false);
+        });
+        // Check Ollama models on startup
+        setTimeout(loadOllamaStatus, 1500);
+      });
 
-  memToggle.addEventListener('change', function() {
-    var enabled = memToggle.checked;
-    memBody.style.display = enabled ? '' : 'none';
-    window.openhub.setMemoryEnabled(enabled);
-  });
+      // Sync active state
+      window.openhub.onSlotChanged(function (slot) {
+        buttons.forEach(function (b) {
+          b.classList.toggle("active", b.dataset.slot === slot);
+          b.classList.remove("loading");
+        });
+      });
 
-  var profileTimer = null;
-  memProfile.addEventListener('input', function() {
-    clearTimeout(profileTimer);
-    profileTimer = setTimeout(function() {
-      window.openhub.setMemoryProfile(memProfile.value);
-      loadMemoryUI();
-    }, 600);
-  });
+      // ── Tab switching ──
+      document.querySelectorAll(".config-tab").forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          var target = tab.dataset.tab;
+          document.querySelectorAll(".config-tab").forEach(function (t) {
+            t.classList.remove("active");
+          });
+          document.querySelectorAll(".config-pane").forEach(function (p) {
+            p.classList.remove("active");
+          });
+          tab.classList.add("active");
+          var pane = document.getElementById("pane-" + target);
+          if (pane) pane.classList.add("active");
 
-  document.getElementById('btn-add-fact').addEventListener('click', function() {
-    var text = newFactInput.value.trim();
-    if (!text) return;
-    newFactInput.value = '';
-    window.openhub.addMemoryFact(text, []).then(loadMemoryUI);
-  });
+          if (target === "cache") {
+            loadCacheMetrics();
+          }
+          if (target === "models") {
+            loadModelsUI();
+          }
+          if (target === "memory") {
+            loadMemoryUI();
+          }
+        });
+      });
 
-  newFactInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('btn-add-fact').click();
-    }
-  });
-</script>
+      // Config panel
+      function openConfig() {
+        configPanel.classList.add("open");
+        
+        var topRow = document.querySelector(".top-row");
+        if (topRow) topRow.style.setProperty("-webkit-app-region", "no-drag");
 
-</body>
+        // Reset to first tab (Clés API)
+        document.querySelectorAll(".config-tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        document.querySelectorAll(".config-pane").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        var firstTab = document.getElementById("cfg-tab-keys");
+        if (firstTab) firstTab.classList.add("active");
+        var firstPane = document.getElementById("pane-keys");
+        if (firstPane) firstPane.classList.add("active");
+        window.openhub.notifyConfigVisibility(true);
+        if (window.openhub.getApiKeys) {
+          window.openhub
+            .getApiKeys()
+            .then(function (keys) {
+              if (!keys) return;
+              if (keys.anthropic)
+                document.getElementById("key-anthropic").value = keys.anthropic;
+              if (keys.openai) document.getElementById("key-openai").value = keys.openai;
+              if (keys.openrouterKey)
+                document.getElementById("key-openrouter").value = keys.openrouterKey;
+              if (keys.ollamaUrl && keys.ollamaUrl !== "http://127.0.0.1:11434")
+                document.getElementById("key-ollama").value = keys.ollamaUrl;
+              if (keys.githubToken)
+                document.getElementById("key-github").value = keys.githubToken;
+              if (keys.braveSearchKey)
+                document.getElementById("key-brave").value = keys.braveSearchKey;
+            })
+            .catch(function () {});
+        }
+        loadModelsUI();
+        loadMemoryUI();
+        loadUpdateStatus();
+        loadCacheMetrics();
+        if (window.openhub.getAutoUpdate) {
+          window.openhub
+            .getAutoUpdate()
+            .then(function (enabled) {
+              var toggle = document.getElementById("auto-update-toggle");
+              if (toggle) toggle.checked = !!enabled;
+            })
+            .catch(function () {});
+        }
+        loadOllamaStatus();
+      }
+
+      function closeConfig() {
+        configPanel.classList.remove("open");
+        // Restore titlebar drag region once the panel is dismissed
+        var topRow = document.querySelector(".top-row");
+        if (topRow) topRow.style.removeProperty("-webkit-app-region");
+        window.openhub.notifyConfigVisibility(false);
+      }
+
+      window.openhub.onShowConfig(openConfig);
+      document.getElementById("close-config").addEventListener("click", closeConfig);
+      backdrop.addEventListener("click", closeConfig);
+
+      // Save with feedback
+      document.getElementById("save-config").addEventListener("click", function () {
+        var btn = this;
+        window.openhub
+          .saveApiKeys({
+            anthropic: document.getElementById("key-anthropic").value,
+            openai: document.getElementById("key-openai").value,
+            openrouterKey: document.getElementById("key-openrouter").value,
+            ollamaUrl: document.getElementById("key-ollama").value,
+            githubToken: document.getElementById("key-github").value,
+            braveSearchKey: document.getElementById("key-brave").value,
+          })
+          .then(function () {
+            btn.classList.add("saved");
+            btn.textContent = "";
+            var tmp = document.createElement("span");
+            tmp.insertAdjacentHTML("afterbegin", checkSVGContent);
+            while (tmp.firstChild) btn.appendChild(tmp.firstChild);
+            setTimeout(function () {
+              btn.classList.remove("saved");
+              btn.textContent = "";
+              var tmp2 = document.createElement("span");
+              tmp2.insertAdjacentHTML("afterbegin", saveSVGContent);
+              while (tmp2.firstChild) btn.appendChild(tmp2.firstChild);
+              closeConfig();
+            }, 1200);
+            // Refresh Ollama status after saving keys
+            loadOllamaStatus();
+          });
+      });
+
+      // Config button
+      document
+        .querySelector('[data-slot="config"]')
+        .addEventListener("click", function () {
+          if (window.openhub) window.openhub.switchSlot("config");
+        });
+
+      // Reveal/hide password
+      document.querySelectorAll(".btn-reveal").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var input = document.getElementById(btn.dataset.target);
+          if (!input) return;
+          var isPass = input.type === "password";
+          input.type = isPass ? "text" : "password";
+          var svg = btn.querySelector("svg");
+          if (svg) {
+            var tmp = document.createElement("span");
+            tmp.insertAdjacentHTML(
+              "afterbegin",
+              '<svg viewBox="0 0 24 24">' +
+                (isPass ? eyeClosedSVG : eyeOpenSVG) +
+                "</svg>",
+            );
+            var newSvg = tmp.querySelector("svg");
+            newSvg.style.cssText =
+              "width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75";
+            svg.replaceWith(newSvg);
+          }
+        });
+      });
+
+      // ── Memory UI ──
+
+      var memToggle = document.getElementById("memory-toggle");
+      var memBody = document.getElementById("memory-body");
+      var memProfile = document.getElementById("memory-profile");
+      var factListEl = document.getElementById("fact-list");
+      var newFactInput = document.getElementById("new-fact");
+      var tokenHint = document.getElementById("memory-token-hint");
+      var memAutoExtractToggle = document.getElementById("memory-auto-extract-toggle");
+
+      function approxTokens(text) {
+        return Math.ceil(text.length / 3.5);
+      }
+
+      function displayModelName(id) { return id ? id.split("/").pop() || id : id; }
+
+      async function loadModelsUI() {
+        const classifierSelect = document.getElementById("ai-classifier");
+        const visionSelect = document.getElementById("vision-model");
+
+        var currentClassifier = await (window.openhub.getAiClassifierModel ? window.openhub.getAiClassifierModel() : Promise.resolve(''));
+        var currentVisionModel = await (window.openhub.getVisionModel ? window.openhub.getVisionModel() : Promise.resolve(''));
+
+        try {
+          const res = await fetch("http://127.0.0.1:9999/v1/models/available", {
+            headers: { Authorization: "Bearer openhub-local" },
+          });
+          const data = await res.json();
+          const allModels = data.data || [];
+
+          const ollamaModels = allModels.filter(m => m.source === "ollama");
+          const cloudModels = allModels.filter(m => m.source !== "ollama" && m.source !== "workflow");
+
+          function populate(select, current) {
+            select.innerHTML = "";
+
+            if (ollamaModels.length > 0) {
+              const group = document.createElement("optgroup");
+              group.label = "🏠 Local (Ollama)";
+              ollamaModels.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m.id;
+                opt.textContent = displayModelName(m.id);
+                if (m.id === current) opt.selected = true;
+                group.appendChild(opt);
+              });
+              select.appendChild(group);
+            }
+
+            if (cloudModels.length > 0) {
+              const group = document.createElement("optgroup");
+              group.label = "☁️ Cloud";
+              cloudModels.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m.id;
+                opt.textContent = displayModelName(m.id);
+                if (m.id === current) opt.selected = true;
+                group.appendChild(opt);
+              });
+              select.appendChild(group);
+            }
+
+            if (current && !allModels.find(m => m.id === current)) {
+              const opt = document.createElement("option");
+              opt.value = current;
+              opt.textContent = displayModelName(current) + " (Custom)";
+              opt.selected = true;
+              select.appendChild(opt);
+            }
+          }
+
+          if (classifierSelect) populate(classifierSelect, currentClassifier);
+          if (visionSelect) populate(visionSelect, currentVisionModel);
+        } catch (err) {
+          console.error("Failed to fetch models:", err);
+        }
+
+        if (window.openhub.getWebSearchEnabled) {
+          window.openhub.getWebSearchEnabled().then(function(e) { document.getElementById('web-search-toggle').checked = !!e; });
+        }
+        if (window.openhub.getVisionProxyEnabled) {
+          window.openhub.getVisionProxyEnabled().then(function(e) {
+            document.getElementById('vision-proxy-toggle').checked = !!e;
+            var vog = document.getElementById('vision-options-group');
+            if (vog) vog.style.display = e ? '' : 'none';
+          });
+        }
+        if (window.openhub.getVisionDetailLevel) {
+          window.openhub.getVisionDetailLevel().then(function(l) { document.getElementById('vision-detail-level').value = l || 'high'; });
+        }
+      }
+
+      function loadMemoryUI() {
+        if (!window.openhub.getMemory) return;
+        window.openhub
+          .getMemory()
+          .then(function (mem) {
+            if (!mem) return;
+            memToggle.checked = mem.enabled;
+            if (memBody) memBody.style.display = mem.enabled ? "" : "none";
+            if (memAutoExtractToggle) memAutoExtractToggle.checked = !!mem.autoExtract;
+            memProfile.value = mem.profile || "";
+            renderFacts(mem.facts || []);
+            updateTokenHint(mem);
+          })
+          .catch(function () {});
+      }
+
+      // ── Updates ──
+      var updateStates = {};
+
+      function loadUpdateStatus() {
+        var list = document.getElementById("update-list");
+        if (!list) return;
+        list.innerHTML = "";
+        var apps = [
+          { id: "openwork", label: "OpenWork", icon: "W" },
+          { id: "opencode", label: "OpenCode", icon: "C" },
+          { id: "open-design", label: "Open Design", icon: "D" },
+        ];
+        for (var i = 0; i < apps.length; i++) {
+          var a = apps[i];
+          var item = document.createElement("div");
+          item.className = "update-item";
+          item.dataset.app = a.id;
+          item.innerHTML =
+            '<div class="update-item-icon">' +
+            a.icon +
+            "</div>" +
+            '<div class="update-item-body">' +
+            '<div class="update-item-name">' +
+            a.label +
+            "</div>" +
+            '<div class="update-item-status" id="update-status-' +
+            a.id +
+            '">Vérification…</div>' +
+            "</div>" +
+            '<button class="btn-update" id="update-btn-' +
+            a.id +
+            '" onclick="checkUpdate(\'' +
+            a.id +
+            "')\">Vérifier</button>";
+          list.appendChild(item);
+        }
+        setTimeout(function () {
+          for (var j = 0; j < apps.length; j++) checkUpdate(apps[j].id);
+        }, 200);
+      }
+
+      async function checkUpdate(appId) {
+        var statusEl = document.getElementById("update-status-" + appId);
+        var btnEl = document.getElementById("update-btn-" + appId);
+        if (!statusEl || !btnEl) return;
+        statusEl.textContent = "Vérification…";
+        statusEl.className = "update-item-status updating";
+        btnEl.classList.add("checking");
+        btnEl.disabled = true;
+        try {
+          var results = await window.openhub.checkAppUpdates();
+          var info = results && results[appId];
+          if (!info) throw new Error("no response");
+          if (info.error) throw new Error(info.error);
+          if (info.behind > 0) {
+            statusEl.textContent = info.localTag + " → " + info.remoteTag;
+            statusEl.className = "update-item-status available";
+            btnEl.textContent = "Mettre à jour";
+            btnEl.className = "btn-update primary";
+            btnEl.disabled = false;
+            btnEl.onclick = function () {
+              runUpdate(appId);
+            };
+            if (window.openhub.getAutoUpdate) {
+              var isAuto = await window.openhub.getAutoUpdate();
+              if (isAuto) {
+                runUpdate(appId);
+              }
+            }
+          } else {
+            statusEl.textContent =
+              "À jour" + (info.localTag !== "none" ? " (" + info.localTag + ")" : "");
+            statusEl.className = "update-item-status latest";
+            btnEl.textContent = "Vérifier";
+            btnEl.className = "btn-update";
+            btnEl.disabled = false;
+            btnEl.onclick = function () {
+              checkUpdate(appId);
+            };
+          }
+        } catch (err) {
+          statusEl.textContent = "Erreur : " + (err.message || "inconnue");
+          statusEl.className = "update-item-status error";
+          btnEl.textContent = "Réessayer";
+          btnEl.className = "btn-update";
+          btnEl.disabled = false;
+          btnEl.onclick = function () {
+            checkUpdate(appId);
+          };
+        }
+        btnEl.classList.remove("checking");
+      }
+
+      async function runUpdate(appId) {
+        var statusEl = document.getElementById("update-status-" + appId);
+        var btnEl = document.getElementById("update-btn-" + appId);
+        if (!statusEl || !btnEl) return;
+        statusEl.textContent = "Mise à jour en cours…";
+        statusEl.className = "update-item-status updating";
+        btnEl.textContent = "…";
+        btnEl.disabled = true;
+        try {
+          var result = await window.openhub.runAppUpdate(appId);
+          if (!result || !result.ok) throw new Error((result && result.error) || "échec");
+          statusEl.textContent = "Mise à jour terminée ✓";
+          statusEl.className = "update-item-status latest";
+          btnEl.textContent = "Vérifier";
+          btnEl.className = "btn-update";
+          btnEl.disabled = false;
+          btnEl.onclick = function () {
+            checkUpdate(appId);
+          };
+        } catch (err) {
+          statusEl.textContent = "Erreur : " + (err.message || "inconnue");
+          statusEl.className = "update-item-status error";
+          btnEl.textContent = "Réessayer";
+          btnEl.className = "btn-update";
+          btnEl.disabled = false;
+          btnEl.onclick = function () {
+            runUpdate(appId);
+          };
+        }
+      }
+
+      function renderFacts(facts) {
+        factListEl.innerHTML = "";
+        for (var i = 0; i < facts.length; i++) {
+          var f = facts[i];
+          var div = document.createElement("div");
+          div.className = "fact-item";
+          div.dataset.id = f.id;
+          var span = document.createElement("span");
+          span.textContent = f.text;
+          span.title = f.text;
+          var btn = document.createElement("button");
+          btn.className = "fact-remove";
+          btn.innerHTML =
+            '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+          btn.dataset.id = f.id;
+          btn.addEventListener("click", function () {
+            var id = this.dataset.id;
+            window.openhub.removeMemoryFact(id).then(loadMemoryUI);
+          });
+          div.appendChild(span);
+          div.appendChild(btn);
+          factListEl.appendChild(div);
+        }
+      }
+
+      function updateTokenHint(mem) {
+        var hasProfile = !!mem.profile;
+        var facts = (mem.facts || []).slice().sort(function (a, b) {
+          return b.lastUsedAt - a.lastUsedAt;
+        });
+        var budget = mem.maxFactTokens || 150;
+        var factLines = [];
+        var includedFacts = 0;
+
+        for (var i = 0; i < facts.length; i++) {
+          var line = "- " + facts[i].text;
+          var cost = approxTokens(line);
+          if (cost > budget) continue;
+          budget -= cost;
+          factLines.push(line);
+          includedFacts++;
+        }
+
+        var parts = [];
+        if (mem.enabled && (hasProfile || factLines.length > 0)) {
+          parts.push("<memory>");
+          if (hasProfile) {
+            parts.push("profile: " + mem.profile);
+          }
+          if (factLines.length > 0) {
+            parts.push("facts:");
+            for (var j = 0; j < factLines.length; j++) {
+              parts.push(factLines[j]);
+            }
+          }
+          parts.push("</memory>");
+        }
+
+        var totalTokens = parts.length > 0 ? approxTokens(parts.join("\n")) : 0;
+        tokenHint.textContent =
+          "~" +
+          totalTokens +
+          " tokens injectés · " +
+          includedFacts +
+          "/" +
+          (mem.facts || []).length +
+          " faits · " +
+          (mem.facts || []).length +
+          "/50 max";
+      }
+
+      memToggle.addEventListener("change", function () {
+        var enabled = memToggle.checked;
+        if (memBody) memBody.style.display = enabled ? "" : "none";
+        window.openhub.setMemoryEnabled(enabled);
+      });
+
+      if (memAutoExtractToggle) {
+        memAutoExtractToggle.addEventListener("change", function () {
+          if (window.openhub.setMemoryAutoExtract) {
+            window.openhub.setMemoryAutoExtract(memAutoExtractToggle.checked);
+          }
+        });
+      }
+
+      var autoUpdateToggle = document.getElementById("auto-update-toggle");
+      if (autoUpdateToggle) {
+        autoUpdateToggle.addEventListener("change", function () {
+          if (window.openhub.setAutoUpdate) {
+            window.openhub.setAutoUpdate(autoUpdateToggle.checked);
+          }
+        });
+      }
+
+      var webSearchToggle = document.getElementById("web-search-toggle");
+      if (webSearchToggle) {
+        webSearchToggle.addEventListener("change", function () {
+          if (window.openhub.setWebSearchEnabled) {
+            window.openhub.setWebSearchEnabled(webSearchToggle.checked);
+          }
+        });
+      }
+
+      var visionProxyToggle = document.getElementById("vision-proxy-toggle");
+      var visionOptionsGroup = document.getElementById("vision-options-group");
+      if (visionProxyToggle) {
+        visionProxyToggle.addEventListener("change", function () {
+          if (visionOptionsGroup) visionOptionsGroup.style.display = visionProxyToggle.checked ? "" : "none";
+          if (window.openhub.setVisionProxyEnabled) {
+            window.openhub.setVisionProxyEnabled(visionProxyToggle.checked);
+          }
+        });
+      }
+
+      var aiClassifierInput = document.getElementById("ai-classifier");
+      if (aiClassifierInput) {
+        aiClassifierInput.addEventListener("change", function () {
+          if (window.openhub.setAiClassifierModel) {
+            window.openhub.setAiClassifierModel(aiClassifierInput.value);
+          }
+        });
+      }
+
+      var visionModelInput = document.getElementById("vision-model");
+      if (visionModelInput) {
+        visionModelInput.addEventListener("change", function () {
+          if (window.openhub.setVisionModel) {
+            window.openhub.setVisionModel(visionModelInput.value);
+          }
+        });
+      }
+
+      var visionDetailSelect = document.getElementById("vision-detail-level");
+      if (visionDetailSelect) {
+        visionDetailSelect.addEventListener("change", function () {
+          if (window.openhub.setVisionDetailLevel) {
+            window.openhub.setVisionDetailLevel(visionDetailSelect.value);
+          }
+        });
+      }
+
+      var profileTimer = null;
+      memProfile.addEventListener("input", function () {
+        clearTimeout(profileTimer);
+        profileTimer = setTimeout(function () {
+          window.openhub.setMemoryProfile(memProfile.value);
+          loadMemoryUI();
+        }, 600);
+      });
+      memProfile.addEventListener("blur", function () {
+        clearTimeout(profileTimer);
+        window.openhub.setMemoryProfile(memProfile.value);
+        loadMemoryUI();
+      });
+
+      document.getElementById("btn-add-fact").addEventListener("click", function () {
+        var text = newFactInput.value.trim();
+        if (!text) return;
+        newFactInput.value = "";
+        window.openhub.addMemoryFact(text, []).then(loadMemoryUI);
+      });
+
+      newFactInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          document.getElementById("btn-add-fact").click();
+        }
+      });
+
+      // ── Ollama Model Management ──
+      var ollamaManagerEl = document.getElementById("ollama-model-manager");
+      var ollamaModelListEl = document.getElementById("ollama-model-list");
+
+      async function loadOllamaStatus() {
+        if (!window.openhub.ollamaCheckModels) return;
+        try {
+          const status = await window.openhub.ollamaCheckModels();
+          if (!status.running || status.missing.length === 0) {
+            ollamaManagerEl.style.display = "none";
+            return;
+          }
+
+          ollamaManagerEl.style.display = "block";
+          ollamaModelListEl.innerHTML = "";
+
+          status.missing.forEach(model => {
+            const isPulling = status.pulling.includes(model);
+            const safeId = model.replace(/[:.]/g, "-");
+
+            const card = document.createElement("div");
+            card.className = "ollama-model-card";
+
+            const header = document.createElement("div");
+            header.className = "ollama-model-header";
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "ollama-model-name";
+            nameSpan.textContent = displayModelName(model);
+
+            const statusSpan = document.createElement("span");
+            statusSpan.className = "ollama-model-status";
+            statusSpan.id = "ollama-status-" + safeId;
+            statusSpan.textContent = isPulling ? "En cours..." : "Manquant";
+
+            header.appendChild(nameSpan);
+            header.appendChild(statusSpan);
+            card.appendChild(header);
+
+            const progressCont = document.createElement("div");
+            progressCont.className = "ollama-progress-container";
+            progressCont.id = "ollama-progress-cont-" + safeId;
+            progressCont.style.display = isPulling ? "block" : "none";
+
+            const progressBar = document.createElement("div");
+            progressBar.className = "ollama-progress-bar";
+            progressBar.id = "ollama-progress-bar-" + safeId;
+
+            progressCont.appendChild(progressBar);
+            card.appendChild(progressCont);
+
+            const actions = document.createElement("div");
+            actions.className = "ollama-actions";
+            actions.id = "ollama-actions-" + safeId;
+
+            const btn = document.createElement("button");
+            btn.className = "btn-ollama" + (isPulling ? " cancel" : "");
+            btn.textContent = isPulling ? "Annuler" : "Installer";
+            btn.addEventListener("click", () => {
+              if (isPulling) {
+                window.openhub.ollamaCancelPull(model);
+                hideOllamaProgress(model);
+              } else {
+                window.openhub.ollamaPullModel(model);
+                showOllamaProgress(model);
+              }
+            });
+
+            actions.appendChild(btn);
+            card.appendChild(actions);
+            ollamaModelListEl.appendChild(card);
+            
+            // Auto-trigger installation if not already pulling
+            if (!isPulling) {
+              window.openhub.ollamaPullModel(model);
+              showOllamaProgress(model);
+            }
+          });
+        } catch (err) {
+          console.error("[ollama-manager] Failed to check models:", err);
+        }
+      }
+
+      function showOllamaProgress(model) {
+        const safeId = model.replace(/[:.]/g, "-");
+        document.getElementById("ollama-progress-cont-" + safeId).style.display = "block";
+        document.getElementById("ollama-status-" + safeId).textContent = "Initialisation...";
+        const actions = document.getElementById("ollama-actions-" + safeId);
+        actions.textContent = "";
+        const btn = document.createElement("button");
+        btn.className = "btn-ollama cancel";
+        btn.textContent = "Annuler";
+        btn.addEventListener("click", () => {
+          window.openhub.ollamaCancelPull(model);
+          hideOllamaProgress(model);
+        });
+        actions.appendChild(btn);
+      }
+
+      function hideOllamaProgress(model) {
+        const safeId = model.replace(/[:.]/g, "-");
+        document.getElementById("ollama-progress-cont-" + safeId).style.display = "none";
+        document.getElementById("ollama-status-" + safeId).textContent = "Manquant";
+        const actions = document.getElementById("ollama-actions-" + safeId);
+        actions.textContent = "";
+        const btn = document.createElement("button");
+        btn.className = "btn-ollama";
+        btn.textContent = "Installer";
+        btn.addEventListener("click", () => {
+          window.openhub.ollamaPullModel(model);
+          showOllamaProgress(model);
+        });
+        actions.appendChild(btn);
+      }
+
+      if (window.openhub.onOllamaPullProgress) {
+        window.openhub.onOllamaPullProgress(progress => {
+          const id = progress.model.replace(/[:.]/g, "-");
+          const statusEl = document.getElementById("ollama-status-" + id);
+          const barEl = document.getElementById("ollama-progress-bar-" + id);
+          const contEl = document.getElementById("ollama-progress-cont-" + id);
+          const actionsEl = document.getElementById("ollama-actions-" + id);
+
+          if (!statusEl) return;
+
+          if (progress.status === "success") {
+            statusEl.textContent = "Installé ✓";
+            statusEl.style.color = "var(--oh-color-success)";
+            if (contEl) contEl.style.display = "none";
+            if (actionsEl) actionsEl.style.display = "none";
+            // Refresh in 2 seconds to hide the manager if all models are installed
+            setTimeout(loadOllamaStatus, 2000);
+          } else if (progress.status === "error") {
+            statusEl.textContent = "Erreur : " + (progress.error || "échec");
+            statusEl.style.color = "var(--oh-color-error)";
+            if (actionsEl) {
+              actionsEl.innerHTML = `<button class="btn-ollama" onclick="window.openhub.ollamaPullModel('${progress.model}'); showOllamaProgress('${progress.model}')">Réessayer</button>`;
+            }
+          } else if (progress.status === "canceled") {
+            hideOllamaProgress(progress.model);
+          } else {
+            // "pulling manifest", "downloading", etc.
+            let text = progress.status;
+            if (progress.percent !== undefined) {
+              text += " (" + progress.percent + "%)";
+              if (barEl) barEl.style.width = progress.percent + "%";
+              if (contEl) contEl.style.display = "block";
+            }
+            statusEl.textContent = text;
+          }
+        });
+      }
+
+      // Dynamic service status polling
+      function pollServiceStatuses() {
+        if (!window.openhub || !window.openhub.getSlotStatus) return;
+        window.openhub
+          .getSlotStatus()
+          .then(function (status) {
+            if (!status) return;
+            ["work", "code", "design"].forEach(function (slot) {
+              var btn = document.querySelector('.slot-btn[data-slot="' + slot + '"]');
+              if (!btn) return;
+              if (btn.classList.contains("loading")) return;
+
+              var info = status[slot];
+              if (info && info.healthy) {
+                btn.classList.add("ready");
+              } else {
+                btn.classList.remove("ready");
+              }
+            });
+          })
+          .catch(function (err) {
+            console.error("[sidebar] failed to fetch slot status:", err);
+          });
+      }
+      // ── Prompt Caching Metrics Dashboard ──
+      function loadCacheMetrics() {
+        fetch("http://127.0.0.1:9999/v1/cache/metrics")
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (data) {
+            var stats = data.stats;
+            var records = data.records;
+
+            // Update stats cards with null-safe values
+            var ratioVal = (stats.savings_ratio || 0) * 100;
+            document.getElementById("cache-hit-ratio").textContent = ratioVal.toFixed(1) + "%";
+            document.getElementById("cache-hit-ratio-bar").style.width = ratioVal.toFixed(1) + "%";
+            document.getElementById("cache-saved-tokens").textContent = (stats.total_cached_tokens || 0).toLocaleString();
+            document.getElementById("cache-total-tokens").textContent = (stats.total_prompt_tokens || 0).toLocaleString();
+
+            var emptyState = document.getElementById("cache-empty-state");
+            var detailsContainer = document.getElementById("cache-details-container");
+
+            if (stats.total_requests === 0) {
+              emptyState.style.display = "block";
+              detailsContainer.style.display = "none";
+              return;
+            }
+
+            emptyState.style.display = "none";
+            detailsContainer.style.display = "block";
+
+            // Helper to clean table body
+            function renderBreakdownTable(tbodyId, breakdown) {
+              var tbody = document.getElementById(tbodyId);
+              if (!tbody) return;
+              tbody.innerHTML = "";
+
+              if (!breakdown || typeof breakdown !== "object") return;
+              
+              var sorted = Object.keys(breakdown).map(function (key) {
+                var entry = breakdown[key] || {};
+                var reqs = entry.requests || 0;
+                var cached = entry.cached_tokens || 0;
+                var promptT = entry.prompt_tokens || 0;
+                return {
+                  name: key,
+                  requests: reqs,
+                  cached_tokens: cached,
+                  prompt_tokens: promptT,
+                  ratio: promptT > 0 ? (cached / promptT) * 100 : 0
+                };
+              }).sort(function (a, b) {
+                return b.cached_tokens - a.cached_tokens;
+              });
+
+              sorted.forEach(function (item) {
+                var tr = document.createElement("tr");
+
+                var tdName = document.createElement("td");
+                tdName.style.fontWeight = "600";
+                tdName.textContent = item.name;
+                tr.appendChild(tdName);
+
+                var tdReqs = document.createElement("td");
+                tdReqs.style.textAlign = "right";
+                tdReqs.textContent = item.requests.toLocaleString();
+                tr.appendChild(tdReqs);
+
+                var tdSaved = document.createElement("td");
+                tdSaved.style.textAlign = "right";
+                tdSaved.textContent = item.cached_tokens.toLocaleString();
+                tr.appendChild(tdSaved);
+
+                var tdRatio = document.createElement("td");
+                tdRatio.style.textAlign = "right";
+                tdRatio.style.fontWeight = "600";
+                tdRatio.style.color = item.ratio > 50 ? "var(--oh-color-success)" : "var(--oh-color-text-primary)";
+                tdRatio.textContent = item.ratio.toFixed(1) + "%";
+                tr.appendChild(tdRatio);
+
+                tbody.appendChild(tr);
+              });
+            }
+
+            renderBreakdownTable("cache-model-table-body", stats.breakdown_by_model);
+            renderBreakdownTable("cache-workspace-table-body", stats.breakdown_by_workspace);
+          })
+          .catch(function (err) {
+            console.error("Failed to load cache metrics:", err);
+          });
+      }
+
+      var btnResetCache = document.getElementById("btn-reset-cache");
+      if (btnResetCache) {
+        btnResetCache.addEventListener("click", function () {
+          if (confirm("Voulez-vous réinitialiser toutes les statistiques de cache ?")) {
+            fetch("http://127.0.0.1:9999/v1/cache/reset", { method: "POST" })
+              .then(function () {
+                loadCacheMetrics();
+              })
+              .catch(function (err) {
+                console.error("Failed to reset metrics:", err);
+              });
+          }
+        });
+      }
+
+      setInterval(pollServiceStatuses, 3000);
+      setTimeout(pollServiceStatuses, 500);
+    </script>
+  </body>
 </html>
