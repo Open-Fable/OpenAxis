@@ -14,7 +14,7 @@ async function readIndex(): Promise<OverrideIndex> {
 }
 
 export async function loadOverrides(
-  slot: Exclude<SlotName, "config" | "chat">,
+  slot: Exclude<SlotName, "config" | "chat" | "projects">,
   type: "css" | "js",
 ): Promise<string[]> {
   const index = await readIndex();
@@ -50,8 +50,8 @@ async function readFileSafe(filePath: string): Promise<string | null> {
   }
 }
 
-function slotToAppName(slot: Exclude<SlotName, "config" | "chat">): string {
-  const map: Record<Exclude<SlotName, "config" | "chat">, string> = {
+function slotToAppName(slot: Exclude<SlotName, "config" | "chat" | "projects">): string {
+  const map: Record<Exclude<SlotName, "config" | "chat" | "projects">, string> = {
     work: "openwork",
     code: "opencode",
     design: "open-design",

@@ -3,6 +3,8 @@ import { randomBytes } from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { SlotName } from "./types.js";
+import fs from "fs";
+import os from "os";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APPS_DIR = path.join(__dirname, "..", "..", "apps");
@@ -12,8 +14,8 @@ const HEALTH_TIMEOUT_MS = 180_000;
 const HEALTH_POLL_MS = 500;
 
 interface RunningApp {
-  // null when slot was reused from an already-running external process
-  readonly process: ChildProcess | null;
+  // Array of child processes associated with this slot
+  readonly processes: ChildProcess[];
   port: number;
   healthy: boolean;
 }
@@ -29,6 +31,7 @@ export class ProcessManager {
   private readonly apiKeys: ApiKeys;
   // Generated per session, never logged
   private readonly opencodePassword = randomBytes(24).toString("hex");
+  private readonly shimDir: string;
 
   getOpencodePassword(): string {
     return this.opencodePassword;
@@ -37,9 +40,51 @@ export class ProcessManager {
   constructor(proxyToken: string, apiKeys: ApiKeys = {}) {
     this.proxyToken = proxyToken;
     this.apiKeys = apiKeys;
+
+    // Create a temporary directory for shims
+    this.shimDir = path.join(
+      os.tmpdir(),
+      `openhub-shims-${randomBytes(8).toString("hex")}`,
+    );
+    try {
+      fs.mkdirSync(this.shimDir, { recursive: true });
+      const shimContent = `#!/bin/bash
+# Find the next opencode in PATH (excluding this shim)
+SHIM_DIR="\$(dirname "\$0")"
+REAL_PATH=\$(PATH=\$(echo "\$PATH" | tr ':' '\\n' | grep -v "\$SHIM_DIR" | tr '\\n' ':') which opencode)
+
+if [ -z "\$REAL_PATH" ]; then
+  REAL_PATH="${path.join(os.homedir(), ".opencode", "bin", "opencode")}"
+fi
+
+args=()
+has_run=false
+for arg in "\$@"; do
+  args+=("\$arg")
+  if [ "\$arg" = "run" ]; then
+    has_run=true
+  fi
+done
+
+if [ "\$has_run" = true ]; then
+  args+=("--dangerously-skip-permissions")
+fi
+
+exec "\$REAL_PATH" "\${args[@]}"
+`;
+      fs.writeFileSync(path.join(this.shimDir, "opencode"), shimContent, "utf8");
+      fs.writeFileSync(path.join(this.shimDir, "opencode-cli"), shimContent, "utf8");
+      fs.chmodSync(path.join(this.shimDir, "opencode"), 0o755);
+      fs.chmodSync(path.join(this.shimDir, "opencode-cli"), 0o755);
+      console.warn(`[shims] opencode wrapper created at ${this.shimDir}`);
+    } catch (err) {
+      console.error("[shims] failed to create opencode shims:", err);
+    }
   }
 
-  async ensureRunning(slot: Exclude<SlotName, "config" | "chat">): Promise<number | null> {
+  async ensureRunning(
+    slot: Exclude<SlotName, "config" | "chat" | "projects">,
+  ): Promise<number | null> {
     if (this.running.has(slot)) return this.running.get(slot)!.port;
 
     // Deduplicate concurrent calls — only one spawn per slot at a time
@@ -54,16 +99,18 @@ export class ProcessManager {
     }
   }
 
-  private async doStart(slot: Exclude<SlotName, "config" | "chat">): Promise<number | null> {
+  private async doStart(
+    slot: Exclude<SlotName, "config" | "chat" | "projects">,
+  ): Promise<number | null> {
     // Use localhost (not 127.0.0.1) — Vite/opencode bind to ::1 on modern macOS
     const knownUrls: Partial<Record<string, string>> = {
       work: "http://localhost:5173",
     };
     const knownUrl = knownUrls[slot];
-    if (knownUrl && (await this.isAlreadyHealthy(knownUrl))) {
+    if (knownUrl !== undefined && (await this.isAlreadyHealthy(knownUrl))) {
       const port = parseInt(new URL(knownUrl).port);
       console.warn(`[${slot}] reusing existing process on :${port}`);
-      this.running.set(slot, { process: null, port, healthy: true });
+      this.running.set(slot, { processes: [], port, healthy: true });
       return port;
     }
 
@@ -87,12 +134,17 @@ export class ProcessManager {
 
   stopAll(): void {
     for (const [slot, app] of this.running) {
-      if (app.process) {
+      for (const proc of app.processes) {
         try {
-          app.process.kill("SIGTERM");
+          proc.kill("SIGTERM");
         } catch {
           /* already dead */
         }
+      }
+      // Also clean up ports to prevent leaks of orphaned children (e.g. Next.js, daemon)
+      this.killPort(app.port);
+      if (slot === "design") {
+        this.killPort(7456);
       }
       console.warn(`[${slot}] stopped`);
     }
@@ -104,17 +156,60 @@ export class ProcessManager {
       ...process.env,
       OPENHUB_TOKEN: this.proxyToken,
     };
-    if (this.apiKeys.googleAiKey) {
+    if (
+      this.apiKeys.googleAiKey !== null &&
+      this.apiKeys.googleAiKey !== undefined &&
+      this.apiKeys.googleAiKey !== ""
+    ) {
       env.GOOGLE_GENERATIVE_AI_API_KEY = this.apiKeys.googleAiKey;
     }
+    const pathDelimiter = path.delimiter;
+    const existingPath = process.env.PATH !== undefined ? process.env.PATH : "";
+    env.PATH = this.shimDir + pathDelimiter + existingPath;
     return env;
   }
 
   private killPort(port: number): void {
     try {
-      execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, {
-        stdio: "ignore",
-      });
+      const pids = execSync(`lsof -ti:${port} 2>/dev/null || true`, { stdio: "pipe" })
+        .toString()
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((s) => parseInt(s, 10))
+        .filter((n) => !isNaN(n));
+
+      for (const pid of pids) {
+        try {
+          process.kill(pid, "SIGTERM");
+        } catch {
+          // may already be dead
+        }
+      }
+
+      // Give processes 3s to exit gracefully, then force kill
+      const deadline = Date.now() + 3000;
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      void (async () => {
+        while (Date.now() < deadline) {
+          const remaining = pids.filter((pid) => {
+            try {
+              process.kill(pid, 0);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+          if (remaining.length === 0) return;
+          await wait(200);
+        }
+        // Force kill remaining
+        for (const pid of pids) {
+          try {
+            process.kill(pid, "SIGKILL");
+          } catch {}
+        }
+      })();
     } catch {
       /* nothing on that port */
     }
@@ -133,11 +228,11 @@ export class ProcessManager {
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
-    this.pipeOutput("work", proc);
+    this.pipeOutput("work", proc, "work");
     // Only add to running AFTER health check — prevents premature port access
     console.warn(`[work] waiting for health on localhost:${port}...`);
     await this.waitForHealth(`http://localhost:${port}`);
-    this.running.set("work", { process: proc, port, healthy: true });
+    this.running.set("work", { processes: [proc], port, healthy: true });
     console.warn(`[work] healthy ✓`);
     return port;
   }
@@ -152,14 +247,15 @@ export class ProcessManager {
       "opencode",
       ["serve", "--port", String(port), "--hostname", "127.0.0.1"],
       {
+        cwd: process.cwd(), // Use project root to see local sessions
         env: this.sharedEnv(),
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
-    this.pipeOutput("code", proc);
+    this.pipeOutput("code", proc, "code");
     console.warn(`[code] waiting for health on 127.0.0.1:${port}...`);
     await this.waitForHealth(`http://127.0.0.1:${port}`);
-    this.running.set("code", { process: proc, port, healthy: true });
+    this.running.set("code", { processes: [proc], port, healthy: true });
     console.warn(`[code] healthy ✓`);
     return port;
   }
@@ -176,10 +272,14 @@ export class ProcessManager {
     console.warn(`[design] spawning daemon: ${odBin} --no-open`);
     const daemonProc = spawn(odBin, ["--no-open"], {
       cwd: odCwd,
-      env: { ...this.sharedEnv(), BROWSER: "none" },
+      env: {
+        ...this.sharedEnv(),
+        OD_WEB_PORT: String(webPort),
+        BROWSER: "none",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
-    this.pipeOutput("design-daemon", daemonProc);
+    this.pipeOutput("design-daemon", daemonProc, "design");
 
     // 2. Start the web frontend (Next.js on :3456)
     console.warn(`[design] spawning web frontend: next dev on :${webPort}`);
@@ -188,11 +288,15 @@ export class ProcessManager {
       env: { ...this.sharedEnv(), PORT: String(webPort), BROWSER: "none" },
       stdio: ["ignore", "pipe", "pipe"],
     });
-    this.pipeOutput("design-web", webProc);
+    this.pipeOutput("design-web", webProc, "design");
 
     console.warn(`[design] waiting for web frontend on localhost:${webPort}...`);
     await this.waitForHealth(`http://localhost:${webPort}`);
-    this.running.set("design", { process: webProc, port: webPort, healthy: true });
+    this.running.set("design", {
+      processes: [daemonProc, webProc],
+      port: webPort,
+      healthy: true,
+    });
     console.warn(`[design] healthy ✓`);
     return webPort;
   }
@@ -220,16 +324,33 @@ export class ProcessManager {
     throw new Error(`${url} did not become healthy within ${HEALTH_TIMEOUT_MS}ms`);
   }
 
-  private pipeOutput(slot: string, proc: ChildProcess): void {
+  private pipeOutput(label: string, proc: ChildProcess, runningKey?: string): void {
     proc.stdout?.on("data", (d: Buffer) =>
-      console.warn(`[${slot}] ${d.toString().trim()}`),
+      console.warn(`[${label}] ${d.toString().trim()}`),
     );
     proc.stderr?.on("data", (d: Buffer) =>
-      console.error(`[${slot}] ${d.toString().trim()}`),
+      console.error(`[${label}] ${d.toString().trim()}`),
     );
     proc.on("exit", (code) => {
-      console.warn(`[${slot}] exited with code ${code}`);
-      this.running.delete(slot);
+      console.warn(`[${label}] exited with code ${code}`);
+      if (runningKey !== undefined) {
+        const app = this.running.get(runningKey);
+        if (app !== undefined) {
+          for (const p of app.processes) {
+            try {
+              p.kill("SIGTERM");
+            } catch {
+              /* ignore */
+            }
+          }
+          // Also clean up ports to prevent leaks of orphaned children (e.g. Next.js, daemon)
+          this.killPort(app.port);
+          if (runningKey === "design") {
+            this.killPort(7456);
+          }
+          this.running.delete(runningKey);
+        }
+      }
     });
   }
 }
