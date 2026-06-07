@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "autoExtract": true,
+  "profile": "",
+  "facts": [],
+  "maxFactTokens": 150
+}

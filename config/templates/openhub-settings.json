@@ -1,0 +1,11 @@
+{
+  "autoUpdate": true,
+  "webSearchEnabled": false,
+  "visionProxyEnabled": true,
+  "visionModel": "openbmb/minicpm-v4.6",
+  "visionDetailLevel": "high",
+  "aiWorkflowProModel": "deepseek/deepseek-v4-pro",
+  "aiWorkflowFlashModel": "deepseek/deepseek-v4-flash",
+  "aiClassifierModel": "deepseek/deepseek-v4-flash",
+  "headerHeight": 83
+}

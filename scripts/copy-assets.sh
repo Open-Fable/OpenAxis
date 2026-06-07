@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 cp "$ROOT/electron/sidebar.html" "$ROOT/dist/electron/sidebar.html"
 cp "$ROOT/electron/chat.html" "$ROOT/dist/electron/chat.html"
+cp "$ROOT/electron/projects.html" "$ROOT/dist/electron/projects.html"
 
 rm -rf "$ROOT/dist/electron/overrides"
 cp -r "$ROOT/electron/overrides" "$ROOT/dist/electron/overrides"
