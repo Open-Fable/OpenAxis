@@ -711,6 +711,7 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
     ollamaUrl: "ollama-url",
     githubToken: "github-token",
     braveSearchKey: "brave-search-key",
+    googleOauthClientSecret: "google-oauth-client-secret",
   };
   for (const [field, account] of Object.entries(map)) {
     if (keys[field]) await writeSecret("openhub", account, keys[field]);
