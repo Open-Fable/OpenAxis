@@ -30,16 +30,23 @@ export async function readAllApiKeys(): Promise<{
   braveSearchKey: string | null;
   ollamaUrl: string;
 }> {
-  const [anthropic, openai, openrouterKey, googleAiKey, githubToken, braveSearchKey, ollamaUrl] =
-    await Promise.all([
-      keytar.getPassword(SERVICE, "anthropic-api-key"),
-      keytar.getPassword(SERVICE, "openai-api-key"),
-      keytar.getPassword(SERVICE, "openrouter-api-key"),
-      keytar.getPassword(SERVICE, "google-ai-key"),
-      keytar.getPassword(SERVICE, "github-token"),
-      keytar.getPassword(SERVICE, "brave-search-key"),
-      keytar.getPassword(SERVICE, "ollama-url"),
-    ]);
+  const [
+    anthropic,
+    openai,
+    openrouterKey,
+    googleAiKey,
+    githubToken,
+    braveSearchKey,
+    ollamaUrl,
+  ] = await Promise.all([
+    keytar.getPassword(SERVICE, "anthropic-api-key"),
+    keytar.getPassword(SERVICE, "openai-api-key"),
+    keytar.getPassword(SERVICE, "openrouter-api-key"),
+    keytar.getPassword(SERVICE, "google-ai-key"),
+    keytar.getPassword(SERVICE, "github-token"),
+    keytar.getPassword(SERVICE, "brave-search-key"),
+    keytar.getPassword(SERVICE, "ollama-url"),
+  ]);
 
   return {
     anthropic,
