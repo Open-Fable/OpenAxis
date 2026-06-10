@@ -4,2045 +4,237 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>OpenHub — Projets</title>
-    <style>
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      :root {
-        --bg-deepest: #fbfbf9;
-        --bg-panel: #f6f6f3;
-        --bg-surface: #efefec;
-        --bg-elevated: #ffffff;
-        --bg-overlay: #f2f2ef;
-        --border-subtle: #ebebe6;
-        --border-default: #deded8;
-        --border-strong: #cecec6;
-        --text-primary: #1e1e2c;
-        --text-secondary: #62627a;
-        --text-muted: #9494a6;
-        --text-disabled: #c6c6d4;
-        --accent-primary: #6352d0;
-        --accent-hover: #5846c0;
-        --accent-active: #4c3aac;
-        --accent-subtle: rgba(99, 82, 208, 0.06);
-        --accent-subtle-hover: rgba(99, 82, 208, 0.1);
-        --accent-work: #0d9488;
-        --accent-code: #7c3aed;
-        --accent-code-subtle: rgba(124, 58, 237, 0.08);
-        --accent-design: #d97706;
-        --orchestrator: #0d9488;
-        --orchestrator-subtle: rgba(13, 148, 136, 0.1);
-        --accent-verifier: #2563eb;
-        --accent-verifier-subtle: rgba(37, 99, 235, 0.1);
-        --project-subtle: rgba(124, 58, 237, 0.08);
-        --success: #10b981;
-        --success-subtle: rgba(16, 185, 129, 0.1);
-        --warning: #f59e0b;
-        --warning-subtle: rgba(245, 158, 11, 0.1);
-        --error: #ef4444;
-        --error-subtle: rgba(239, 68, 68, 0.1);
-        --info: #3b82f6;
-        --info-subtle: rgba(59, 130, 246, 0.1);
-        --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
-        --shadow-glow: 0 0 24px rgba(99, 82, 208, 0.12);
-        --overlay-modal: rgba(0, 0, 0, 0.1);
-        --radius-xs: 4px;
-        --radius-sm: 6px;
-        --radius-md: 8px;
-        --radius-lg: 12px;
-        --radius-xl: 16px;
-        --radius-2xl: 20px;
-        --radius-full: 9999px;
-        --space-0: 0;
-        --space-1: 4px;
-        --space-2: 8px;
-        --space-3: 12px;
-        --space-4: 16px;
-        --space-5: 20px;
-        --space-6: 24px;
-        --space-8: 32px;
-        --font-sans:
-          "SF Pro Text", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        --font-display:
-          "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        --font-mono: "SF Mono", "Fira Code", ui-monospace, Menlo, monospace;
-        --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-        --ease-out: cubic-bezier(0, 0, 0.2, 1);
-        --ease-in: cubic-bezier(0.4, 0, 1, 1);
-        --duration-75: 75ms;
-        --duration-150: 150ms;
-        --duration-250: 250ms;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-deepest: #18181e;
-          --bg-panel: #202028;
-          --bg-surface: #282834;
-          --bg-elevated: #30303e;
-          --bg-overlay: #1e1e28;
-          --border-subtle: #242432;
-          --border-default: #2e2e3e;
-          --border-strong: #3a3a4c;
-          --text-primary: #eaeaf0;
-          --text-secondary: #acacbe;
-          --text-muted: #747488;
-          --text-disabled: #4e4e5e;
-          --accent-primary: #7c6af2;
-          --accent-hover: #9180f5;
-          --accent-active: #6b58d8;
-          --accent-subtle: rgba(124, 106, 242, 0.1);
-          --accent-subtle-hover: rgba(124, 106, 242, 0.16);
-          --accent-code-subtle: rgba(167, 139, 250, 0.1);
-          --accent-work: #2dd4bf;
-          --accent-code: #a78bfa;
-          --accent-design: #fbbf24;
-          --orchestrator: #2dd4bf;
-          --orchestrator-subtle: rgba(45, 212, 191, 0.1);
-          --accent-verifier: #60a5fa;
-          --accent-verifier-subtle: rgba(96, 165, 250, 0.1);
-          --project-subtle: rgba(167, 139, 250, 0.1);
-          --success: #34d399;
-          --success-subtle: rgba(52, 211, 153, 0.1);
-          --warning: #fbbf24;
-          --warning-subtle: rgba(251, 191, 36, 0.1);
-          --error: #f87171;
-          --error-subtle: rgba(248, 113, 113, 0.1);
-          --info: #60a5fa;
-          --info-subtle: rgba(96, 165, 250, 0.1);
-          --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-          --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-          --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-          --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.35);
-          --shadow-glow: 0 0 24px rgba(124, 106, 242, 0.15);
-          --overlay-modal: rgba(0, 0, 0, 0.35);
-        }
-      }
-
-      html,
-      body {
-        height: 100%;
-        font-family: var(--font-sans);
-        background: var(--bg-deepest);
-        color: var(--text-primary);
-        -webkit-font-smoothing: antialiased;
-        overflow: hidden;
-        user-select: none;
-      }
-
-      .app-layout {
-        display: flex;
-        height: 100vh;
-        width: 100vw;
-      }
-      .main-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        min-height: 0;
-      }
-
-      .page-header {
-        display: flex;
-        align-items: center;
-        height: 54px;
-        padding: 0 var(--space-4);
-        gap: var(--space-3);
-        flex-shrink: 0;
-        border-bottom: 1px solid var(--border-subtle);
-        background: var(--bg-panel);
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-      }
-
-      .page-header-title {
-        font-family: var(--font-display);
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        white-space: nowrap;
-      }
-      .page-header-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 400;
-      }
-      .page-header-actions {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        margin-left: auto;
-      }
-
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        height: 32px;
-        padding: 0 var(--space-3);
-        border-radius: var(--radius-md);
-        border: none;
-        font-family: var(--font-sans);
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: all var(--duration-75) var(--ease-default);
-      }
-      .btn--primary {
-        background: var(--accent-primary);
-        color: #fff;
-      }
-      .btn--primary:hover {
-        background: var(--accent-hover);
-      }
-      .btn--primary:active {
-        background: var(--accent-active);
-      }
-      .btn--secondary {
-        background: var(--bg-surface);
-        color: var(--text-secondary);
-      }
-      .btn--secondary:hover {
-        background: var(--border-subtle);
-        color: var(--text-primary);
-      }
-      .btn--ghost {
-        background: transparent;
-        color: var(--text-muted);
-      }
-      .btn--ghost:hover {
-        background: var(--bg-surface);
-        color: var(--text-secondary);
-      }
-      .btn svg {
-        width: 15px;
-        height: 15px;
-        flex-shrink: 0;
-      }
-
-      .page-body {
-        flex: 1;
-        display: flex;
-        min-height: 0;
-        padding: var(--space-4);
-        gap: var(--space-4);
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .projects-panel {
-        width: 280px;
-        min-width: 280px;
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        min-height: 0;
-        background: var(--bg-panel);
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-      }
-      .panel-card {
-        background: var(--bg-panel);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-xl);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .panel-card--projects {
-        flex: 1;
-        min-height: 0;
-      }
-      .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: var(--space-3) var(--space-4);
-        flex-shrink: 0;
-      }
-      .panel-title {
-        font-family: var(--font-display);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--text-muted);
-      }
-      .panel-search {
-        padding: 0 var(--space-4) var(--space-3);
-        flex-shrink: 0;
-      }
-
-      .search-input {
-        width: 100%;
-        height: 30px;
-        padding: 0 var(--space-3);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-family: var(--font-sans);
-        font-size: 13px;
-        outline: none;
-      }
-      .search-input:focus {
-        border-color: var(--accent-primary);
-      }
-
-      .panel-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0 var(--space-2) var(--space-2);
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .panel-list::-webkit-scrollbar {
-        width: 4px;
-      }
-      .panel-list::-webkit-scrollbar-thumb {
-        background: var(--border-default);
-        border-radius: var(--radius-full);
-      }
-
-      .project-card {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-3);
-        border-radius: var(--radius-lg);
-        cursor: pointer;
-        border: 1px solid transparent;
-        transition: all var(--duration-75) var(--ease-default);
-      }
-      .project-card:hover {
-        background: var(--bg-surface);
-      }
-      .project-card--active {
-        background: var(--accent-subtle);
-        border-color: var(--accent-primary);
-      }
-      .project-card-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: var(--radius-full);
-        flex-shrink: 0;
-      }
-      .project-card-dot--orchestrator {
-        background: var(--orchestrator);
-      }
-      .project-card-dot--code {
-        background: var(--accent-code);
-      }
-      .project-card-dot--design {
-        background: var(--accent-design);
-      }
-      .project-card-dot--work {
-        background: var(--accent-work);
-      }
-      .project-card-dot--verifier {
-        background: var(--accent-verifier);
-      }
-
-      .project-card-info {
-        flex: 1;
-        min-width: 0;
-      }
-      .project-card-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .project-card-meta {
-        font-size: 11px;
-        color: var(--text-muted);
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        margin-top: 1px;
-      }
-      .project-card-badge {
-        display: inline-flex;
-        align-items: center;
-        height: 18px;
-        padding: 0 6px;
-        border-radius: var(--radius-full);
-        font-size: 10px;
-        font-weight: 600;
-        background: var(--accent-subtle);
-        color: var(--accent-primary);
-      }
-      .project-card-badge--orch {
-        background: var(--orchestrator-subtle);
-        color: var(--orchestrator);
-      }
-      .project-card-badge--verifier {
-        background: var(--accent-verifier-subtle);
-        color: var(--accent-verifier);
-      }
-
-      .project-card-actions {
-        display: flex;
-        gap: 2px;
-        opacity: 0;
-        transition: opacity var(--duration-75);
-      }
-      .project-card:hover .project-card-actions {
-        opacity: 1;
-      }
-      .project-card-btn {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--radius-sm);
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .project-card-btn:hover {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-      }
-      .project-card-btn svg {
-        width: 13px;
-        height: 13px;
-      }
-
-      /* ── Graph Canvas ── */
-      .orchestration-view {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-4);
-        min-height: 0;
-      }
-
-      .orchestration-canvas {
-        flex: 1;
-        min-height: 0;
-        background: var(--bg-panel);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-xl);
-        position: relative;
-        overflow: hidden;
-        user-select: none;
-      }
-      .canvas-svg {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        overflow: visible;
-      }
-      .canvas-inner {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        transform-origin: 0 0;
-        will-change: transform;
-      }
-      .canvas-empty {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        text-align: center;
-        padding: var(--space-6);
-        background: var(--bg-panel);
-        z-index: 10;
-        overflow-y: auto;
-      }
-      .welcome-container {
-        max-width: 860px;
-        width: 100%;
-        padding: var(--space-6) var(--space-8);
-        border-radius: var(--radius-2xl);
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        box-shadow: var(--shadow-lg);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--space-4);
-        animation: fadeIn var(--duration-250) var(--ease-out);
-      }
-      .welcome-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: var(--space-1) var(--space-3);
-        background: var(--accent-subtle);
-        color: var(--accent-primary);
-        border-radius: var(--radius-full);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-      }
-      .welcome-title {
-        font-family: var(--font-display);
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-top: var(--space-1);
-      }
-      .welcome-subtitle {
-        font-size: 13px;
-        color: var(--text-secondary);
-        line-height: 1.5;
-        max-width: 480px;
-      }
-      .guide-steps {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        width: 100%;
-        text-align: left;
-        margin: var(--space-2) 0;
-      }
-      .guide-step {
-        display: flex;
-        gap: var(--space-3);
-        padding: var(--space-3);
-        border-radius: var(--radius-lg);
-        background: var(--bg-panel);
-        border: 1px solid var(--border-subtle);
-        transition: border-color var(--duration-150);
-      }
-      .guide-step:hover {
-        border-color: var(--border-strong);
-      }
-      .guide-step-num {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--radius-full);
-        background: var(--accent-primary);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-      .guide-step-body {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .guide-step-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      .guide-step-text {
-        font-size: 11.5px;
-        color: var(--text-secondary);
-        line-height: 1.45;
-      }
-      .welcome-actions {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-3);
-        width: 100%;
-        margin-top: var(--space-2);
-        flex-wrap: wrap;
-      }
-      .welcome-or {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 500;
-      }
-      .welcome-btn-import {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2);
-      }
-      .welcome-btn-import svg {
-        width: 14px;
-        height: 14px;
-        transition: transform var(--duration-150);
-      }
-      .welcome-btn-import:hover svg {
-        transform: translateY(1px);
-      }
-
-      /* ── Node Cards ── */
-      .node-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius-xl);
-        padding: var(--space-4);
-        width: 230px;
-        position: absolute;
-        z-index: 2;
-        cursor: grab;
-        box-shadow: var(--shadow-sm);
-        transition:
-          box-shadow var(--duration-75),
-          border-color var(--duration-150);
-      }
-      .node-card:active {
-        cursor: grabbing;
-      }
-      .node-card:hover {
-        border-color: var(--border-strong);
-        box-shadow: var(--shadow-md);
-      }
-      .node-card--selected {
-        border-color: var(--accent-primary);
-        box-shadow: var(--shadow-glow);
-      }
-      
-      .node-link-handle {
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 16px;
-        height: 16px;
-        background: var(--bg-elevated);
-        border: 2px solid var(--accent-primary);
-        border-radius: 50%;
-        cursor: crosshair;
-        z-index: 10;
-        opacity: 0;
-        transition: opacity 0.2s, background 0.2s;
-      }
-      .layout-horizontal .node-link-handle {
-        bottom: auto;
-        top: 50%;
-        right: -8px;
-        left: auto;
-        transform: translateY(-50%);
-      }
-      .node-link-handle:hover {
-        background: var(--accent-primary);
-      }
-      .node-card:hover .node-link-handle {
-        opacity: 1;
-      }
-      .node-card--running {
-        border-color: var(--info);
-      }
-      .node-card--done {
-        border-color: var(--success);
-      }
-      .node-card--warning {
-        border-color: var(--warning);
-      }
-      .node-card--error {
-        border-color: var(--error);
-      }
-      .node-card--skipped {
-        border-color: var(--border-default);
-        opacity: 0.6;
-      }
-
-      .node-card-type {
-        font-size: 9px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: var(--space-2);
-      }
-      .node-card-type--orch {
-        color: var(--orchestrator);
-      }
-      .node-card-type--project {
-        color: var(--accent-code);
-      }
-      .node-card-type--verifier {
-        color: var(--accent-verifier);
-      }
-      .node-card-name {
-        font-family: var(--font-display);
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: var(--space-1);
-      }
-      .node-card-status {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        font-size: 11px;
-        font-weight: 500;
-        margin-top: var(--space-2);
-      }
-      .node-card-status--running {
-        color: var(--info);
-      }
-      .node-card-status--done {
-        color: var(--success);
-      }
-      .node-card-status--warning {
-        color: var(--warning);
-      }
-      .node-card-status--error {
-        color: var(--error);
-      }
-      .node-card-status--skipped {
-        color: var(--text-disabled);
-      }
-      .node-card-status--idle {
-        color: var(--text-muted);
-      }
-      .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: var(--radius-full);
-        flex-shrink: 0;
-      }
-      .status-dot--running {
-        background: var(--info);
-        animation: pulse-dot 1.5s infinite;
-      }
-      .status-dot--done {
-        background: var(--success);
-      }
-      .status-dot--warning {
-        background: var(--warning);
-      }
-      .status-dot--error {
-        background: var(--error);
-      }
-      .status-dot--skipped {
-        background: var(--text-disabled);
-      }
-      .status-dot--idle {
-        background: var(--text-disabled);
-      }
-      @keyframes pulse-dot {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.4;
-        }
-      }
-
-      .node-card-orch-settings {
-        display: flex;
-        gap: 3px;
-        margin-top: var(--space-2);
-        flex-wrap: wrap;
-      }
-      .orch-chip {
-        font-size: 9px;
-        padding: 2px 6px;
-        border-radius: var(--radius-full);
-        font-weight: 600;
-        white-space: nowrap;
-      }
-      .orch-chip--distribute {
-        background: var(--accent-subtle);
-        color: var(--accent-primary);
-      }
-      .orch-chip--check {
-        background: var(--success-subtle);
-        color: var(--success);
-      }
-      .orch-chip--relaunch {
-        background: var(--warning-subtle);
-        color: var(--warning);
-      }
-
-      /* ── Details Panel ── */
-      .orchestration-detail {
-        max-height: 240px;
-        min-height: 180px;
-        height: 240px;
-        flex-shrink: 0;
-        background: var(--bg-panel);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-xl);
-        padding: var(--space-4);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                    min-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .orchestration-detail--collapsed {
-        min-height: 48px !important;
-        height: 48px !important;
-        padding-top: 4px !important;
-        padding-bottom: 4px !important;
-      }
-      
-      .orchestration-detail--collapsed .detail-body,
-      .orchestration-detail--collapsed .detail-actions {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s;
-      }
-      
-      .detail-body, .detail-actions {
-        opacity: 1;
-        transition: opacity 0.3s 0.1s;
-      }
-
-      .detail-tabs {
-        display: flex;
-        align-items: center;
-        gap: 0;
-        border-bottom: 1px solid var(--border-subtle);
-        margin-bottom: var(--space-1);
-        min-height: 40px;
-        flex-shrink: 0;
-      }
-      
-      .btn-collapse-detail {
-        margin-left: auto;
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-      }
-      .btn-collapse-detail:hover {
-        background: var(--bg-elevated);
-        color: var(--text-secondary);
-      }
-      .btn-collapse-detail svg {
-        width: 14px;
-        height: 14px;
-        transition: transform 0.3s;
-      }
-      .orchestration-detail--collapsed .btn-collapse-detail svg {
-        transform: rotate(180deg);
-      }
-
-      /* ── Zen Mode ── */
-      .app-layout {
-        transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .zen-mode .projects-panel {
-        width: 0 !important;
-        min-width: 0 !important;
-        opacity: 0;
-        margin-left: -16px;
-        pointer-events: none;
-      }
-      
-      .zen-mode .page-header {
-        height: 0 !important;
-        min-height: 0 !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        opacity: 0;
-        margin-top: -16px;
-        pointer-events: none;
-        border-bottom: none;
-      }
-      
-      .zen-mode .page-body {
-        padding: 0;
-        gap: 0;
-      }
-      .zen-mode .orchestration-canvas {
-        border: none;
-        border-radius: 0;
-      }
-      
-      #btnToggleZen {
-        transition: all 0.2s;
-      }
-      .zen-mode-active-btn {
-        background: var(--accent-primary) !important;
-        color: white !important;
-      }
-      
-      /* Floating Zen Button when in Zen Mode */
-      #floatingZenToggle {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        display: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-strong);
-        color: var(--text-primary);
-        box-shadow: var(--shadow-lg);
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      #floatingZenToggle:hover {
-        background: var(--bg-surface);
-        transform: scale(1.1);
-      }
-      .zen-mode #floatingZenToggle {
-        display: flex;
-      }
-      .detail-tab {
-        padding: var(--space-1) var(--space-3);
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-muted);
-        border: none;
-        background: none;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        margin-bottom: -1px;
-        transition:
-          color var(--duration-75) var(--ease-default),
-          border-color var(--duration-75) var(--ease-default);
-      }
-      .detail-tab:hover {
-        color: var(--text-secondary);
-      }
-      .detail-tab--active {
-        color: var(--accent-primary);
-        border-bottom-color: var(--accent-primary);
-      }
-
-      .detail-body {
-        flex: 1;
-        min-height: 0;
-        display: none;
-        flex-direction: column;
-        gap: var(--space-3);
-      }
-      .detail-body--active {
-        display: flex;
-      }
-
-      .detail-row {
-        display: flex;
-        gap: var(--space-3);
-        flex: 1;
-        min-height: 0;
-      }
-      .detail-col {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-1);
-      }
-      .detail-label {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-muted);
-        white-space: nowrap;
-      }
-      .detail-textarea {
-        flex: 1;
-        width: 100%;
-        min-height: 70px;
-        padding: var(--space-2) var(--space-3);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-family: var(--font-sans);
-        font-size: 13px;
-        line-height: 1.5;
-        resize: none;
-        outline: none;
-      }
-      .detail-textarea:focus {
-        border-color: var(--accent-primary);
-      }
-      .detail-textarea--mono {
-        font-family: var(--font-mono);
-        font-size: 12px;
-      }
-      .detail-textarea:read-only {
-        cursor: default;
-        color: var(--text-secondary);
-      }
-
-      .detail-actions {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        justify-content: flex-end;
-        margin-top: auto;
-        padding-top: var(--space-2);
-        border-top: 1px solid var(--border-subtle);
-      }
-
-      /* ── Modals ── */
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: var(--overlay-modal);
-        z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn var(--duration-75) var(--ease-out);
-      }
-      .modal-dialog {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
-        width: 520px;
-        max-width: calc(100vw - 32px);
-        max-height: calc(100vh - 64px);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-      }
-      .modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: var(--space-5) var(--space-5) var(--space-3);
-        flex-shrink: 0;
-      }
-      .modal-title {
-        font-family: var(--font-display);
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      .modal-close {
-        width: 28px;
-        height: 28px;
-        border-radius: var(--radius-md);
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .modal-close:hover {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-      }
-      .modal-close svg {
-        width: 16px;
-        height: 16px;
-      }
-      .modal-body {
-        padding: 0 var(--space-5) var(--space-5);
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-4);
-      }
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-1);
-      }
-      .form-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-      }
-      .form-hint {
-        font-size: 11px;
-        color: var(--text-muted);
-        margin-top: 2px;
-      }
-      .form-input {
-        width: 100%;
-        height: 34px;
-        padding: 0 var(--space-3);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-family: var(--font-sans);
-        font-size: 13px;
-        outline: none;
-      }
-      .form-input:focus {
-        border-color: var(--accent-primary);
-      }
-      .form-textarea {
-        width: 100%;
-        min-height: 90px;
-        padding: var(--space-3);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-family: var(--font-mono);
-        font-size: 12px;
-        line-height: 1.5;
-        resize: vertical;
-        outline: none;
-      }
-      .form-textarea:focus {
-        border-color: var(--accent-primary);
-      }
-      .form-select {
-        width: 100%;
-        height: 34px;
-        padding: 0 var(--space-3);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-family: var(--font-sans);
-        font-size: 13px;
-        outline: none;
-        cursor: pointer;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239494A6' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        padding-right: 28px;
-      }
-      .form-select:focus {
-        border-color: var(--accent-primary);
-      }
-
-      .dependency-checkbox-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        max-height: 120px;
-        overflow-y: auto;
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius-md);
-        padding: var(--space-2);
-        background: var(--bg-surface);
-      }
-      .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        font-size: 13px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        padding: var(--space-1) 0;
-      }
-      .checkbox-label input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        accent-color: var(--accent-primary);
-        cursor: pointer;
-      }
-      .modal-footer {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: var(--space-2);
-        padding: var(--space-4) var(--space-5);
-        flex-shrink: 0;
-        border-top: 1px solid var(--border-subtle);
-      }
-
-      /* ── Modal de confirmation suppression ── */
-      #modalConfirmDelete {
-        position: fixed;
-        inset: 0;
-        z-index: 200;
-        background: var(--overlay-modal);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn var(--duration-75) var(--ease-out);
-      }
-      #modalConfirmDelete.open {
-        display: flex;
-      }
-      .confirm-dialog {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
-        width: 380px;
-        max-width: calc(100vw - 32px);
-        padding: var(--space-6);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-4);
-      }
-      .confirm-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(var(--error-rgb, 239, 68, 68), 0.12);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--error, #ef4444);
-      }
-      .confirm-icon svg { width: 20px; height: 20px; }
-      .confirm-title {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-      }
-      .confirm-desc {
-        font-size: 13px;
-        color: var(--text-secondary);
-        margin: 0;
-        line-height: 1.5;
-      }
-      .confirm-actions {
-        display: flex;
-        gap: var(--space-2);
-        justify-content: flex-end;
-        margin-top: var(--space-2);
-      }
-      .confirm-btn-cancel {
-        padding: 8px 16px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .confirm-btn-cancel:hover {
-        background: var(--bg-hover);
-      }
-      .confirm-btn-delete {
-        padding: 8px 16px;
-        border-radius: var(--radius-md);
-        border: none;
-        background: var(--error, #ef4444);
-        color: #fff;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .confirm-btn-delete:hover {
-        background: #dc2626;
-      }
-
-      /* ── Toast ── */
-      .toast-container {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        pointer-events: none;
-      }
-      .toast {
-        padding: var(--space-3) var(--space-5);
-        border-radius: var(--radius-md);
-        font-size: 13px;
-        font-weight: 500;
-        color: #fff;
-        box-shadow: var(--shadow-md);
-        animation: toastIn var(--duration-250) var(--ease-out);
-      }
-      .toast--success {
-        background: var(--success);
-      }
-      .toast--error {
-        background: var(--error);
-      }
-      .toast--warning {
-        background: var(--warning);
-      }
-      @keyframes toastIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-
-      /* ── Floating zoom controls ── */
-      .canvas-controls {
-        position: absolute;
-        bottom: var(--space-4);
-        right: var(--space-4);
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        z-index: 20;
-      }
-      .control-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-elevated);
-        color: var(--text-secondary);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: var(--shadow-sm);
-        transition: all var(--duration-75) var(--ease-default);
-      }
-      .control-btn:hover {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        border-color: var(--border-strong);
-      }
-      .control-btn svg {
-        width: 16px;
-        height: 16px;
-      }
-
-      /* ── Onboarding Welcome Layout ── */
-      .welcome-body-layout {
-        display: flex;
-        gap: var(--space-6);
-        width: 100%;
-        align-items: stretch;
-        margin-bottom: var(--space-2);
-        flex-wrap: wrap;
-      }
-      .welcome-col-visual {
-        flex: 1;
-        min-width: 300px;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        justify-content: center;
-      }
-      .welcome-col-guide {
-        flex: 1.2;
-        min-width: 300px;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-      }
-
-      .mini-diagram {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 16px var(--space-3);
-        background: var(--bg-panel);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-subtle);
-        position: relative;
-        margin-top: 10px;
-        width: 100%;
-        height: 110px;
-        overflow: hidden;
-      }
-      .mini-node {
-        padding: 6px 10px;
-        border-radius: var(--radius-md);
-        font-size: 11px;
-        font-weight: 600;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        box-shadow: var(--shadow-sm);
-        z-index: 2;
-        text-align: center;
-        white-space: nowrap;
-      }
-      .mini-node--orch {
-        border-color: var(--orchestrator);
-        color: var(--orchestrator);
-      }
-      .mini-node--agent {
-        border-color: var(--accent-code);
-        color: var(--accent-code);
-      }
-      .mini-node--verifier {
-        border-color: var(--accent-verifier);
-        color: var(--accent-verifier);
-      }
-
-      .mini-connector {
-        flex: 1;
-        height: 2px;
-        background: repeating-linear-gradient(
-          90deg,
-          var(--border-strong),
-          var(--border-strong) 4px,
-          transparent 4px,
-          transparent 8px
-        );
-        position: relative;
-        z-index: 1;
-        min-width: 20px;
-      }
-      .mini-pulse {
-        position: absolute;
-        top: -3px;
-        left: 0;
-        width: 8px;
-        height: 8px;
-        border-radius: var(--radius-full);
-        background: var(--accent-primary);
-        animation: mini-flow 2s infinite linear;
-      }
-      .mini-pulse--2 {
-        animation-delay: 1s;
-      }
-      @keyframes mini-flow {
-        0% {
-          left: 0%;
-          opacity: 0;
-        }
-        10% {
-          opacity: 1;
-        }
-        90% {
-          opacity: 1;
-        }
-        100% {
-          left: 100%;
-          opacity: 0;
-        }
-      }
-
-      .templates-title {
-        font-family: var(--font-display);
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--text-muted);
-        margin-top: var(--space-4);
-        margin-bottom: var(--space-2);
-        align-self: flex-start;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .templates-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-3);
-        width: 100%;
-      }
-      @media (max-width: 600px) {
-        .templates-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      .template-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius-lg);
-        padding: var(--space-3) var(--space-4);
-        text-align: left;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        transition: all var(--duration-150) var(--ease-default);
-        position: relative;
-      }
-      .template-card:hover {
-        border-color: var(--accent-primary);
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
-      }
-      .template-card--purple:hover {
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 16px rgba(124, 106, 242, 0.12);
-      }
-      .template-card--orange:hover {
-        border-color: var(--accent-design);
-        box-shadow: 0 0 16px rgba(217, 119, 6, 0.12);
-      }
-      .template-card--green:hover {
-        border-color: var(--accent-work);
-        box-shadow: 0 0 16px rgba(16, 185, 129, 0.12);
-      }
-      .template-card--blue:hover {
-        border-color: var(--accent-verifier);
-        box-shadow: 0 0 16px rgba(37, 99, 235, 0.12);
-      }
-
-      .template-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .template-card-title {
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-      .template-card-badge {
-        font-size: 9px;
-        font-weight: 600;
-        padding: 2px 6px;
-        border-radius: var(--radius-full);
-        background: var(--bg-surface);
-        color: var(--text-secondary);
-      }
-      .template-card--purple .template-card-badge {
-        background: var(--accent-subtle);
-        color: var(--accent-primary);
-      }
-      .template-card--orange .template-card-badge {
-        background: rgba(217, 119, 6, 0.1);
-        color: var(--accent-design);
-      }
-      .template-card--green .template-card-badge {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--accent-work);
-      }
-      .template-card--blue .template-card-badge {
-        background: var(--accent-verifier-subtle);
-        color: var(--accent-verifier);
-      }
-      .template-card-desc {
-        font-size: 11px;
-        color: var(--text-muted);
-        line-height: 1.4;
-      }
-      .template-card-btn {
-        margin-top: var(--space-2);
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--accent-primary);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        align-self: flex-start;
-      }
-      .template-card-btn svg {
-        width: 12px;
-        height: 12px;
-        transition: transform var(--duration-150);
-      }
-      .template-card:hover .template-card-btn svg {
-        transform: translateX(2px);
-      }
-
-      .suggestions-section {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-        margin-top: var(--space-4);
-        align-self: flex-start;
-      }
-      .suggestions-label {
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .suggestions-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .suggestion-chip {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-default);
-        color: var(--text-secondary);
-        border-radius: var(--radius-full);
-        padding: var(--space-1) var(--space-3);
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all var(--duration-75) var(--ease-default);
-      }
-      .suggestion-chip:hover {
-        background: var(--accent-subtle);
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-      }
-    </style>
+    <link rel="stylesheet" href="projects/projects.css" />
   </head>
   <body>
     <div class="app-layout">
-      <div class="main-content">
-        <header class="page-header">
-          <div class="page-header-title">
-            Orchestrateur
-            <span class="page-header-subtitle"
-              >Gestion et coordination de projets multiples</span
-            >
+      <!-- ── Top Bar ── -->
+      <div class="topbar">
+        <div class="wf-selector">
+          <div class="wf-trigger" onclick="document.getElementById('wfDropdown').classList.toggle('open')">
+            <span class="wf-dot"></span>
+            <span id="wfName">Workflow</span>
+            <svg class="wf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div class="page-header-actions">
-            <button class="btn btn--secondary" id="btnNewProject">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Nouveau projet
+          <div class="wf-dropdown" id="wfDropdown"></div>
+        </div>
+        <div class="topbar-center">
+          <span class="topbar-title" id="canvasWfName">Orchestrateur</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="topbar-progress" id="topbarProgress" style="display:none">
+            <span class="topbar-progress-text" id="topbarProgressText">0/0</span>
+            <div class="topbar-progress-bar">
+              <div class="topbar-progress-fill" id="topbarProgressFill"></div>
+            </div>
+          </div>
+          <button class="btn btn--secondary" id="btnNewProject">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nouveau
+          </button>
+          <button class="btn btn--primary" id="btnExecuteOrch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Lancer
+          </button>
+          <button class="btn btn--danger" id="btnStopOrch" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
+            Arrêter
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Main ── -->
+      <div class="main">
+        <!-- Chat Panel (left, collapsible) -->
+        <div class="chat-panel" id="chatPanel">
+          <div class="chat-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <div style="flex:1;min-width:0;">
+              <div class="conv-selector" id="convSelector" onclick="toggleConvDropdown(event)">
+                <span id="convTitle" class="conv-title">Nouvelle conversation</span>
+                <svg class="conv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="conv-dropdown" id="convDropdown"></div>
+            </div>
+            <div class="chat-header-sub">
+              <select id="assistantModelSelect" class="chat-model-select">
+                <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (défaut)</option>
+                <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet</option>
+                <option value="anthropic/claude-3-5-haiku-20241022">Claude Haiku</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+              </select>
+            </div>
+            <button class="chat-collapse-btn" id="btnCollapseChat" title="Replier l'assistant">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           </div>
-        </header>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Message à l'assistant…" rows="1"></textarea>
+            <button class="chat-send-btn" id="btnSendChat" onclick="sendChat()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
 
-        <div class="page-body">
-          <div class="projects-panel">
-            <div class="panel-card panel-card--projects">
-              <div class="panel-header">
-                <span class="panel-title">Projets d'orchestration</span>
-                <span style="font-size: 11px; color: var(--text-muted)" id="projectCount"
-                  >0 projet</span
-                >
+        <!-- Chat collapsed bar -->
+        <div class="chat-collapsed-bar" id="chatCollapsedBar" style="display:none">
+          <button class="chat-expand-btn" id="btnExpandChat" title="Ouvrir l'assistant">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </button>
+        </div>
+
+        <!-- Canvas Area (center) -->
+        <div class="canvas-area" id="orchestrationView">
+          <!-- Task card pinned at top of canvas -->
+          <div class="task-card" id="taskCard" onclick="openDetailWorkflow()">
+            <div class="task-card-left">
+              <svg class="task-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <div class="task-card-content">
+                <span class="task-card-label">Tâche globale</span>
+                <p class="task-card-text" id="taskCardText">Définis la tâche globale…</p>
               </div>
-              <div class="panel-search">
-                <input
-                  type="text"
-                  class="search-input"
-                  id="searchInput"
-                  placeholder="Filtrer les projets…"
-                  oninput="filterProjects()"
-                />
-              </div>
-              <div class="panel-list" id="projectList"></div>
             </div>
+            <svg class="task-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
 
-          <div class="orchestration-view">
-            <div class="orchestration-canvas" id="orchestrationCanvas">
-              <div class="canvas-empty" id="canvasEmpty">
-                <div class="welcome-container">
-                  <div class="welcome-badge">💡 Nouveauté V2</div>
-                  <h2 class="welcome-title">Orchestrateur Multi-Projets</h2>
-                  <p class="welcome-subtitle">
-                    Collaborez avec plusieurs agents spécialisés en ordonnançant leur
-                    travail sur un graphe visuel.
-                  </p>
-
-                  <div class="welcome-body-layout">
-                    <div class="welcome-col-visual">
-                      <div class="mini-diagram">
-                        <div class="mini-node mini-node--orch">Orchestrateur</div>
-                        <div class="mini-connector">
-                          <div class="mini-pulse"></div>
-                          <div class="mini-pulse mini-pulse--2"></div>
-                        </div>
-                        <div class="mini-node mini-node--agent">Agent</div>
-                        <div class="mini-connector">
-                          <div class="mini-pulse"></div>
-                          <div class="mini-pulse mini-pulse--2"></div>
-                        </div>
-                        <div class="mini-node mini-node--verifier">Vérificateur</div>
-                      </div>
-                      <p
-                        style="
-                          font-size: 11px;
-                          color: var(--text-muted);
-                          line-height: 1.4;
-                          margin-top: 6px;
-                          max-width: 320px;
-                          text-align: center;
-                          align-self: center;
-                        "
-                      >
-                        Les consignes globales sont découpées et distribuées aux agents.
-                        Le vérificateur valide le résultat final.
-                      </p>
+          <div class="canvas" id="orchestrationCanvas">
+            <div class="canvas-empty" id="canvasEmpty">
+              <div class="welcome-container">
+                <svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                <p class="welcome-text">Décris ton idée à l'assistant, il crée ton équipe d'agents.</p>
+                <div class="templates-grid">
+                  <div class="template-card template-card--purple" onclick="importDemoTemplate()">
+                    <div class="template-card-header">
+                      <span class="template-card-title">Intégration &amp; QA</span>
+                      <span class="template-card-badge">6 agents</span>
                     </div>
-
-                    <div class="welcome-col-guide">
-                      <div class="guide-steps">
-                        <div class="guide-step">
-                          <div class="guide-step-num">1</div>
-                          <div class="guide-step-body">
-                            <div class="guide-step-title">
-                              Choisissez un modèle ou un projet vierge
-                            </div>
-                            <div class="guide-step-text">
-                              Sélectionnez un modèle ci-dessous ou cliquez sur le bouton
-                              "Nouveau projet" pour partir de zéro.
-                            </div>
-                          </div>
-                        </div>
-                        <div class="guide-step">
-                          <div class="guide-step-num">2</div>
-                          <div class="guide-step-body">
-                            <div class="guide-step-title">
-                              Définissez la tâche globale
-                            </div>
-                            <div class="guide-step-text">
-                              Rédigez la consigne dans l'onglet "Tâche globale" ou cliquez
-                              sur une suggestion ci-dessous.
-                            </div>
-                          </div>
-                        </div>
-                        <div class="guide-step">
-                          <div class="guide-step-num">3</div>
-                          <div class="guide-step-body">
-                            <div class="guide-step-title">Exécutez et observez</div>
-                            <div class="guide-step-text">
-                              Cliquez sur "Lancer l'orchestration". Les agents collaborent
-                              séquentiellement sur le graphe.
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <div class="template-card-desc">Pipeline complète avec tests automatisés.</div>
+                    <button class="template-card-btn">Charger <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
                   </div>
-
-                  <h3 class="templates-title">Modèles de départ suggérés</h3>
-                  <div class="templates-grid">
-                    <div
-                      class="template-card template-card--purple"
-                      onclick="importDemoTemplate()"
-                    >
-                      <div class="template-card-header">
-                        <span class="template-card-title">Intégration & QA complète</span>
-                        <span class="template-card-badge">6 agents</span>
-                      </div>
-                      <div class="template-card-desc">
-                        Idéal pour voir toute la puissance du graphe : API Backend, Design
-                        System, Pipeline CI/CD, Tests Playwright et audit qualité.
-                      </div>
-                      <button class="template-card-btn">
-                        Charger ce modèle
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                          <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                      </button>
+                  <div class="template-card template-card--orange" onclick="importWebsiteTemplate()">
+                    <div class="template-card-header">
+                      <span class="template-card-title">Site Web Vitrine</span>
+                      <span class="template-card-badge">4 agents</span>
                     </div>
-
-                    <div
-                      class="template-card template-card--orange"
-                      onclick="importWebsiteTemplate()"
-                    >
-                      <div class="template-card-header">
-                        <span class="template-card-title">Site Web Vitrine</span>
-                        <span class="template-card-badge">4 agents</span>
-                      </div>
-                      <div class="template-card-desc">
-                        Un flux classique pour concevoir un site web. Un designer crée les
-                        styles CSS, un développeur écrit l'HTML/JS et un vérificateur
-                        valide.
-                      </div>
-                      <button class="template-card-btn">
-                        Charger ce modèle
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                          <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div
-                      class="template-card template-card--green"
-                      onclick="importSEOContentTemplate()"
-                    >
-                      <div class="template-card-header">
-                        <span class="template-card-title">Pipeline de Contenu SEO</span>
-                        <span class="template-card-badge">4 agents</span>
-                      </div>
-                      <div class="template-card-desc">
-                        Idéal pour générer des documents optimisés. Un rédacteur rédige
-                        l'article en FR, un traducteur adapte en EN et un expert SEO
-                        valide le score.
-                      </div>
-                      <button class="template-card-btn">
-                        Charger ce modèle
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                          <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div
-                      class="template-card template-card--blue"
-                      onclick="importSimpleOrchestrator()"
-                    >
-                      <div class="template-card-header">
-                        <span class="template-card-title">Projet Vierge</span>
-                        <span class="template-card-badge">1 agent</span>
-                      </div>
-                      <div class="template-card-desc">
-                        Démarrez de zéro. Crée un unique nœud orchestrateur sur lequel
-                        vous pouvez connecter vos propres agents et dessiner vos
-                        dépendances.
-                      </div>
-                      <button class="template-card-btn">
-                        Créer ce projet
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                          <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                      </button>
-                    </div>
+                    <div class="template-card-desc">Conception, rédaction et intégration.</div>
+                    <button class="template-card-btn">Charger <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
                   </div>
-
-                  <div class="suggestions-section">
-                    <span class="suggestions-label"
-                      >Idées de tâches globales à tester :</span
-                    >
-                    <div class="suggestions-list">
-                      <div
-                        class="suggestion-chip"
-                        onclick="
-                          applyTaskSuggestion(
-                            'Créer un mini-jeu de Morpion (Tic-Tac-Toe) en HTML/CSS/JS jouable dans le navigateur',
-                          )
-                        "
-                      >
-                        🎮 Morpion (Tic-Tac-Toe) HTML/CSS/JS
-                      </div>
-                      <div
-                        class="suggestion-chip"
-                        onclick="
-                          applyTaskSuggestion(
-                            'Développer une page de connexion responsive avec validation de mot de passe en JS',
-                          )
-                        "
-                      >
-                        🔒 Page de login responsive
-                      </div>
-                      <div
-                        class="suggestion-chip"
-                        onclick="
-                          applyTaskSuggestion(
-                            'Rédiger un article de blog optimisé SEO de 800 mots sur l\'impact de l\'IA sur la productivité',
-                          )
-                        "
-                      >
-                        ✍️ Article de blog & SEO IA
-                      </div>
+                  <div class="template-card template-card--green" onclick="importSEOContentTemplate()">
+                    <div class="template-card-header">
+                      <span class="template-card-title">Contenu SEO</span>
+                      <span class="template-card-badge">4 agents</span>
                     </div>
+                    <div class="template-card-desc">Articles optimisés pour le référencement.</div>
+                    <button class="template-card-btn">Charger <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
                   </div>
                 </div>
-              </div>
-              <div class="canvas-inner" id="canvasInner">
-                <svg class="canvas-svg" id="canvasSvg"></svg>
-                <!-- Node cards will be injected here -->
-              </div>
-              <div class="canvas-controls">
-                <button class="control-btn" id="btnZoomIn" title="Zoomer">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </button>
-                <button class="control-btn" id="btnZoomOut" title="Dézoomer">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </button>
-                <button
-                  class="control-btn"
-                  id="btnToggleLayout"
-                  title="Changer le sens des liaisons (H/V)"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M7 10l5 5 5-5" class="icon-v" />
-                    <path d="M10 7l5 5-5 5" class="icon-h" style="display:none" />
-                  </svg>
-                </button>
-                <button
-                  class="control-btn"
-                  id="btnZoomReset"
-                  title="Mode Zen (Plein écran)"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                  </svg>
-                </button>
               </div>
             </div>
+            <div class="canvas-inner" id="canvasInner">
+              <svg class="canvas-svg" id="canvasSvg"></svg>
+            </div>
+            <div class="canvas-controls">
+              <button class="control-btn" id="btnZoomIn" title="Zoomer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button class="control-btn" id="btnZoomOut" title="Dézoomer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button class="control-btn" id="btnToggleLayout" title="Changer le sens des liaisons (H/V)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10l5 5 5-5" class="icon-v"/><path d="M10 7l5 5-5 5" class="icon-h" style="display:none"/></svg>
+              </button>
+              <button class="control-btn" id="btnZoomReset" title="Mode Zen (Plein écran)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
 
-            <div
-              class="orchestration-detail"
-              id="orchestrationDetail"
-              style="display: none"
-            >
-              <div class="detail-tabs" id="detailTabs">
-                <button
-                  class="detail-tab detail-tab--active"
-                  data-tab="shared"
-                  id="tabShared"
-                >
-                  Tâche globale
-                </button>
-                <button class="detail-tab" data-tab="system" id="tabSystem">
-                  Instructions système
-                </button>
-                <button
-                  class="detail-tab"
-                  data-tab="selected-node"
-                  id="tabSelectedNode"
-                  style="display: none"
-                >
-                  Détail du nœud
-                </button>
-                <button class="btn-collapse-detail" id="btnCollapseDetail" title="Réduire/Agrandir">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
+        <!-- Detail Panel (right, contextual) -->
+        <div class="detail-panel" id="orchestrationDetail" style="display:none">
+          <div class="detail-header">
+            <span class="detail-header-title" id="detailTitle">Workflow</span>
+            <button class="detail-close-btn" id="btnCloseDetail" title="Fermer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          <div class="detail-content" id="detailContent">
+            <!-- Workflow view -->
+            <div class="detail-view" id="detailViewWorkflow" style="display:none">
+              <div class="detail-section">
+                <span class="detail-label">Tâche globale à exécuter</span>
+                <textarea class="detail-textarea" id="sharedTaskText" placeholder="Décris ici l'objectif global de l'orchestration…"></textarea>
               </div>
-
-              <div class="detail-body detail-body--active" data-body="shared">
-                <div class="detail-row">
-                  <div class="detail-col">
-                    <span class="detail-label"
-                      >Tâche globale à exécuter par l'orchestrateur</span
-                    >
-                    <textarea
-                      class="detail-textarea"
-                      id="sharedTaskText"
-                      placeholder="Exemple : Implémente le flux d'authentification OAuth2 complet — backend (API), frontend (composants design), pipeline CI/CD (tests + déploiement)."
-                    ></textarea>
+              <details class="detail-accordion">
+                <summary class="detail-accordion-trigger">
+                  <span>Instructions de l'équipe</span>
+                  <svg class="detail-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="detail-accordion-body">
+                  <textarea class="detail-textarea detail-textarea--mono" id="systemInstructionsText" placeholder="Instructions système de l'orchestrateur…"></textarea>
+                </div>
+              </details>
+              <details class="detail-accordion" id="consoleAccordion">
+                <summary class="detail-accordion-trigger">
+                  <span>Console</span>
+                  <svg class="detail-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="detail-accordion-body">
+                  <div class="orchestration-console dcon" id="orchConsole">
+                    <span class="console-info">Console d'orchestration prête.</span>
                   </div>
                 </div>
-              </div>
-
-              <div class="detail-body" data-body="system">
-                <div class="detail-row">
-                  <div class="detail-col">
-                    <span class="detail-label"
-                      >Instructions système de l'orchestrateur</span
-                    >
-                    <textarea
-                      class="detail-textarea detail-textarea--mono"
-                      id="systemInstructionsText"
-                      readonly
-                      placeholder="Les instructions système décrivent le comportement global de l'IA..."
-                    ></textarea>
+              </details>
+              <details class="detail-accordion">
+                <summary class="detail-accordion-trigger">
+                  <span>Réglages</span>
+                  <svg class="detail-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="detail-accordion-body">
+                  <div class="orch-workdir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                    <span class="orch-workdir-label" id="orchWorkdirLabel">Dossier racine</span>
+                    <span class="orch-workdir-path" id="orchWorkdirPath">—</span>
+                    <button class="btn btn--ghost" id="btnPickOrchWorkdir" style="font-size:11px;padding:2px 8px;height:auto;">Choisir</button>
                   </div>
                 </div>
-              </div>
+              </details>
+            </div>
 
-              <div class="detail-body" data-body="selected-node">
-                <div class="detail-row">
-                  <div class="detail-col">
-                    <span class="detail-label" id="lblSelectedNodeTask"
-                      >Tâche spécifique</span
-                    >
-                    <textarea
-                      class="detail-textarea"
-                      id="selectedNodeTaskText"
-                      placeholder="Consigne spécifique à donner à cet agent..."
-                    ></textarea>
-                  </div>
-                  <div class="detail-col">
-                    <span class="detail-label" id="lblSelectedNodeInstructions"
-                      >Instructions de l'agent</span
-                    >
-                    <textarea
-                      class="detail-textarea detail-textarea--mono"
-                      id="selectedNodeInstructionsText"
-                      readonly
-                    ></textarea>
+            <!-- Agent view -->
+            <div class="detail-view" id="detailViewAgent" style="display:none">
+              <div class="detail-section">
+                <span class="detail-label" id="lblSelectedNodeTask">Tâche de l'agent</span>
+                <textarea class="detail-textarea" id="selectedNodeTaskText" placeholder="Consigne spécifique à donner à cet agent…"></textarea>
+              </div>
+              <div class="detail-section" id="agentStatusSection" style="display:none">
+                <span class="detail-label">Statut</span>
+                <div class="agent-status-row" id="agentStatusRow"></div>
+              </div>
+              <details class="detail-accordion">
+                <summary class="detail-accordion-trigger">
+                  <span>Instructions</span>
+                  <svg class="detail-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="detail-accordion-body">
+                  <textarea class="detail-textarea detail-textarea--mono" id="selectedNodeInstructionsText" readonly placeholder="Instructions système de l'agent (lecture seule)"></textarea>
+                </div>
+              </details>
+              <details class="detail-accordion" id="resultAccordion">
+                <summary class="detail-accordion-trigger">
+                  <span>Résultat</span>
+                  <svg class="detail-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="detail-accordion-body" style="overflow:hidden;">
+                  <div class="orch-result-viewer" id="orchResultViewer">
+                    <div class="orch-result-empty">Aucun résultat pour le moment.</div>
                   </div>
                 </div>
-              </div>
-
-              <div class="detail-actions" id="detailActions">
-                <button
-                  class="btn btn--secondary"
-                  id="btnEditSelectedNode"
-                  style="display: none"
-                >
-                  Éditer le nœud
-                </button>
-                <button class="btn btn--primary" id="btnExecuteOrch">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                  Lancer l'orchestration
-                </button>
+              </details>
+              <div class="detail-agent-actions">
+                <button class="btn btn--secondary" id="btnEditSelectedNode">Modifier l'agent</button>
               </div>
             </div>
           </div>
@@ -2051,31 +243,19 @@
     </div>
 
     <!-- Modal: New/Edit Project -->
-    <div class="modal-overlay" id="modalProject" style="display: none">
+    <div class="modal-overlay" id="modalProject" style="display:none">
       <div class="modal-dialog">
         <div class="modal-header">
-          <span class="modal-title" id="modalProjectTitle">Nouveau projet</span>
-          <button
-            class="modal-close"
-            onclick="closeModal('modalProject')"
-            aria-label="Fermer"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+          <span class="modal-title" id="modalProjectTitle">Nouvel agent</span>
+          <button class="modal-close" onclick="closeModal('modalProject')" aria-label="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
         <div class="modal-body">
+          <!-- Essential -->
           <div class="form-group">
-            <span class="form-label">Nom du projet</span>
-            <input
-              type="text"
-              class="form-input"
-              id="projName"
-              placeholder="Nom du projet…"
-              autocomplete="off"
-            />
+            <span class="form-label">Nom de l'agent</span>
+            <input type="text" class="form-input" id="projName" placeholder="Nom de l'agent…" autocomplete="off" />
           </div>
           <div class="form-group">
             <span class="form-label">Type</span>
@@ -2083,75 +263,184 @@
               <option value="code">OpenCode</option>
               <option value="design">Open Design</option>
               <option value="work">OpenWork</option>
+              <option value="recherche">Recherche</option>
               <option value="orchestrator">Orchestrateur</option>
               <option value="verifier">Vérificateur</option>
             </select>
           </div>
           <div class="form-group">
-            <span class="form-label">Modèle d'IA</span>
-            <select class="form-select" id="projModel">
-              <option value="">— Sélectionner un modèle —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <span class="form-label">Instructions système (prompt)</span>
-            <textarea
-              class="form-textarea"
-              id="projInstructions"
-              placeholder="Tu es un assistant expert..."
-            ></textarea>
-          </div>
-          <div class="form-group">
-            <span class="form-label">Tâche par défaut</span>
-            <textarea
-              class="form-textarea"
-              id="projTask"
-              placeholder="Tâche par défaut de cet agent…"
-              style="min-height: 60px"
-            ></textarea>
+            <span class="form-label">Tâche</span>
+            <textarea class="form-textarea" id="projTask" placeholder="Décris ce que cet agent doit accomplir…" style="min-height:60px"></textarea>
           </div>
 
-          <!-- Orchestrator Options -->
-          <div id="orchOptions" class="form-group" style="display: none">
-            <span class="form-label">Options d'orchestration</span>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkAutoDistribute" checked /> Distribution
-              automatique de la tâche aux projets liés
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkCheckCoherence" checked /> Vérifier la
-              cohérence des résultats (Pre/Post/Brand)
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkRelaunchOnError" checked /> Relancer
-              automatiquement les projets en cas d'erreur
-            </label>
-          </div>
+          <!-- Accordion: Personnaliser l'agent -->
+          <details class="modal-accordion">
+            <summary>Personnaliser l'agent</summary>
+            <div class="modal-accordion-body">
+              <div class="form-group">
+                <span class="form-label">Modèle d'IA</span>
+                <select class="form-select" id="projModel">
+                  <option value="">— Modèle par défaut de l'application —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Instructions système</span>
+                <textarea class="form-textarea" id="projInstructions" placeholder="Donne des instructions précises à l'agent…"></textarea>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Dossier de travail</span>
+                <div style="display:flex;gap:8px;">
+                  <input type="text" class="form-input" id="projPath" placeholder="Aucun dossier lié" readonly style="flex:1;cursor:default;opacity:0.8;">
+                  <button class="btn btn--secondary" id="btnPickPath" style="white-space:nowrap;">Choisir…</button>
+                </div>
+              </div>
+            </div>
+          </details>
 
-          <!-- Advanced/Verifier options -->
+          <!-- Accordion: Options avancées -->
+          <details class="modal-accordion">
+            <summary>Options avancées</summary>
+            <div class="modal-accordion-body">
+              <div class="switch-row">
+                <label class="switch"><input type="checkbox" id="chkAutoSteps" checked><span class="switch-slider"></span></label>
+                <div class="switch-info">
+                  <span class="switch-label">Découper la tâche en étapes</span>
+                  <span class="switch-help">L'orchestrateur planifie les étapes automatiquement.</span>
+                </div>
+              </div>
+              <div class="form-group" id="stepsGroup">
+                <textarea class="form-textarea" id="projSteps" placeholder="Étapes manuelles (une par bloc, séparées par ---)&#10;Exemple :&#10;Analyse le besoin&#10;---&#10;Propose une maquette" style="min-height:80px"></textarea>
+                <span class="form-hint">Si tu définis des étapes ici, elles remplacent la planification automatique.</span>
+              </div>
+              <div class="switch-row">
+                <label class="switch"><input type="checkbox" id="chkBypassMemory"><span class="switch-slider"></span></label>
+                <div class="switch-info">
+                  <span class="switch-label">Ignorer la mémoire du projet</span>
+                  <span class="switch-help">L'agent travaille sans le contexte des sessions précédentes.</span>
+                </div>
+              </div>
+              <div class="form-group" id="dependencySelectGroup">
+                <span class="form-label">Attend la fin de…</span>
+                <div class="dependency-checkbox-list" id="dependencyList"></div>
+                <span class="form-hint">Cet agent ne démarrera que quand ses prérequis auront terminé.</span>
+              </div>
+            </div>
+          </details>
+
+          <!-- Accordion: Pilotage automatique (orchestrator only) -->
+          <details class="modal-accordion" id="orchAutoSection" style="display:none;">
+            <summary>Pilotage automatique</summary>
+            <div class="modal-accordion-body">
+              <div class="switch-row">
+                <label class="switch"><input type="checkbox" id="chkAutoDistribute" checked><span class="switch-slider"></span></label>
+                <div class="switch-info">
+                  <span class="switch-label">Répartir la tâche entre les agents</span>
+                  <span class="switch-help">L'orchestrateur distribue le travail à chaque agent du workflow.</span>
+                </div>
+              </div>
+              <div class="switch-row">
+                <label class="switch"><input type="checkbox" id="chkCheckCoherence" checked><span class="switch-slider"></span></label>
+                <div class="switch-info">
+                  <span class="switch-label">Faire vérifier le travail</span>
+                  <span class="switch-help">Vérifie la cohérence globale après chaque étape.</span>
+                </div>
+              </div>
+              <div class="switch-row">
+                <label class="switch"><input type="checkbox" id="chkRelaunchOnError" checked><span class="switch-slider"></span></label>
+                <div class="switch-info">
+                  <span class="switch-label">Réessayer en cas d'erreur</span>
+                  <span class="switch-help">Relance automatiquement un agent si sa tâche échoue.</span>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--ghost" onclick="closeModal('modalProject')">Annuler</button>
+          <button class="btn btn--primary" id="btnSaveProjectConfirm">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Management Overlay -->
+    <div class="mgmt-overlay" id="mgmtOverlay">
+      <div class="topbar">
+        <div class="topbar-back" onclick="closeManagement()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Retour
+        </div>
+        <span class="topbar-title">Gestion des workflows</span>
+        <div class="topbar-actions">
+          <button class="btn btn--secondary" onclick="showAllProjectsModal()">Tous les agents</button>
+          <button class="btn btn--primary" onclick="openNewProjectFromMgmt()">Nouvel agent</button>
+        </div>
+      </div>
+      <div class="mgmt-body">
+        <div class="mgmt-wf-list">
+          <div class="mgmt-wf-list-header">
+            <span class="mgmt-wf-list-title">Workflows</span>
+            <span class="mgmt-wf-list-count" id="mgmtWfCount">0</span>
+          </div>
+          <div class="mgmt-wf-items" id="mgmtWfList"></div>
+          <button class="mgmt-wf-add" onclick="openModal('modalWorkflowPrompt')">Nouveau workflow</button>
+        </div>
+        <div class="mgmt-detail" id="mgmtDetail">
+          <div class="mgmt-detail-header">
+            <div class="mgmt-detail-left">
+              <div class="mgmt-detail-name" id="mgmtDetailName">Sélectionne un workflow</div>
+              <div class="mgmt-detail-meta" id="mgmtDetailMeta"></div>
+            </div>
+            <div class="mgmt-detail-actions">
+              <button class="btn btn--primary" id="mgmtOpenBtn" onclick="openWorkflowInOrch()">Ouvrir</button>
+            </div>
+          </div>
+          <div class="mgmt-detail-body" id="mgmtDetailBody">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;">
+              Sélectionne un workflow dans la liste pour voir ses agents.
+            </div>
+          </div>
+          <div class="mgmt-detail-footer">
+            <button class="btn btn--danger" id="mgmtDeleteBtn" style="display:none;" onclick="deleteCurrentWorkflow()">Supprimer ce workflow</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Workflow Name Prompt -->
+    <div class="modal-overlay" id="modalWorkflowPrompt" style="display:none">
+      <div class="modal-dialog" style="max-width: 400px;">
+        <div class="modal-header">
+          <span class="modal-title">Nouveau workflow</span>
+          <button class="modal-close" onclick="closeModal('modalWorkflowPrompt')" aria-label="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body" style="gap: 8px;">
           <div class="form-group">
-            <span class="form-label">Options avancées</span>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkBypassMemory" /> Désactiver l'injection de la
-              mémoire à long terme (Bypass Memory)
-            </label>
-          </div>
-
-          <!-- Dependencies selection -->
-          <div class="form-group" id="dependencySelectGroup">
-            <span class="form-label">Dépendances (Ce projet dépend de)</span>
-            <div class="dependency-checkbox-list" id="dependencyList"></div>
-            <span class="form-hint"
-              >Le projet ne sera exécuté que si tous ses parents ont réussi
-              (`done`).</span
-            >
+            <span class="form-label">Nom du workflow</span>
+            <input type="text" class="form-input" id="wfNameInput" placeholder="Ex: Refonte Site Web" autocomplete="off" />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn--ghost" onclick="closeModal('modalProject')">
-            Annuler
+          <button class="btn btn--ghost" onclick="closeModal('modalWorkflowPrompt')">Annuler</button>
+          <button class="btn btn--primary" id="btnConfirmWorkflow">Créer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: All Projects -->
+    <div class="modal-overlay" id="modal-all-projects" style="display:none">
+      <div class="modal-dialog" style="max-width: 560px;">
+        <div class="modal-header">
+          <span class="modal-title">Tous les agents</span>
+          <button class="modal-close" onclick="closeModal('modal-all-projects')" aria-label="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-          <button class="btn btn--primary" id="btnSaveProjectConfirm">Enregistrer</button>
+        </div>
+        <div class="modal-body" id="mgmtAllProjBody"></div>
+        <div class="modal-footer">
+          <span style="font-size:11px;color:var(--text-muted);margin-right:auto;" id="mgmtAllProjCount"></span>
+          <button class="btn btn--ghost" onclick="closeModal('modal-all-projects')">Fermer</button>
         </div>
       </div>
     </div>
@@ -2162,12 +451,10 @@
     <div id="modalConfirmDelete">
       <div class="confirm-dialog">
         <div class="confirm-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
         </div>
-        <p class="confirm-title">Supprimer ce projet ?</p>
-        <p class="confirm-desc">Cette action est irréversible. Toutes les liaisons associées à ce projet seront également supprimées.</p>
+        <p class="confirm-title">Supprimer cet agent ?</p>
+        <p class="confirm-desc">Cette action est irréversible. Tous les liens seront supprimés.</p>
         <div class="confirm-actions">
           <button class="confirm-btn-cancel" id="cancelDeleteBtn">Annuler</button>
           <button class="confirm-btn-delete" id="confirmDeleteBtn">Supprimer</button>
@@ -2175,1333 +462,14 @@
       </div>
     </div>
 
-    <div id="floatingZenToggle" title="Quitter le Mode Zen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
-        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-      </svg>
-    </div>
-
-    <script>
-      let projects = [];
-      let selectedOrchestratorId = null;
-      let selectedNodeId = null;
-      let models = [];
-      let isExecuting = false;
-      let layoutMode = 'vertical'; // 'vertical' or 'horizontal'
-
-      // Node position drag states
-      let dragNode = null;
-      let linkStartNode = null;
-      let dragOffset = { x: 0, y: 0 };
-
-      function toggleZenMode() {
-        const body = document.body;
-        const isZen = body.classList.toggle("zen-mode");
-        
-        if (isZen) {
-          // Collapse details in Zen Mode for true fullscreen effect
-          document.getElementById("orchestrationDetail").classList.add("orchestration-detail--collapsed");
-        }
-        
-        // Redraw canvas to handle resize
-        setTimeout(renderCanvas, 350);
-      }
-
-      document.getElementById("floatingZenToggle").onclick = toggleZenMode;
-
-      function displayModelName(id) { return id ? id.split("/").pop() || id : id; }
-
-      async function loadModels() {
-        try {
-          const config = await window.openhub.getChatConfig();
-          const res = await fetch(config.proxyUrl + "/v1/models", {
-            headers: { Authorization: "Bearer " + config.token },
-          });
-          const data = await res.json();
-          models = data.data || [];
-
-          const modelSelect = document.getElementById("projModel");
-          modelSelect.innerHTML =
-            '<option value="">— Modèle par défaut de l\'application —</option>' +
-            models.map((m) => `<option value="${m.id}">${displayModelName(m.id)}</option>`).join("");
-        } catch (err) {
-          console.error("[projects] Failed to load models:", err);
-        }
-      }
-
-      async function loadProjects() {
-        projects = await window.openhub.getProjects();
-        const active = await window.openhub.getActiveProject();
-
-        // Auto-select active project if it is an orchestrator
-        if (active && active.type === "orchestrator") {
-          selectedOrchestratorId = active.id;
-        } else if (!selectedOrchestratorId) {
-          const firstOrch = projects.find((p) => p.type === "orchestrator");
-          if (firstOrch) selectedOrchestratorId = firstOrch.id;
-        }
-
-        renderProjectList();
-        renderCanvas();
-        updateDetailPanel();
-      }
-
-      function renderProjectList() {
-        const list = document.getElementById("projectList");
-        const q = document.getElementById("searchInput").value.toLowerCase();
-
-        const filtered = projects.filter((p) => !q || p.name.toLowerCase().includes(q));
-        document.getElementById("projectCount").textContent =
-          `${filtered.length} projet${filtered.length !== 1 ? "s" : ""}`;
-
-        list.innerHTML = filtered
-          .map((p) => {
-            const isActive = p.id === selectedOrchestratorId;
-            const isOrch = p.type === "orchestrator";
-            const isVerifier = p.type === "verifier";
-            const linkedCount = p.linked ? p.linked.length : 0;
-
-            let meta = p.type ? p.type.toUpperCase() : "PROJET";
-            if (isOrch || isVerifier) {
-              meta = `${linkedCount} lié${linkedCount !== 1 ? "s" : ""}`;
-            }
-
-            let dotClass = "project-card-dot--code";
-            if (p.type === "orchestrator") dotClass = "project-card-dot--orchestrator";
-            else if (p.type === "design") dotClass = "project-card-dot--design";
-            else if (p.type === "work") dotClass = "project-card-dot--work";
-            else if (p.type === "verifier") dotClass = "project-card-dot--verifier";
-
-            return `
-        <div class="project-card ${isActive ? "project-card--active" : ""}" 
-             onclick="${isOrch ? `selectOrchestrator('${p.id}')` : `editProject('${p.id}')`}"
-             ondblclick="document.getElementById('orchestrationDetail').classList.remove('orchestration-detail--collapsed')">
-          <span class="project-card-dot ${dotClass}"></span>
-          <div class="project-card-info">
-            <div class="project-card-name">${escapeHtml(p.name)}</div>
-            <div class="project-card-meta">
-              <span>${meta}</span>
-              ${isOrch ? '<span class="project-card-badge project-card-badge--orch">Orchestrateur</span>' : ""}
-              ${isVerifier ? '<span class="project-card-badge project-card-badge--verifier">Vérificateur</span>' : ""}
-            </div>
-          </div>
-          <div class="project-card-actions">
-            <button class="project-card-btn" onclick="event.stopPropagation(); editProject('${p.id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button class="project-card-btn" onclick="event.stopPropagation(); deleteProject('${p.id}')" style="color:var(--error)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            </button>
-          </div>
-        </div>
-      `;
-          })
-          .join("");
-      }
-
-      function filterProjects() {
-        renderProjectList();
-      }
-
-      function selectOrchestrator(id) {
-        // Reset pan/zoom viewport for the selected project
-        zoom = 1;
-        panX = 0;
-        panY = 0;
-        applyTransform();
-
-        selectedOrchestratorId = id;
-        selectedNodeId = null;
-        window.openhub.setActiveProject(id);
-        renderProjectList();
-        renderCanvas();
-        updateDetailPanel();
-      }
-
-      function updateDetailPanel() {
-        const detail = document.getElementById("orchestrationDetail");
-        const active = projects.find((p) => p.id === selectedOrchestratorId);
-
-        if (!active || active.type !== "orchestrator") {
-          detail.style.display = "none";
-          return;
-        }
-
-        detail.style.display = "flex";
-        document.getElementById("sharedTaskText").value = active.task || "";
-        document.getElementById("systemInstructionsText").value =
-          active.instructions || "";
-
-        if (selectedNodeId) {
-          const node = projects.find((p) => p.id === selectedNodeId);
-          if (node) {
-            document.getElementById("tabSelectedNode").style.display = "";
-            document.getElementById("tabSelectedNode").click();
-            document.getElementById("lblSelectedNodeTask").textContent =
-              `Tâche spécifique : ${node.name}`;
-            document.getElementById("selectedNodeTaskText").value = node.task || "";
-            document.getElementById("selectedNodeInstructionsText").value =
-              node.instructions || "";
-            document.getElementById("btnEditSelectedNode").style.display = "";
-          }
-        } else {
-          document.getElementById("tabSelectedNode").style.display = "none";
-          document.getElementById("tabShared").click();
-          document.getElementById("btnEditSelectedNode").style.display = "none";
-        }
-      }
-
-      // Update tasks on the fly
-      document.getElementById("sharedTaskText").oninput = function () {
-        const active = projects.find((p) => p.id === selectedOrchestratorId);
-        if (active) {
-          active.task = this.value;
-          window.openhub.saveProject(active);
-        }
-      };
-
-      document.getElementById("selectedNodeTaskText").oninput = function () {
-        const node = projects.find((p) => p.id === selectedNodeId);
-        if (node) {
-          node.task = this.value;
-          window.openhub.saveProject(node);
-        }
-      };
-
-      document.getElementById("btnEditSelectedNode").onclick = function () {
-        if (selectedNodeId) editProject(selectedNodeId);
-      };
-
-      function toggleLayoutMode() {
-        const body = document.body;
-        const btn = document.getElementById("btnToggleLayout");
-        layoutMode = layoutMode === 'vertical' ? 'horizontal' : 'vertical';
-        
-        body.classList.toggle("layout-horizontal", layoutMode === 'horizontal');
-        btn.querySelector(".icon-v").style.display = layoutMode === 'vertical' ? "" : "none";
-        btn.querySelector(".icon-h").style.display = layoutMode === 'horizontal' ? "" : "none";
-        
-        drawConnections();
-      }
-
-      document.getElementById("btnToggleLayout").onclick = toggleLayoutMode;
-
-      function renderCanvas() {
-        const canvas = document.getElementById("orchestrationCanvas");
-        const canvasInner = document.getElementById("canvasInner");
-        const canvasEmpty = document.getElementById("canvasEmpty");
-        const svg = document.getElementById("canvasSvg");
-
-        // Remove old nodes
-        document.querySelectorAll(".node-card").forEach((n) => n.remove());
-        svg.innerHTML = "";
-
-        const activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-        if (!activeOrch || activeOrch.type !== "orchestrator") {
-          canvasEmpty.style.display = "flex";
-          return;
-        }
-
-        canvasEmpty.style.display = "none";
-
-        // Gather all linked projects
-        const linkedIds = activeOrch.linked || [];
-        const linkedNodes = projects.filter(
-          (p) => linkedIds.includes(p.id) || p.id === activeOrch.id,
-        );
-
-        // Render nodes
-        linkedNodes.forEach((node, i) => {
-          const card = document.createElement("div");
-          card.className = `node-card ${node.id === selectedNodeId ? "node-card--selected" : ""}`;
-          if (node.status) card.classList.add(`node-card--${node.status}`);
-          card.dataset.id = node.id;
-
-          // Positioning
-          let posX = node.x ?? (node.id === activeOrch.id ? 100 : 450);
-          let posY = node.y ?? (node.id === activeOrch.id ? 250 : 100 + i * 180);
-          card.style.left = `${posX}px`;
-          card.style.top = `${posY}px`;
-
-          let typeLabel = "Projet";
-          let typeClass = "node-card-type--project";
-          if (node.type === "orchestrator") {
-            typeLabel = "Orchestrateur";
-            typeClass = "node-card-type--orch";
-          } else if (node.type === "verifier") {
-            typeLabel = "Vérificateur";
-            typeClass = "node-card-type--verifier";
-          } else if (node.type === "code") {
-            typeLabel = "OpenCode";
-          } else if (node.type === "design") {
-            typeLabel = "Open Design";
-          } else if (node.type === "work") {
-            typeLabel = "OpenWork";
-          }
-
-          let statusLabel = "En attente";
-          let statusClass = "status-dot--idle";
-          if (node.status === "running") {
-            statusLabel = "En cours";
-            statusClass = "status-dot--running";
-          } else if (node.status === "done") {
-            statusLabel = "Terminé";
-            statusClass = "status-dot--done";
-          } else if (node.status === "error") {
-            statusLabel = "Erreur";
-            statusClass = "status-dot--error";
-          } else if (node.status === "warning") {
-            statusLabel = "Attention";
-            statusClass = "status-dot--warning";
-          } else if (node.status === "skipped") {
-            statusLabel = "Ignoré";
-            statusClass = "status-dot--skipped";
-          }
-
-          card.innerHTML = `
-        <div class="node-card-type ${typeClass}">${typeLabel}</div>
-        <div class="node-card-name">${escapeHtml(node.name)}</div>
-        <div class="node-card-status">
-          <span class="status-dot ${statusClass}"></span>
-          <span>${statusLabel}</span>
-        </div>
-        <div class="node-link-handle" data-id="${node.id}" title="Lier à un autre projet"></div>
-      `;
-
-          const handle = card.querySelector('.node-link-handle');
-          if (handle) {
-            handle.addEventListener('mousedown', (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              linkStartNode = node.id;
-            });
-          }
-
-          // Event handlers for dragging
-          card.addEventListener("mousedown", (e) => {
-            if (
-              e.target.closest("button") ||
-              e.target.closest("textarea") ||
-              e.target.closest("select")
-            )
-              return;
-            dragNode = node.id;
-            selectedNodeId = node.id;
-            updateDetailPanel();
-
-            // Highlight active card
-            document
-              .querySelectorAll(".node-card")
-              .forEach((c) => c.classList.remove("node-card--selected"));
-            card.classList.add("node-card--selected");
-
-            dragStartMouse = { x: e.clientX, y: e.clientY };
-            dragStartNode = {
-              x: node.x ?? (node.id === activeOrch.id ? 100 : 450),
-              y: node.y ?? (node.id === activeOrch.id ? 250 : 100 + i * 180),
-            };
-
-            e.preventDefault();
-            e.stopPropagation();
-          });
-
-          card.addEventListener("dblclick", () => {
-            document.getElementById("orchestrationDetail").classList.remove("orchestration-detail--collapsed");
-          });
-
-          canvasInner.appendChild(card);
-        });
-
-        // Draw dependency lines
-        drawConnections();
-      }
-
-      function drawConnections() {
-        const svg = document.getElementById("canvasSvg");
-        svg.innerHTML = "";
-
-        // Define Marker once at the beginning to ensure it's always available
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        defs.innerHTML = `
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-          </marker>
-        `;
-        svg.appendChild(defs);
-
-        const activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-        if (!activeOrch) return;
-
-        // Calculate a hit width that stays consistent in screen pixels regardless of zoom
-        const hitWidth = Math.max(40, 40 / zoom);
-
-        const linkedIds = activeOrch.linked || [];
-        const nodes = projects.filter(
-          (p) => linkedIds.includes(p.id) || p.id === activeOrch.id,
-        );
-
-        nodes.forEach((node) => {
-          const nodeEl = document.querySelector(`.node-card[data-id="${node.id}"]`);
-          if (!nodeEl) return;
-
-          // Draw dependency lines
-          const deps = node.dependencies || [];
-          deps.forEach((parentId) => {
-            const parentNode = projects.find((p) => p.id === parentId);
-            const parentEl = document.querySelector(`.node-card[data-id="${parentId}"]`);
-            if (!parentNode || !parentEl) return;
-
-            let pX, pY, cX, cY, controlOffset, d;
-
-            if (layoutMode === 'horizontal') {
-              // Right to Left
-              pX = parentEl.offsetLeft + parentEl.offsetWidth;
-              pY = parentEl.offsetTop + parentEl.offsetHeight / 2;
-              cX = nodeEl.offsetLeft;
-              cY = nodeEl.offsetTop + nodeEl.offsetHeight / 2;
-              controlOffset = Math.abs(cX - pX) * 0.5;
-              d = `M ${pX} ${pY} C ${pX + controlOffset} ${pY}, ${cX - controlOffset} ${cY}, ${cX} ${cY}`;
-            } else {
-              // Bottom to Top
-              pX = parentEl.offsetLeft + parentEl.offsetWidth / 2;
-              pY = parentEl.offsetTop + parentEl.offsetHeight;
-              cX = nodeEl.offsetLeft + nodeEl.offsetWidth / 2;
-              cY = nodeEl.offsetTop;
-              controlOffset = Math.abs(cY - pY) * 0.5;
-              d = `M ${pX} ${pY} C ${pX} ${pY + controlOffset}, ${cX} ${cY - controlOffset}, ${cX} ${cY}`;
-            }
-
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", d);
-            path.setAttribute("fill", "none");
-
-            let strokeColor = "var(--border-strong)";
-            if (parentNode.status === "done") strokeColor = "var(--success)";
-            else if (parentNode.status === "running") strokeColor = "var(--info)";
-            else if (parentNode.status === "error") strokeColor = "var(--error)";
-            else if (parentNode.status === "skipped")
-              strokeColor = "var(--text-disabled)";
-
-            path.setAttribute("marker-end", "url(#arrow)");
-            path.setAttribute("stroke", strokeColor);
-            path.setAttribute("stroke-width", Math.max(3, 3 / zoom));
-            
-            // Create a thick invisible hit-path for easy selection
-            const hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            hitPath.setAttribute("d", d);
-            hitPath.setAttribute("fill", "none");
-            hitPath.setAttribute("stroke", "transparent");
-            hitPath.setAttribute("stroke-width", hitWidth);
-            hitPath.style.cursor = "grab";
-            hitPath.style.pointerEvents = "auto";
-
-            // Hover effects on hitPath trigger visuals on the real path
-            hitPath.addEventListener("mouseenter", () => {
-               path.setAttribute("stroke-width", Math.max(4, 4 / zoom));
-               path.setAttribute("stroke", "var(--accent-primary)");
-            });
-            hitPath.addEventListener("mouseleave", () => {
-               if (!linkStartNode) {
-                 path.setAttribute("stroke-width", Math.max(3, 3 / zoom));
-                 let strokeColor = "var(--border-strong)";
-                 if (parentNode.status === "done") strokeColor = "var(--success)";
-                 else if (parentNode.status === "running") strokeColor = "var(--info)";
-                 else if (parentNode.status === "error") strokeColor = "var(--error)";
-                 else if (parentNode.status === "skipped") strokeColor = "var(--text-disabled)";
-                 path.setAttribute("stroke", strokeColor);
-               }
-            });
-
-            const startDetach = (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              node.dependencies = node.dependencies.filter(id => id !== parentId);
-              linkStartNode = parentId;
-              drawConnections();
-              window.openhub.saveProject(node);
-              const moveEvent = new MouseEvent('mousemove', { clientX: e.clientX, clientY: e.clientY, bubbles: true });
-              document.dispatchEvent(moveEvent);
-            };
-
-            hitPath.addEventListener("mousedown", startDetach);
-            
-            // Allow double click to delete connection
-            path.style.cursor = "pointer";
-            path.style.pointerEvents = "auto";
-            path.addEventListener("dblclick", async (e) => {
-              e.stopPropagation();
-              node.dependencies = node.dependencies.filter(id => id !== parentId);
-              await window.openhub.saveProject(node);
-              drawConnections();
-              showToast("Dépendance supprimée", "success");
-            });
-            
-            svg.appendChild(path);
-            svg.appendChild(hitPath);
-          });
-
-          // Also draw connection lines from Orchestrator output to projects with no dependencies
-          if (
-            node.id !== activeOrch.id &&
-            (!node.dependencies || node.dependencies.length === 0)
-          ) {
-            const parentEl = document.querySelector(
-              `.node-card[data-id="${activeOrch.id}"]`,
-            );
-            if (!parentEl) return;
-
-            let pX, pY, cX, cY, controlOffset, d;
-
-            if (layoutMode === 'horizontal') {
-              pX = parentEl.offsetLeft + parentEl.offsetWidth;
-              pY = parentEl.offsetTop + parentEl.offsetHeight / 2;
-              cX = nodeEl.offsetLeft;
-              cY = nodeEl.offsetTop + nodeEl.offsetHeight / 2;
-              controlOffset = Math.abs(cX - pX) * 0.5;
-              d = `M ${pX} ${pY} C ${pX + controlOffset} ${pY}, ${cX - controlOffset} ${cY}, ${cX} ${cY}`;
-            } else {
-              pX = parentEl.offsetLeft + parentEl.offsetWidth / 2;
-              pY = parentEl.offsetTop + parentEl.offsetHeight;
-              cX = nodeEl.offsetLeft + nodeEl.offsetWidth / 2;
-              cY = nodeEl.offsetTop;
-              controlOffset = Math.abs(cY - pY) * 0.5;
-              d = `M ${pX} ${pY} C ${pX} ${pY + controlOffset}, ${cX} ${cY - controlOffset}, ${cX} ${cY}`;
-            }
-
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", d);
-            path.setAttribute("fill", "none");
-            path.setAttribute("stroke", "var(--orchestrator-subtle)");
-            path.setAttribute("stroke-dasharray", "4,4");
-            path.setAttribute("stroke-width", Math.max(2.5, 2.5 / zoom));
-            
-            // Hit-path for automatic links too
-            const hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            hitPath.setAttribute("d", d);
-            hitPath.setAttribute("fill", "none");
-            hitPath.setAttribute("stroke", "transparent");
-            hitPath.setAttribute("stroke-width", hitWidth);
-            hitPath.style.cursor = "grab";
-            hitPath.style.pointerEvents = "auto";
-            
-            hitPath.addEventListener("mousedown", (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              linkStartNode = activeOrch.id;
-              drawConnections();
-              const moveEvent = new MouseEvent('mousemove', { clientX: e.clientX, clientY: e.clientY, bubbles: true });
-              document.dispatchEvent(moveEvent);
-            });
-            
-            svg.appendChild(path);
-            svg.appendChild(hitPath);
-          }
-        });
-      }
-
-      // Handle Drag Move & Pan
-      document.addEventListener("mousemove", (e) => {
-        if (linkStartNode) {
-          const parentEl = document.querySelector(`.node-card[data-id="${linkStartNode}"]`);
-          if (!parentEl) return;
-          const svg = document.getElementById("canvasSvg");
-          const canvasInner = document.getElementById("canvasInner");
-          
-          const rect = canvasInner.getBoundingClientRect();
-          let pX, pY, cX, cY, controlOffset, d;
-
-          if (layoutMode === 'horizontal') {
-            pX = parentEl.offsetLeft + parentEl.offsetWidth;
-            pY = parentEl.offsetTop + parentEl.offsetHeight / 2;
-            cX = (e.clientX - rect.left) / zoom;
-            cY = (e.clientY - rect.top) / zoom;
-            controlOffset = Math.abs(cX - pX) * 0.5;
-            d = `M ${pX} ${pY} C ${pX + controlOffset} ${pY}, ${cX - controlOffset} ${cY}, ${cX} ${cY}`;
-          } else {
-            pX = parentEl.offsetLeft + parentEl.offsetWidth / 2;
-            pY = parentEl.offsetTop + parentEl.offsetHeight;
-            cX = (e.clientX - rect.left) / zoom;
-            cY = (e.clientY - rect.top) / zoom;
-            controlOffset = Math.abs(cY - pY) * 0.5;
-            d = `M ${pX} ${pY} C ${pX} ${pY + controlOffset}, ${cX} ${cY - controlOffset}, ${cX} ${cY}`;
-          }
-          
-          let ghostPath = document.getElementById("ghostPath");
-          if (!ghostPath) {
-            ghostPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            ghostPath.id = "ghostPath";
-            ghostPath.setAttribute("fill", "none");
-            ghostPath.setAttribute("stroke", "var(--accent-primary)");
-            ghostPath.setAttribute("stroke-width", Math.max(5, 5 / zoom));
-            ghostPath.setAttribute("stroke-dasharray", `${8/zoom},${8/zoom}`);
-            ghostPath.setAttribute("marker-end", "url(#arrow)");
-            ghostPath.style.pointerEvents = "none";
-            svg.appendChild(ghostPath);
-          }
-          ghostPath.setAttribute("d", d);
-        } else if (dragNode) {
-          const nodeEl = document.querySelector(`.node-card[data-id="${dragNode}"]`);
-          if (nodeEl) {
-            const dx = (e.clientX - dragStartMouse.x) / zoom;
-            const dy = (e.clientY - dragStartMouse.y) / zoom;
-
-            let x = dragStartNode.x + dx;
-            let y = dragStartNode.y + dy;
-
-            nodeEl.style.left = `${x}px`;
-            nodeEl.style.top = `${y}px`;
-
-            drawConnections();
-          }
-        } else if (isPanning) {
-          panX = e.clientX - startPan.x;
-          panY = e.clientY - startPan.y;
-          applyTransform();
-        }
-      });
-
-      // Handle Drag/Pan End
-      document.addEventListener("mouseup", async (e) => {
-        const ghostPath = document.getElementById("ghostPath");
-        if (ghostPath) ghostPath.remove();
-
-        if (linkStartNode) {
-          const dropTarget = e.target.closest(".node-card");
-          if (dropTarget) {
-            const dropNodeId = dropTarget.dataset.id;
-            if (dropNodeId && dropNodeId !== linkStartNode) {
-              const childProject = projects.find(p => p.id === dropNodeId);
-              const parentProject = projects.find(p => p.id === linkStartNode);
-              if (childProject && parentProject) {
-                if (childProject.type !== "orchestrator") {
-                  if (!childProject.dependencies) childProject.dependencies = [];
-                  if (!childProject.dependencies.includes(linkStartNode)) {
-                    childProject.dependencies.push(linkStartNode);
-                    await window.openhub.saveProject(childProject);
-                    showToast("Projets liés avec succès", "success");
-                  }
-                } else if (parentProject.type !== "orchestrator") {
-                  // If dragged from child to orchestrator, it's also a valid link (but orchestrator depends on child? No, child belongs to orchestrator)
-                  // In our model, child belongs to orchestrator if child is in orchestrator's 'linked' array. But we are inside an active orchestrator view anyway.
-                }
-              }
-            }
-          }
-          linkStartNode = null;
-          drawConnections();
-        }
-        if (dragNode) {
-          const nodeEl = document.querySelector(`.node-card[data-id="${dragNode}"]`);
-          if (nodeEl) {
-            const p = projects.find((proj) => proj.id === dragNode);
-            if (p) {
-              p.x = nodeEl.offsetLeft;
-              p.y = nodeEl.offsetTop;
-              await window.openhub.saveProject(p);
-            }
-          }
-          dragNode = null;
-        }
-        if (isPanning) {
-          isPanning = false;
-          document.getElementById("orchestrationCanvas").style.cursor = "default";
-        }
-      });
-
-      // New Project Dialog
-      document.getElementById("btnNewProject").onclick = function () {
-        document.getElementById("modalProjectTitle").textContent = "Nouveau projet";
-        document.getElementById("projName").value = "";
-        document.getElementById("projType").value = "code";
-        document.getElementById("projModel").value = "";
-        document.getElementById("projInstructions").value = "";
-        document.getElementById("projTask").value = "";
-        document.getElementById("chkBypassMemory").checked = false;
-
-        // Default orchestrator settings
-        document.getElementById("chkAutoDistribute").checked = true;
-        document.getElementById("chkCheckCoherence").checked = true;
-        document.getElementById("chkRelaunchOnError").checked = true;
-
-        delete document.getElementById("btnSaveProjectConfirm").dataset.editId;
-        onProjectTypeChange();
-        openModal("modalProject");
-      };
-
-      function onProjectTypeChange() {
-        const type = document.getElementById("projType").value;
-        const isOrch = type === "orchestrator";
-
-        document.getElementById("orchOptions").style.display = isOrch ? "" : "none";
-        document.getElementById("dependencySelectGroup").style.display = isOrch
-          ? "none"
-          : "";
-
-        // Load available dependencies
-        if (!isOrch) {
-          const depList = document.getElementById("dependencyList");
-          const activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-          const linkedIds = activeOrch ? activeOrch.linked || [] : [];
-
-          const potentialDeps = projects.filter(
-            (p) =>
-              p.type !== "orchestrator" &&
-              (linkedIds.includes(p.id) || p.id === selectedNodeId),
-          );
-          const editId = document.getElementById("btnSaveProjectConfirm").dataset.editId;
-
-          depList.innerHTML = potentialDeps
-            .filter((p) => p.id !== editId)
-            .map(
-              (p) => `
-          <label class="checkbox-label">
-            <input type="checkbox" name="depProject" value="${p.id}"> ${escapeHtml(p.name)} (${p.type.toUpperCase()})
-          </label>
-        `,
-            )
-            .join("");
-
-          if (depList.innerHTML === "") {
-            depList.innerHTML =
-              '<div style="font-size:11px;color:var(--text-muted);padding:4px">Aucun autre projet disponible pour dépendance.</div>';
-          }
-        }
-      }
-
-      async function editProject(id) {
-        const p = projects.find((proj) => proj.id === id);
-        if (!p) return;
-
-        document.getElementById("modalProjectTitle").textContent = "Éditer le projet";
-        document.getElementById("projName").value = p.name || "";
-        document.getElementById("projType").value = p.type || "code";
-        document.getElementById("projModel").value = p.model || "";
-        document.getElementById("projInstructions").value = p.instructions || "";
-        document.getElementById("projTask").value = p.task || "";
-        document.getElementById("chkBypassMemory").checked = !!p.bypassMemory;
-
-        if (p.type === "orchestrator" && p.orchSettings) {
-          document.getElementById("chkAutoDistribute").checked =
-            !!p.orchSettings.autoDistribute;
-          document.getElementById("chkCheckCoherence").checked =
-            !!p.orchSettings.checkCoherence;
-          document.getElementById("chkRelaunchOnError").checked =
-            !!p.orchSettings.relaunchOnError;
-        }
-
-        document.getElementById("btnSaveProjectConfirm").dataset.editId = id;
-        onProjectTypeChange();
-
-        // Check existing dependencies
-        if (p.type !== "orchestrator" && p.dependencies) {
-          document.querySelectorAll('input[name="depProject"]').forEach((chk) => {
-            chk.checked = p.dependencies.includes(chk.value);
-          });
-        }
-
-        openModal("modalProject");
-      }
-
-      document.getElementById("btnSaveProjectConfirm").onclick = async function () {
-        const name = document.getElementById("projName").value.trim();
-        if (!name) {
-          showToast("Le nom du projet est obligatoire.", "error");
-          return;
-        }
-
-        const type = document.getElementById("projType").value;
-        const model = document.getElementById("projModel").value;
-        const instructions = document.getElementById("projInstructions").value;
-        const task = document.getElementById("projTask").value;
-        const bypassMemory = document.getElementById("chkBypassMemory").checked;
-        const editId = this.dataset.editId;
-
-        const data = {
-          name,
-          type,
-          model,
-          instructions,
-          task,
-          bypassMemory,
-          ...(editId && { id: editId }),
-        };
-
-        if (type === "orchestrator") {
-          data.orchSettings = {
-            autoDistribute: document.getElementById("chkAutoDistribute").checked,
-            checkCoherence: document.getElementById("chkCheckCoherence").checked,
-            relaunchOnError: document.getElementById("chkRelaunchOnError").checked,
-          };
-        } else {
-          // Gather dependencies
-          const checkedDeps = [];
-          document.querySelectorAll('input[name="depProject"]:checked').forEach((chk) => {
-            checkedDeps.push(chk.value);
-          });
-          data.dependencies = checkedDeps;
-        }
-
-        const saved = await window.openhub.saveProject(data);
-
-        // If we created a new project and have an active orchestrator, link them
-        if (!editId && selectedOrchestratorId && type !== "orchestrator") {
-          const activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-          if (activeOrch) {
-            if (!activeOrch.linked) activeOrch.linked = [];
-            activeOrch.linked.push(saved.id);
-            await window.openhub.saveProject(activeOrch);
-          }
-        }
-
-        closeModal("modalProject");
-        showToast(editId ? "Projet mis à jour" : "Projet créé", "success");
-        await loadProjects();
-      };
-
-      async function deleteProject(id) {
-        // confirm() returns false by default in Electron WebContentsView—use inline modal instead
-        return new Promise((resolve) => {
-          const modal = document.getElementById("modalConfirmDelete");
-          modal.classList.add("open");
-          document.getElementById("confirmDeleteBtn").onclick = async () => {
-            modal.classList.remove("open");
-            await window.openhub.deleteProject(id);
-            // Clean links from orchestrators
-            projects.forEach(async (p) => {
-              if (p.type === "orchestrator" && p.linked && p.linked.includes(id)) {
-                p.linked = p.linked.filter((lid) => lid !== id);
-                await window.openhub.saveProject(p);
-              }
-            });
-            showToast("Projet supprimé", "success");
-            if (selectedOrchestratorId === id) selectedOrchestratorId = null;
-            await loadProjects();
-            resolve();
-          };
-          document.getElementById("cancelDeleteBtn").onclick = () => {
-            modal.classList.remove("open");
-            resolve();
-          };
-        });
-      }
-
-      // Execution
-      document.getElementById("btnExecuteOrch").onclick = async function () {
-        if (!selectedOrchestratorId) return;
-        const orch = projects.find((p) => p.id === selectedOrchestratorId);
-        if (!orch || orch.type !== "orchestrator") return;
-
-        if (!orch.task) {
-          showToast("Définissez d'abord une tâche globale.", "warning");
-          return;
-        }
-
-        isExecuting = true;
-        this.disabled = true;
-        showToast(
-          "Orchestration lancée, exécution du graphe de dépendances...",
-          "success",
-        );
-
-        try {
-          await window.openhub.executeOrchestration(orch.id, orch.task);
-        } catch (err) {
-          showToast("Échec de l'orchestration : " + err.message, "error");
-          this.disabled = false;
-          isExecuting = false;
-        }
-      };
-
-      // Listen to status updates
-      if (window.openhub.onOrchestrationStatus) {
-        window.openhub.onOrchestrationStatus((data) => {
-          const node = projects.find((p) => p.id === data.projectId);
-          if (node) {
-            node.status = data.status;
-            if (data.task) node.task = data.task;
-
-            // Redraw canvas node
-            const nodeCard = document.querySelector(`.node-card[data-id="${node.id}"]`);
-            if (nodeCard) {
-              nodeCard.className = `node-card ${node.id === selectedNodeId ? "node-card--selected" : ""} node-card--${data.status}`;
-
-              let statusLabel = "En attente";
-              let statusClass = "status-dot--idle";
-              if (data.status === "running") {
-                statusLabel = "En cours";
-                statusClass = "status-dot--running";
-              } else if (data.status === "done") {
-                statusLabel = "Terminé";
-                statusClass = "status-dot--done";
-              } else if (data.status === "error") {
-                statusLabel = "Erreur";
-                statusClass = "status-dot--error";
-              } else if (data.status === "warning") {
-                statusLabel = "Attention";
-                statusClass = "status-dot--warning";
-              } else if (data.status === "skipped") {
-                statusLabel = "Ignoré";
-                statusClass = "status-dot--skipped";
-              }
-
-              nodeCard.querySelector(".node-card-status span:last-child").textContent =
-                statusLabel;
-              nodeCard.querySelector(".status-dot").className =
-                `status-dot ${statusClass}`;
-            }
-
-            // Reconnect paths
-            drawConnections();
-          }
-
-          // Finish execution button state
-          if (
-            data.projectId === selectedOrchestratorId &&
-            (data.status === "done" || data.status === "error")
-          ) {
-            document.getElementById("btnExecuteOrch").disabled = false;
-            isExecuting = false;
-            showToast(
-              data.status === "done"
-                ? "Orchestration terminée avec succès"
-                : "Orchestration arrêtée sur erreur",
-              data.status === "done" ? "success" : "error",
-            );
-          }
-        });
-      }
-
-      // Modals management
-      function openModal(id) {
-        document.getElementById(id).style.display = "flex";
-      }
-      function closeModal(id) {
-        document.getElementById(id).style.display = "none";
-      }
-
-      // Details Tabs switching
-      document.querySelectorAll(".detail-tab").forEach((tab) => {
-        tab.onclick = function () {
-          const tabName = this.dataset.tab;
-          document
-            .querySelectorAll(".detail-tab")
-            .forEach((t) => t.classList.remove("detail-tab--active"));
-          this.classList.add("detail-tab--active");
-          document
-            .querySelectorAll(".detail-body")
-            .forEach((b) => b.classList.remove("detail-body--active"));
-          document
-            .querySelector(`.detail-body[data-body="${tabName}"]`)
-            .classList.add("detail-body--active");
-        };
-      });
-
-      document.getElementById("btnCollapseDetail").onclick = function() {
-        document.getElementById("orchestrationDetail").classList.toggle("orchestration-detail--collapsed");
-      };
-
-      function showToast(msg, type = "success") {
-        const container = document.getElementById("toastContainer");
-        const toast = document.createElement("div");
-        toast.className = `toast toast--${type}`;
-        toast.textContent = msg;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      }
-
-      async function importDemoTemplate() {
-        try {
-          showToast("Génération du modèle de démonstration...", "info");
-
-          const p1 = await window.openhub.saveProject({
-            name: "API Backend — Authentification",
-            instructions:
-              "Tu es un expert backend Node.js/TypeScript. Tu écris du code sécurisé, avec des tests unitaires Jest. Tu utilises PostgreSQL.",
-            color: "#7c5cfc",
-            type: "code",
-            x: 420,
-            y: 120,
-            task: "Implémenter le flux OAuth2 avec refresh tokens.",
-          });
-
-          const p2 = await window.openhub.saveProject({
-            name: "Design System — Composants",
-            instructions:
-              "Tu es un designer UI/UX expert en design systems. Tu crées des composants accessibles WCAG AA, avec des styles CSS propres.",
-            color: "#f59e0b",
-            type: "design",
-            x: 420,
-            y: 280,
-            task: "Créer les composants de boutons et inputs v1.0.",
-          });
-
-          const p3 = await window.openhub.saveProject({
-            name: "Pipeline CI/CD — Déploiement",
-            instructions:
-              "Tu es un ingénieur DevOps. Tu configures des pipelines CI/CD GitHub Actions robustes.",
-            color: "#10b981",
-            type: "work",
-            x: 420,
-            y: 440,
-            task: "Mettre en place le pipeline GitHub Actions de vérification.",
-          });
-
-          const p5 = await window.openhub.saveProject({
-            name: "Tests E2E — Playwright",
-            instructions:
-              "Tu es un ingénieur QA. Tu écris des tests de bout en bout robustes avec Playwright. Tu couvres les flux critiques d'authentification.",
-            color: "#ef4444",
-            type: "code",
-            dependencies: [p1.id],
-            x: 700,
-            y: 120,
-            task: "Écrire les tests E2E de connexion et inscription.",
-          });
-
-          const p6 = await window.openhub.saveProject({
-            name: "Vérification qualité globale",
-            instructions:
-              "Tu es un vérificateur qualité. Tu analyses la cohérence visuelle, la sécurité du code, et la conformité aux spécifications initiales.",
-            color: "#3b82f6",
-            type: "verifier",
-            dependencies: [p1.id, p2.id, p3.id, p5.id],
-            x: 700,
-            y: 360,
-            bypassMemory: true,
-            task: "Vérifier le code généré, les rendus CSS et les tests.",
-          });
-
-          const orch = await window.openhub.saveProject({
-            name: "Refonte onboarding",
-            instructions:
-              "Tu es un chef de projet IA. Tu coordonnes plusieurs agents pour livrer un produit complet. Tu distribues les tâches.",
-            color: "#10b981",
-            type: "orchestrator",
-            linked: [p1.id, p2.id, p3.id, p5.id, p6.id],
-            orchSettings: {
-              autoDistribute: true,
-              checkCoherence: true,
-              relaunchOnError: true,
-            },
-            x: 100,
-            y: 280,
-            task: "Coordonner la refonte complète de l'onboarding.",
-          });
-
-          showToast("Modèle onboarding créé !", "success");
-          await loadProjects();
-          selectOrchestrator(orch.id);
-        } catch (err) {
-          showToast("Erreur lors de l'importation : " + err.message, "error");
-        }
-      }
-
-      async function importWebsiteTemplate() {
-        try {
-          showToast("Création du modèle Site Web...", "info");
-
-          const p1 = await window.openhub.saveProject({
-            name: "Styles & Design CSS",
-            instructions:
-              "Tu es un designer CSS expert. Tu fournis du code CSS moderne et propre (flexbox, grid, variables CSS, transitions fluides, et design responsive).",
-            color: "#f59e0b",
-            type: "design",
-            x: 420,
-            y: 120,
-            task: "Créer une charte graphique moderne pour le site et les styles CSS associés (menus, boutons, responsive mobile).",
-          });
-
-          const p2 = await window.openhub.saveProject({
-            name: "Intégration HTML/JS",
-            instructions:
-              "Tu es un développeur frontend senior. Tu intègres le CSS du designer, écris de l'HTML5 sémantique et implémentes le JavaScript interactif.",
-            color: "#7c5cfc",
-            type: "code",
-            dependencies: [p1.id],
-            x: 700,
-            y: 120,
-            task: "Créer l'ossature HTML5 du site, intégrer la charte CSS et écrire le code JS d'interactivité (menu mobile, formulaires).",
-          });
-
-          const p3 = await window.openhub.saveProject({
-            name: "Vérificateur Accessibilité & RGPD",
-            instructions:
-              "Tu es un expert en conformité web, accessibilité WCAG AA et réglementations RGPD.",
-            color: "#2563eb",
-            type: "verifier",
-            dependencies: [p2.id],
-            x: 700,
-            y: 360,
-            bypassMemory: true,
-            task: "Vérifier l'accessibilité WCAG du code HTML/CSS et la conformité RGPD des formulaires de contact.",
-          });
-
-          const orch = await window.openhub.saveProject({
-            name: "Site Web Vitrine",
-            instructions:
-              "Tu es un gestionnaire de projet web. Coordonne le designer et le développeur pour concevoir un site web vitrine parfait et vérifier sa qualité.",
-            color: "#0d9488",
-            type: "orchestrator",
-            linked: [p1.id, p2.id, p3.id],
-            orchSettings: {
-              autoDistribute: true,
-              checkCoherence: true,
-              relaunchOnError: true,
-            },
-            x: 100,
-            y: 240,
-            task: "Créer un site web vitrine responsive pour un restaurant local avec un menu interactif et un formulaire de contact.",
-          });
-
-          showToast("Modèle Site Web créé !", "success");
-          await loadProjects();
-          selectOrchestrator(orch.id);
-        } catch (err) {
-          showToast("Erreur lors de l'importation : " + err.message, "error");
-        }
-      }
-
-      async function importSEOContentTemplate() {
-        try {
-          showToast("Création du modèle Contenu SEO...", "info");
-
-          const p1 = await window.openhub.saveProject({
-            name: "Rédaction de l'article (FR)",
-            instructions:
-              "Tu es un rédacteur web professionnel spécialisé dans les technologies. Ton style est clair, engageant et optimisé pour la lecture numérique.",
-            color: "#0d9488",
-            type: "work",
-            x: 420,
-            y: 120,
-            task: "Rédiger un article complet d'environ 800 mots en français sur l'impact de l'IA sur la productivité.",
-          });
-
-          const p2 = await window.openhub.saveProject({
-            name: "Traduction Anglaise (EN)",
-            instructions:
-              "Tu es un traducteur bilingue français-anglais professionnel spécialisé dans la tech.",
-            color: "#7c5cfc",
-            type: "work",
-            dependencies: [p1.id],
-            x: 700,
-            y: 120,
-            task: "Traduire fidèlement l'article généré en anglais, en adaptant le ton professionnel.",
-          });
-
-          const p3 = await window.openhub.saveProject({
-            name: "Audit & Optimisation SEO",
-            instructions:
-              "Tu es un expert en référencement naturel (SEO). Tu analyses le contenu et proposes des optimisations de mots-clés.",
-            color: "#2563eb",
-            type: "verifier",
-            dependencies: [p1.id],
-            x: 700,
-            y: 360,
-            bypassMemory: true,
-            task: "Vérifier la densité des mots-clés stratégiques ('intelligence artificielle', 'productivité') et la structure des titres.",
-          });
-
-          const orch = await window.openhub.saveProject({
-            name: "Campagne Contenu SEO",
-            instructions:
-              "Tu es un responsable éditorial. Coordonne la rédaction, la traduction et l'audit SEO de l'article.",
-            color: "#10b981",
-            type: "orchestrator",
-            linked: [p1.id, p2.id, p3.id],
-            orchSettings: {
-              autoDistribute: true,
-              checkCoherence: true,
-              relaunchOnError: true,
-            },
-            x: 100,
-            y: 240,
-            task: "Rédiger un article de blog complet et optimisé SEO sur l'impact de l'IA dans la productivité des entreprises, le traduire en anglais, et valider son score SEO.",
-          });
-
-          showToast("Modèle Contenu SEO créé !", "success");
-          await loadProjects();
-          selectOrchestrator(orch.id);
-        } catch (err) {
-          showToast("Erreur lors de l'importation : " + err.message, "error");
-        }
-      }
-
-      async function importSimpleOrchestrator() {
-        try {
-          showToast("Création du projet vierge...", "info");
-
-          const orch = await window.openhub.saveProject({
-            name: "Mon Orchestrateur",
-            instructions:
-              "Tu es un coordinateur d'agents internes. Ton rôle est de piloter le projet et de distribuer les tâches.",
-            color: "#10b981",
-            type: "orchestrator",
-            linked: [],
-            orchSettings: {
-              autoDistribute: true,
-              checkCoherence: true,
-              relaunchOnError: true,
-            },
-            x: 100,
-            y: 240,
-            task: "Définissez ici l'objectif global du projet...",
-          });
-
-          showToast("Projet vierge créé !", "success");
-          await loadProjects();
-          selectOrchestrator(orch.id);
-        } catch (err) {
-          showToast("Erreur lors de la création : " + err.message, "error");
-        }
-      }
-
-      async function applyTaskSuggestion(text) {
-        let activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-
-        // If no orchestrator is active, create a simple one first
-        if (!activeOrch || activeOrch.type !== "orchestrator") {
-          showToast("Création d'un orchestrateur pour la suggestion...", "info");
-
-          // Look if there's a template matching
-          if (text.includes("Morpion") || text.includes("login")) {
-            await importWebsiteTemplate();
-          } else if (text.includes("productivité")) {
-            await importSEOContentTemplate();
-          } else {
-            await importSimpleOrchestrator();
-          }
-          activeOrch = projects.find((p) => p.id === selectedOrchestratorId);
-        }
-
-        if (activeOrch) {
-          activeOrch.task = text;
-          await window.openhub.saveProject(activeOrch);
-          document.getElementById("sharedTaskText").value = text;
-
-
-
-          showToast("Suggestion appliquée !", "success");
-          updateDetailPanel();
-        }
-      }
-
-      // Pan and Zoom variables
-      let zoom = 1;
-      let panX = 0;
-      let panY = 0;
-      const minZoom = 0.3;
-      const maxZoom = 2;
-      let isPanning = false;
-      let startPan = { x: 0, y: 0 };
-      let dragStartMouse = { x: 0, y: 0 };
-      let dragStartNode = { x: 0, y: 0 };
-
-      function initPanZoom() {
-        const canvas = document.getElementById("orchestrationCanvas");
-        const canvasInner = document.getElementById("canvasInner");
-        const svg = document.getElementById("canvasSvg");
-
-        // Wheel Event: Zoom when Cmd/Ctrl is held down or trackpad pinching, Pan otherwise
-        canvas.addEventListener(
-          "wheel",
-          (e) => {
-            // If target is inside canvas-empty, let normal scroll happen
-            if (e.target.closest(".canvas-empty")) return;
-
-            e.preventDefault();
-
-            if (e.ctrlKey || e.metaKey) {
-              // Zoom
-              const zoomFactor = 1.05;
-              let nextZoom = e.deltaY < 0 ? zoom * zoomFactor : zoom / zoomFactor;
-              nextZoom = Math.max(minZoom, Math.min(maxZoom, nextZoom));
-
-              const rect = canvas.getBoundingClientRect();
-              const mouseX = e.clientX - rect.left;
-              const mouseY = e.clientY - rect.top;
-
-              const innerMouseX = (mouseX - panX) / zoom;
-              const innerMouseY = (mouseY - panY) / zoom;
-
-              zoom = nextZoom;
-              panX = mouseX - innerMouseX * zoom;
-              panY = mouseY - innerMouseY * zoom;
-
-              applyTransform();
-            } else {
-              // Pan
-              panX -= e.deltaX;
-              panY -= e.deltaY;
-              applyTransform();
-            }
-          },
-          { passive: false },
-        );
-
-        // Mouse Pan (Left-click & Drag on background)
-        canvas.addEventListener("mousedown", (e) => {
-          if (
-            e.target.closest(".node-card") ||
-            e.target.closest(".canvas-controls") ||
-            e.target.closest(".canvas-empty")
-          )
-            return;
-
-          isPanning = true;
-          startPan.x = e.clientX - panX;
-          startPan.y = e.clientY - panY;
-          canvas.style.cursor = "grabbing";
-          e.preventDefault();
-        });
-
-        document.getElementById("btnZoomIn").onclick = () => {
-          const nextZoom = Math.min(maxZoom, zoom * 1.2);
-          zoomTo(nextZoom);
-        };
-        document.getElementById("btnZoomOut").onclick = () => {
-          const nextZoom = Math.max(minZoom, zoom / 1.2);
-          zoomTo(nextZoom);
-        };
-        document.getElementById("btnZoomReset").onclick = toggleZenMode;
-      }
-
-      function zoomTo(nextZoom) {
-        const canvas = document.getElementById("orchestrationCanvas");
-        const rect = canvas.getBoundingClientRect();
-        const midX = rect.width / 2;
-        const midY = rect.height / 2;
-
-        const innerMidX = (midX - panX) / zoom;
-        const innerMidY = (midY - panY) / zoom;
-
-        zoom = nextZoom;
-        panX = midX - innerMidX * zoom;
-        panY = midY - innerMidY * zoom;
-
-        applyTransform();
-      }
-
-      function applyTransform() {
-        const canvasInner = document.getElementById("canvasInner");
-        canvasInner.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
-      }
-
-      function escapeHtml(text) {
-        if (!text) return "";
-        return text
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      // Bootstrap
-      document.addEventListener("DOMContentLoaded", async () => {
-        initPanZoom();
-        await loadModels();
-        await loadProjects();
-      });
-    </script>
+    <!-- JS: load order matters — state first, then features, then bootstrap -->
+    <script src="projects/state.js"></script>
+    <script src="projects/canvas.js"></script>
+    <script src="projects/detail.js"></script>
+    <script src="projects/execution.js"></script>
+    <script src="projects/chat.js"></script>
+    <script src="projects/modals.js"></script>
+    <script src="projects/management.js"></script>
+    <script src="projects/main.js"></script>
   </body>
 </html>
