@@ -1,56 +1,52 @@
 /*
- * OpenHub → OpenWork — unified neutral palette
- * v1.1 — Premium anthracite chaud.
+ * OpenHub → OpenWork — unified neutral palette v2
+ * v2.0 — Pure neutral grays, teal accent.
  */
 
 [data-theme="dark"] {
-  --slate-1: #18181e !important;
-  --slate-2: #202028 !important;
-  --slate-3: #282834 !important;
-  --slate-4: #30303e !important;
-  --slate-5: #3a3a4c !important;
-  --slate-6: #444458 !important;
-  --slate-7: #525266 !important;
-  --slate-8: #68687a !important;
-  --slate-9: #747488 !important;
-  --slate-10: #8c8c9e !important;
-  --slate-11: #acacbe !important;
-  --slate-12: #eaeaf0 !important;
+  --slate-1: #0a0a0a !important;
+  --slate-2: #141414 !important;
+  --slate-3: #1e1e1e !important;
+  --slate-4: #282828 !important;
+  --slate-5: #333333 !important;
+  --slate-6: #3d3d3d !important;
+  --slate-7: #4a4a4a !important;
+  --slate-8: #606060 !important;
+  --slate-9: #666666 !important;
+  --slate-10: #7a7a7a !important;
+  --slate-11: #999999 !important;
+  --slate-12: #ececec !important;
 
-  --dls-border: #2e2e3e !important;
-  --dls-accent: #7c6af2 !important;
-  --dls-accent-hover: #9180f5 !important;
+  --dls-border: #2a2a2a !important;
+  --dls-accent: #14b8a6 !important;
+  --dls-accent-hover: #2dd4bf !important;
   --dls-accent-fg: #ffffff !important;
 
-  --primary: #7c6af2 !important;
-  --ring: #7c6af2 !important;
-  --sidebar-primary: #7c6af2 !important;
+  --primary: #14b8a6 !important;
+  --ring: #14b8a6 !important;
+  --sidebar-primary: #14b8a6 !important;
 }
 
 :root:not(.dark) {
-  --slate-1: #fbfbf9 !important;
-  --slate-2: #f6f6f3 !important;
-  --slate-3: #efefec !important;
-  --slate-4: #ebebe6 !important;
-  --slate-5: #e2e2dc !important;
-  --slate-6: #d8d8d0 !important;
-  --slate-7: #c8c8be !important;
-  --slate-8: #acac9e !important;
-  --slate-9: #949488 !important;
-  --slate-10: #808078 !important;
-  --slate-11: #62625a !important;
-  --slate-12: #1e1e2c !important;
+  --slate-1: #ffffff !important;
+  --slate-2: #f7f7f7 !important;
+  --slate-3: #efefef !important;
+  --slate-4: #e8e8e8 !important;
+  --slate-5: #e0e0e0 !important;
+  --slate-6: #d4d4d4 !important;
+  --slate-7: #c0c0c0 !important;
+  --slate-8: #a0a0a0 !important;
+  --slate-9: #888888 !important;
+  --slate-10: #777777 !important;
+  --slate-11: #555555 !important;
+  --slate-12: #111111 !important;
 
-  --dls-border: #deded8 !important;
-  --dls-accent: #6352d0 !important;
-  --dls-accent-hover: #5846c0 !important;
+  --dls-border: #e0e0e0 !important;
+  --dls-accent: #0d9488 !important;
+  --dls-accent-hover: #0f766e !important;
   --dls-accent-fg: #ffffff !important;
 
-  --primary: #6352d0 !important;
-  --ring: #6352d0 !important;
-  --sidebar-primary: #6352d0 !important;
+  --primary: #0d9488 !important;
+  --ring: #0d9488 !important;
+  --sidebar-primary: #0d9488 !important;
 }
-
-
-
-

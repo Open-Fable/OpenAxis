@@ -18,61 +18,61 @@
  */
 
 /* ═══════════════════════════════════════════
-   v2-blue PRIMITIVES → VIOLET OpenHub
+   v2-blue PRIMITIVES → TEAL OpenHub v2
    ═══════════════════════════════════════════ */
 :root {
-  --v2-blue-100: #f0edfe !important;
-  --v2-blue-200: #d9d2fb !important;
-  --v2-blue-300: #c2b8f8 !important;
-  --v2-blue-400: #9e8df4 !important;
-  --v2-blue-500: #8b77f1 !important;
-  --v2-blue-600: #7c6af2 !important;
-  --v2-blue-700: #6d5bdb !important;
-  --v2-blue-800: #5e4dc4 !important;
-  --v2-blue-900: #4f40a6 !important;
-  --v2-blue-1000: #433688 !important;
-  --v2-blue-1100: #362c6a !important;
-  --v2-blue-1200: #2a2250 !important;
+  --v2-blue-100: #f0fdfa !important;
+  --v2-blue-200: #ccfbf1 !important;
+  --v2-blue-300: #99f6e4 !important;
+  --v2-blue-400: #5eead4 !important;
+  --v2-blue-500: #2dd4bf !important;
+  --v2-blue-600: #14b8a6 !important;
+  --v2-blue-700: #0d9488 !important;
+  --v2-blue-800: #0f766e !important;
+  --v2-blue-900: #115e59 !important;
+  --v2-blue-1000: #134e4a !important;
+  --v2-blue-1100: #042f2e !important;
+  --v2-blue-1200: #021a19 !important;
 }
 
 /* ═══════════════════════════════════════════
    MODE CLAIR
    ═══════════════════════════════════════════ */
 :root {
-  --background-base: #fbfbf9 !important;
-  --background-weak: #f6f6f3 !important;
-  --background-strong: #f2f2ef !important;
-  --background-stronger: #fbfbf9 !important;
+  --background-base: #ffffff !important;
+  --background-weak: #f7f7f7 !important;
+  --background-strong: #efefef !important;
+  --background-stronger: #ffffff !important;
 
-  --v2-background-bg-deep: #f6f6f3 !important;
-  --v2-background-bg-base: #fbfbf9 !important;
-  --v2-background-bg-layer-01: #f6f6f3 !important;
-  --v2-background-bg-layer-02: #fbfbf9 !important;
-  --v2-background-bg-layer-03: #ebebe6 !important;
+  --v2-background-bg-deep: #f7f7f7 !important;
+  --v2-background-bg-base: #ffffff !important;
+  --v2-background-bg-layer-01: #f7f7f7 !important;
+  --v2-background-bg-layer-02: #ffffff !important;
+  --v2-background-bg-layer-03: #e8e8e8 !important;
 
   --surface-float-base: #ffffff !important;
-  --surface-float-base-hover: #f6f6f3 !important;
+  --surface-float-base-hover: #f7f7f7 !important;
   --surface-raised-stronger-non-alpha: #ffffff !important;
 
-  --input-base: #f6f6f3 !important;
-  --input-hover: #efefec !important;
+  --input-base: #f7f7f7 !important;
+  --input-hover: #efefef !important;
 
-  --text-strong: #1e1e2c !important;
-  --text-base: #62627a !important;
+  --text-strong: #111111 !important;
+  --text-base: #555555 !important;
 
-  --border-weak-base: #deded8 !important;
-  --border-weaker-base: #ebebe6 !important;
+  --border-weak-base: #e0e0e0 !important;
+  --border-weaker-base: #e8e8e8 !important;
 
-  --button-primary-base: #1e1e2c !important;
+  --button-primary-base: #111111 !important;
   --button-secondary-base: #ffffff !important;
 
-  --border-selected: #6352d0 !important;
-  --text-interactive-base: #6352d0 !important;
-  --icon-interactive-base: #6352d0 !important;
-  --surface-brand-base: #6352d0 !important;
-  --surface-brand-hover: #5846c0 !important;
-  --surface-interactive-base: rgba(99, 82, 208, 0.06) !important;
-  --surface-interactive-hover: rgba(99, 82, 208, 0.1) !important;
+  --border-selected: #0d9488 !important;
+  --text-interactive-base: #0d9488 !important;
+  --icon-interactive-base: #0d9488 !important;
+  --surface-brand-base: #0d9488 !important;
+  --surface-brand-hover: #0f766e !important;
+  --surface-interactive-base: rgba(13, 148, 136, 0.06) !important;
+  --surface-interactive-hover: rgba(13, 148, 136, 0.1) !important;
 }
 
 /* ═══════════════════════════════════════════
@@ -80,53 +80,53 @@
    ═══════════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --v2-blue-100: #f3effe !important;
-    --v2-blue-200: #e0d8fc !important;
-    --v2-blue-300: #cbc0fa !important;
-    --v2-blue-400: #ada1f7 !important;
-    --v2-blue-500: #9180f5 !important;
-    --v2-blue-600: #7c6af2 !important;
-    --v2-blue-700: #6d5bdb !important;
-    --v2-blue-800: #5e4dc4 !important;
-    --v2-blue-900: #4f40a6 !important;
-    --v2-blue-1000: #433688 !important;
-    --v2-blue-1100: #362c6a !important;
-    --v2-blue-1200: #2a2250 !important;
+    --v2-blue-100: #f0fdfa !important;
+    --v2-blue-200: #ccfbf1 !important;
+    --v2-blue-300: #99f6e4 !important;
+    --v2-blue-400: #5eead4 !important;
+    --v2-blue-500: #2dd4bf !important;
+    --v2-blue-600: #14b8a6 !important;
+    --v2-blue-700: #0d9488 !important;
+    --v2-blue-800: #0f766e !important;
+    --v2-blue-900: #115e59 !important;
+    --v2-blue-1000: #134e4a !important;
+    --v2-blue-1100: #042f2e !important;
+    --v2-blue-1200: #021a19 !important;
 
-    --background-base: #18181e !important;
-    --background-weak: #202028 !important;
-    --background-strong: #1a1a22 !important;
-    --background-stronger: #18181e !important;
+    --background-base: #0a0a0a !important;
+    --background-weak: #141414 !important;
+    --background-strong: #1e1e1e !important;
+    --background-stronger: #0a0a0a !important;
 
-    --v2-background-bg-deep: #202028 !important;
-    --v2-background-bg-base: #18181e !important;
-    --v2-background-bg-layer-01: #202028 !important;
-    --v2-background-bg-layer-02: #18181e !important;
-    --v2-background-bg-layer-03: #30303e !important;
+    --v2-background-bg-deep: #141414 !important;
+    --v2-background-bg-base: #0a0a0a !important;
+    --v2-background-bg-layer-01: #141414 !important;
+    --v2-background-bg-layer-02: #0a0a0a !important;
+    --v2-background-bg-layer-03: #282828 !important;
 
-    --surface-float-base: #202028 !important;
-    --surface-float-base-hover: #282834 !important;
-    --surface-raised-stronger-non-alpha: #282834 !important;
+    --surface-float-base: #141414 !important;
+    --surface-float-base-hover: #1e1e1e !important;
+    --surface-raised-stronger-non-alpha: #1e1e1e !important;
 
-    --input-base: #202028 !important;
-    --input-hover: #282834 !important;
+    --input-base: #141414 !important;
+    --input-hover: #1e1e1e !important;
 
-    --text-strong: #eaeaf0 !important;
-    --text-base: #acacbe !important;
+    --text-strong: #ececec !important;
+    --text-base: #999999 !important;
 
-    --border-weak-base: #2e2e3e !important;
-    --border-weaker-base: #242432 !important;
+    --border-weak-base: #2a2a2a !important;
+    --border-weaker-base: #1f1f1f !important;
 
-    --button-primary-base: #eaeaf0 !important;
-    --button-secondary-base: #202028 !important;
+    --button-primary-base: #ececec !important;
+    --button-secondary-base: #141414 !important;
 
-    --border-selected: #7c6af2 !important;
-    --text-interactive-base: #ada1f7 !important;
-    --icon-interactive-base: #7c6af2 !important;
-    --surface-brand-base: #7c6af2 !important;
-    --surface-brand-hover: #9180f5 !important;
-    --surface-interactive-base: rgba(124, 106, 242, 0.1) !important;
-    --surface-interactive-hover: rgba(124, 106, 242, 0.16) !important;
+    --border-selected: #14b8a6 !important;
+    --text-interactive-base: #2dd4bf !important;
+    --icon-interactive-base: #14b8a6 !important;
+    --surface-brand-base: #14b8a6 !important;
+    --surface-brand-hover: #2dd4bf !important;
+    --surface-interactive-base: rgba(20, 184, 166, 0.1) !important;
+    --surface-interactive-hover: rgba(20, 184, 166, 0.16) !important;
   }
 }
 
@@ -160,26 +160,26 @@
 
 /* Selection */
 ::selection {
-  background: rgba(99, 82, 208, 0.15);
+  background: rgba(13, 148, 136, 0.15);
 }
 @media (prefers-color-scheme: dark) {
   ::selection {
-    background: rgba(124, 106, 242, 0.25);
+    background: rgba(20, 184, 166, 0.25);
   }
 }
 
 /* Focus visible global */
 :focus-visible {
-  outline: 2px solid #6352d0;
+  outline: 2px solid #0d9488;
   outline-offset: 2px;
 }
 @media (prefers-color-scheme: dark) {
   :focus-visible {
-    outline-color: #7c6af2;
+    outline-color: #14b8a6;
   }
 }
 
-/* Inputs — rondeur standard 8px + focus violet (✅ confirmé fonctionnel) */
+/* Inputs — rondeur standard 8px + focus teal */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
@@ -188,27 +188,34 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: #6352d0 !important;
-  box-shadow: 0 0 0 3px rgba(99, 82, 208, 0.15) !important;
+  border-color: #0d9488 !important;
   outline: none !important;
 }
 @media (prefers-color-scheme: dark) {
   input:focus,
   textarea:focus,
   select:focus {
-    border-color: #7c6af2 !important;
-    box-shadow: 0 0 0 3px rgba(124, 106, 242, 0.2) !important;
+    border-color: #14b8a6 !important;
   }
 }
 
-/* Boutons — focus violet uniquement (ne touche pas au layout) */
+/* Boutons — focus teal uniquement (ne touche pas au layout) */
+button,
+[role="button"] {
+}
+
+button:active,
+[role="button"]:active {
+  opacity: 0.8 !important;
+}
+
 button:focus-visible {
-  outline: 2px solid #6352d0 !important;
+  outline: 2px solid #0d9488 !important;
   outline-offset: 2px !important;
 }
 @media (prefers-color-scheme: dark) {
   button:focus-visible {
-    outline-color: #7c6af2 !important;
+    outline-color: #14b8a6 !important;
   }
 }
 

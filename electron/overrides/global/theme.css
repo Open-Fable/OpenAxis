@@ -15,14 +15,27 @@
   color-scheme: light dark !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Animation Tokens (Grand Public, Naturel) */
+  --oh-ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --oh-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --oh-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --oh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --oh-duration-75: 75ms;
+  --oh-duration-150: 150ms;
+  --oh-duration-250: 250ms;
+  --oh-duration-350: 350ms;
+
+  --oh-transition: var(--oh-duration-150) var(--oh-ease-default);
 }
 
 /* ── Mode CLAIR ── */
 :root,
 html,
 body {
-  background-color: #fbfbf9 !important;
-  color: #1e1e2c !important;
+  background-color: #ffffff !important;
+  color: #111111 !important;
   font-family:
     "SF Pro Text",
     "SF Pro Display",
@@ -36,8 +49,8 @@ body {
 @media (prefers-color-scheme: dark) {
   html,
   body {
-    background-color: #18181e !important;
-    color: #eaeaf0 !important;
+    background-color: #0a0a0a !important;
+    color: #ececec !important;
   }
 }
 
@@ -66,15 +79,55 @@ body {
   }
 }
 
-/* ── Selection (brand violet) ── */
+/* ── Selection (brand teal) ── */
 ::selection {
-  background: rgba(99, 82, 208, 0.15);
-  color: #1e1e2c;
+  background: rgba(13, 148, 136, 0.15);
+  color: #111111;
 }
 
 @media (prefers-color-scheme: dark) {
   ::selection {
-    background: rgba(124, 106, 242, 0.25);
+    background: rgba(20, 184, 166, 0.25);
     color: #ffffff;
   }
+}
+
+/* ── Global Interactive Feedback ── */
+button,
+[role="button"],
+.btn,
+a {
+}
+
+button:active,
+[role="button"]:active,
+.btn:active {
+  opacity: 0.8 !important;
+}
+
+/* Force removal of common hover borders/glows */
+*:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+button:hover,
+[role="button"]:hover,
+.btn:hover,
+a:hover {
+  box-shadow: none !important;
+}
+
+/* Remove common AI-style ring animations or glows */
+[class*="ring"],
+[class*="glow"],
+[class*="sparkle"] {
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+/* Smooth modal/overlay entrance for apps */
+[data-role="modal"],
+[role="dialog"] {
+  animation: none !important;
 }

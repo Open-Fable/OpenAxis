@@ -1,0 +1,225 @@
+/* Projects Hub Overlay for OpenWork — v2 Design System */
+
+#oh-projects-hub-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg-deepest, #0a0a0a);
+  display: none;
+  flex-direction: column;
+  color: var(--text-primary, #ececec);
+  font-family: var(
+    --font-sans,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    sans-serif
+  );
+  animation: fadeIn var(--duration-250, 0.2s) var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#oh-projects-hub-overlay.oh-visible {
+  display: flex;
+}
+
+.oh-hub-header {
+  height: 64px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle, #1f1f1f);
+  background: var(--bg-panel, #141414);
+}
+
+.oh-hub-title {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.oh-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: 16px;
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Project Card */
+.oh-project-card {
+  background: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-default, #2a2a2a);
+  border-radius: var(--radius-xl, 16px);
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: fit-content;
+}
+
+.oh-project-card:hover {
+  border-color: var(--accent-primary, #14b8a6);
+  background: var(--bg-elevated, #282828);
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.4));
+}
+
+.oh-project-card-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.oh-project-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-fill-tertiary, rgba(255, 255, 255, 0.04));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #666666);
+  flex-shrink: 0;
+}
+
+.oh-project-card-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+}
+
+.oh-project-card-icon-wrap[data-type="code"] {
+  color: var(--accent-primary, #14b8a6);
+  background: var(--accent-subtle, rgba(20, 184, 166, 0.1));
+}
+
+.oh-project-card-icon-wrap[data-type="orchestrator"] {
+  color: var(--accent-primary, #14b8a6);
+  background: var(--accent-subtle, rgba(20, 184, 166, 0.1));
+}
+
+.oh-project-card-name {
+  font-weight: 650;
+  font-size: 15px;
+  color: var(--text-primary, #ececec);
+}
+
+.oh-project-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.oh-project-meta-row {
+  font-size: 12px;
+  color: var(--text-muted, #666666);
+  font-weight: 500;
+}
+
+/* Detail View */
+#oh-project-detail-view {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: var(--bg-deepest, #0a0a0a);
+  display: none;
+  flex-direction: column;
+}
+
+#oh-project-detail-view.oh-visible {
+  display: flex;
+}
+
+.oh-detail-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.oh-detail-sidebar {
+  width: 300px;
+  border-right: 1px solid var(--border-subtle, #1f1f1f);
+  background: var(--bg-panel, #141414);
+  display: flex;
+  flex-direction: column;
+}
+
+.oh-detail-main {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.oh-context-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.oh-panel {
+  background: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-default, #2a2a2a);
+  border-radius: var(--radius-xl, 16px);
+  padding: 24px;
+}
+
+.oh-textarea {
+  width: 100%;
+  min-height: 200px;
+  background: var(--bg-deepest, #0a0a0a);
+  border: 1px solid var(--border-default, #2a2a2a);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  color: var(--text-primary, #ececec);
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.oh-textarea:focus {
+  border-color: var(--accent-primary, #14b8a6);
+}
+
+/* Buttons */
+.oh-btn-primary {
+  background: var(--accent-primary, #14b8a6);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.oh-btn-primary:hover {
+  background: var(--accent-hover, #2dd4bf);
+}
+
+.oh-btn-ghost {
+  background: transparent;
+  color: var(--text-muted, #666666);
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+}
+
+.oh-btn-ghost:hover {
+  color: var(--text-primary, #ececec);
+  background: var(--bg-fill-tertiary, rgba(255, 255, 255, 0.05));
+}

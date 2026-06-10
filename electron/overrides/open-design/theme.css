@@ -31,42 +31,48 @@
 /* ── Light theme (default) ── */
 :root,
 html:not(.dark) {
-  --bg: #FBFBF9 !important;
-  --bg-app: #FBFBF9 !important;
-  --bg-panel: #F6F6F3 !important;
-  --bg-subtle: #EFEFEC !important;
-  --bg-muted: #EBEBE6 !important;
-  --bg-elevated: #FFFFFF !important;
+  --bg: #ffffff !important;
+  --bg-app: #ffffff !important;
+  --bg-panel: #f7f7f7 !important;
+  --bg-subtle: #efefef !important;
+  --bg-muted: #e8e8e8 !important;
+  --bg-elevated: #ffffff !important;
 
-  --border: #DEDED8 !important;
-  --border-strong: #CECEC6 !important;
-  --border-soft: #EBEBE6 !important;
+  --border: #e0e0e0 !important;
+  --border-strong: #cccccc !important;
+  --border-soft: #e8e8e8 !important;
 
-  --text: #1E1E2C !important;
-  --text-strong: #1E1E2C !important;
-  --text-muted: #9494A6 !important;
-  --text-soft: #C6C6D4 !important;
-  --text-faint: #DEDED8 !important;
+  --text: #111111 !important;
+  --text-strong: #111111 !important;
+  --text-muted: #888888 !important;
+  --text-soft: #bbbbbb !important;
+  --text-faint: #e0e0e0 !important;
 
-  --accent: #6352D0 !important;
-  --accent-strong: #5846C0 !important;
-  --accent-soft: rgba(99, 82, 208, 0.08) !important;
-  --accent-tint: rgba(99, 82, 208, 0.06) !important;
-  --accent-hover: #5846C0 !important;
+  --accent: #0d9488 !important;
+  --accent-strong: #0f766e !important;
+  --accent-soft: rgba(13, 148, 136, 0.08) !important;
+  --accent-tint: rgba(13, 148, 136, 0.06) !important;
+  --accent-hover: #0f766e !important;
 
-  --oh-success:  #10B981 !important;
-  --oh-warning:  #F59E0B !important;
-  --oh-error:    #EF4444 !important;
-  --oh-info:     #3B82F6 !important;
+  --oh-success: #16a34a !important;
+  --oh-warning: #d97706 !important;
+  --oh-error: #dc2626 !important;
 
-  --oh-shadow-xs:  0 1px 2px rgba(0,0,0,0.06) !important;
-  --oh-shadow-sm:  0 2px 8px rgba(0,0,0,0.08) !important;
-  --oh-shadow-md:  0 4px 16px rgba(0,0,0,0.1) !important;
+  --oh-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  --oh-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  --oh-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 
-  --oh-bg-surface:  #F3F3FA !important;
-  --oh-bg-overlay:  #EDEDF5 !important;
-  --oh-accent-subtle: rgba(99,82,208,0.08) !important;
-  --oh-accent-design: #D97706 !important;
+  --oh-bg-surface: #efefef !important;
+  --oh-bg-overlay: #f2f2f2 !important;
+  --oh-accent-subtle: rgba(13, 148, 136, 0.06) !important;
+  --oh-accent-design: #d97706 !important;
+
+  /* Animation Primitives */
+  --oh-dur-150: 150ms !important;
+  --oh-dur-250: 250ms !important;
+  --oh-dur-350: 350ms !important;
+  --oh-ease: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  --oh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
 /* ── Dark theme ── */
@@ -74,29 +80,29 @@ html:not(.dark) {
   html.dark,
   [data-theme="dark"],
   :root {
-    --bg: #18181e !important;
-    --bg-app: #18181e !important;
-    --bg-panel: #202028 !important;
-    --bg-subtle: #282834 !important;
-    --bg-muted: #30303e !important;
-    --bg-elevated: #1e1e28 !important;
+    --bg: #0a0a0a !important;
+    --bg-app: #0a0a0a !important;
+    --bg-panel: #141414 !important;
+    --bg-subtle: #1e1e1e !important;
+    --bg-muted: #282828 !important;
+    --bg-elevated: #282828 !important;
 
-    --border: #2e2e3e !important;
-    --border-strong: #3a3a4c !important;
-    --border-soft: #242432 !important;
+    --border: #2a2a2a !important;
+    --border-strong: #3a3a3a !important;
+    --border-soft: #1f1f1f !important;
 
-    --text: #eaeaf0 !important;
-    --text-strong: #eaeaf0 !important;
-    --text-muted: #747488 !important;
-    --text-soft: #4e4e5e !important;
-    --text-faint: #3a3a4c !important;
+    --text: #ececec !important;
+    --text-strong: #ececec !important;
+    --text-muted: #666666 !important;
+    --text-soft: #444444 !important;
+    --text-faint: #3a3a3a !important;
 
-    --accent: #7c6af2 !important;
-    --accent-strong: #9180f5 !important;
-    --accent-strong-soft: rgba(124, 106, 242, 0.16) !important;
-    --accent-soft: rgba(124, 106, 242, 0.12) !important;
-    --accent-tint: rgba(124, 106, 242, 0.08) !important;
-    --accent-hover: #9180f5 !important;
+    --accent: #14b8a6 !important;
+    --accent-strong: #2dd4bf !important;
+    --accent-strong-soft: rgba(20, 184, 166, 0.16) !important;
+    --accent-soft: rgba(20, 184, 166, 0.12) !important;
+    --accent-tint: rgba(20, 184, 166, 0.08) !important;
+    --accent-hover: #2dd4bf !important;
   }
 }
 
@@ -118,10 +124,6 @@ button,
   border-radius: 8px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  transition:
-    background var(--oh-dur-150) var(--oh-ease),
-    transform 75ms var(--oh-ease),
-    border-color var(--oh-dur-150) var(--oh-ease) !important;
   cursor: pointer !important;
 }
 button:hover,
@@ -130,7 +132,7 @@ button:hover,
 }
 button:active,
 [role="button"]:active {
-  transform: scale(0.97) !important;
+  opacity: 0.8 !important;
 }
 
 /* Inputs */
@@ -145,16 +147,12 @@ select {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
-  transition:
-    border-color var(--oh-dur-150) var(--oh-ease),
-    box-shadow var(--oh-dur-150) var(--oh-ease) !important;
   outline: none !important;
 }
 input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-tint) !important;
 }
 input::placeholder,
 textarea::placeholder {
@@ -300,7 +298,9 @@ hr {
    Open Design tourne dans un WebContentsView — toute région -webkit-app-region:drag
    définie dans ses pages interfère avec les clics en haut de la vue (tabs, boutons).
    OpenHub gère le drag via sidebar.html ; l'embedded view n'en a pas besoin. */
-html, body, * {
+html,
+body,
+* {
   -webkit-app-region: no-drag !important;
 }
 

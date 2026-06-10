@@ -17,95 +17,90 @@
       }
 
       :root {
-        /* OpenHub Brand Tokens Dark (Default) */
-        --oh-color-bg-deepest: #18181e;
-        --oh-color-bg-panel: #202028;
-        --oh-color-bg-surface: #282834;
-        --oh-color-bg-elevated: #30303e;
-        --oh-color-bg-overlay: #1e1e28;
+        /* OpenHub Brand Tokens — v2 Dark (Default) */
+        --oh-color-bg-deepest: #0a0a0a;
+        --oh-color-bg-panel: #141414;
+        --oh-color-bg-surface: #1e1e1e;
+        --oh-color-bg-elevated: #282828;
+        --oh-color-bg-overlay: #111111;
 
-        --oh-color-border-subtle: #242432;
-        --oh-color-border-default: #2e2e3e;
-        --oh-color-border-strong: #3a3a4c;
+        --oh-color-border-subtle: #1f1f1f;
+        --oh-color-border-default: #2a2a2a;
+        --oh-color-border-strong: #3a3a3a;
 
-        --oh-color-text-primary: #eaeaf0;
-        --oh-color-text-secondary: #acacbe;
-        --oh-color-text-muted: #747488;
-        --oh-color-text-disabled: #4e4e5e;
+        --oh-color-text-primary: #ececec;
+        --oh-color-text-secondary: #999999;
+        --oh-color-text-muted: #666666;
+        --oh-color-text-disabled: #444444;
 
-        --oh-color-accent-primary: #7c6af2;
-        --oh-color-accent-hover: #9180f5;
-        --oh-color-accent-active: #6b58d8;
+        --oh-color-accent-primary: #14b8a6;
+        --oh-color-accent-hover: #2dd4bf;
+        --oh-color-accent-active: #0d9488;
+        --oh-color-accent-subtle: rgba(20, 184, 166, 0.08);
+        --oh-color-accent-subtle-hover: rgba(20, 184, 166, 0.12);
 
-        /* Tool active colors */
-        --oh-color-accent-chat: #60a5fa;
-        --oh-color-bg-chat-active: rgba(96, 165, 250, 0.12);
-
-        --oh-color-accent-work: #2dd4bf;
-        --oh-color-bg-work-active: rgba(45, 212, 191, 0.12);
-
-        --oh-color-accent-code: #a78bfa;
-        --oh-color-bg-code-active: rgba(167, 139, 250, 0.12);
-
-        --oh-color-accent-design: #fbbf24;
-        --oh-color-bg-design-active: rgba(251, 191, 36, 0.12);
-
-        --oh-color-accent-projects: #7c6af2;
-        --oh-color-bg-projects-active: rgba(124, 106, 242, 0.12);
+        --oh-color-bg-active: rgba(20, 184, 166, 0.1);
 
         /* Semantic colors */
-        --oh-color-success: #34d399;
-        --oh-color-warning: #fbbf24;
-        --oh-color-error: #f87171;
+        --oh-color-success: #22c55e;
+        --oh-color-warning: #f59e0b;
+        --oh-color-error: #ef4444;
 
-        --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        /* Animation Tokens */
+        --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+        --ease-in: cubic-bezier(0.4, 0, 1, 1);
+        --ease-out: cubic-bezier(0, 0, 0.2, 1);
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        --duration-75: 75ms;
+        --duration-150: 150ms;
+        --duration-250: 250ms;
+        --duration-350: 350ms;
+
+        --transition: var(--duration-150) var(--ease-default);
         --font:
           -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
-        --radius: 12px;
-        --radius-sm: 8px;
-        --radius-lg: 16px;
+        --radius: 8px;
+        --radius-sm: 6px;
+        --radius-lg: 12px;
       }
 
       @media (prefers-color-scheme: light) {
         :root {
-          /* OpenHub Brand Tokens Light */
-          --oh-color-bg-deepest: #fbfbf9;
-          --oh-color-bg-panel: #f6f6f3;
-          --oh-color-bg-surface: #efefec;
+          /* OpenHub Brand Tokens — v2 Light */
+          --oh-color-bg-deepest: #ffffff;
+          --oh-color-bg-panel: #f7f7f7;
+          --oh-color-bg-surface: #efefef;
           --oh-color-bg-elevated: #ffffff;
-          --oh-color-bg-overlay: #f2f2ef;
+          --oh-color-bg-overlay: #f2f2f2;
 
-          --oh-color-border-subtle: #ebebe6;
-          --oh-color-border-default: #deded8;
-          --oh-color-border-strong: #cecec6;
+          --oh-color-border-subtle: #e8e8e8;
+          --oh-color-border-default: #e0e0e0;
+          --oh-color-border-strong: #cccccc;
 
-          --oh-color-text-primary: #1e1e2c;
-          --oh-color-text-secondary: #62627a;
-          --oh-color-text-muted: #9494a6;
-          --oh-color-text-disabled: #c6c6d4;
+          --oh-color-text-primary: #111111;
+          --oh-color-text-secondary: #555555;
+          --oh-color-text-muted: #888888;
+          --oh-color-text-disabled: #bbbbbb;
 
-          --oh-color-accent-primary: #6352d0;
-          --oh-color-accent-hover: #5846c0;
-          --oh-color-accent-active: #4c3aac;
+          --oh-color-accent-primary: #0d9488;
+          --oh-color-accent-hover: #0f766e;
+          --oh-color-accent-active: #115e59;
+          --oh-color-accent-subtle: rgba(13, 148, 136, 0.06);
+          --oh-color-accent-subtle-hover: rgba(13, 148, 136, 0.1);
 
-          --oh-color-accent-chat: #3b82f6;
-          --oh-color-bg-chat-active: rgba(59, 130, 246, 0.1);
+          --oh-color-bg-active: rgba(13, 148, 136, 0.08);
 
-          --oh-color-accent-work: #0d9488;
-          --oh-color-bg-work-active: rgba(13, 148, 136, 0.1);
+          --oh-color-success: #16a34a;
+          --oh-color-warning: #d97706;
+          --oh-color-error: #dc2626;
+        }
+      }
 
-          --oh-color-accent-code: #7c3aed;
-          --oh-color-bg-code-active: rgba(124, 58, 237, 0.1);
-
-          --oh-color-accent-design: #d97706;
-          --oh-color-bg-design-active: rgba(217, 119, 6, 0.1);
-
-          --oh-color-accent-projects: #6352d0;
-          --oh-color-bg-projects-active: rgba(99, 82, 208, 0.1);
-
-          --oh-color-success: #10b981;
-          --oh-color-warning: #f59e0b;
-          --oh-color-error: #ef4444;
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
         }
       }
 
@@ -186,6 +181,7 @@
         justify-content: center;
         padding: 0 16px;
         position: relative;
+        flex-direction: row-reverse;
       }
 
       .tabs-container {
@@ -193,6 +189,24 @@
         align-items: center;
         gap: 4px;
         -webkit-app-region: no-drag;
+        position: relative;
+      }
+
+      /* Sliding Indicator */
+      #tab-indicator {
+        position: absolute;
+        height: 32px;
+        background: var(--oh-color-bg-active);
+        border-radius: var(--radius);
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0;
+      }
+      
+      .slot-btn.active {
+        color: var(--active-color, var(--oh-color-accent-primary));
+        font-weight: 600;
+        background: transparent !important;
       }
 
       @media (max-width: 680px) {
@@ -214,7 +228,6 @@
         background: transparent;
         cursor: pointer;
         color: var(--oh-color-text-secondary);
-        transition: var(--transition);
         position: relative;
         outline: none;
         -webkit-app-region: no-drag;
@@ -227,6 +240,10 @@
         color: var(--oh-color-text-primary);
       }
 
+      .slot-btn:active {
+        opacity: 0.8;
+      }
+
       @media (prefers-color-scheme: light) {
         .slot-btn:hover {
           background: rgba(0, 0, 0, 0.03);
@@ -234,7 +251,7 @@
       }
 
       .slot-btn:focus-visible {
-        box-shadow: 0 0 0 2px var(--oh-color-accent-primary);
+        outline: 1px solid var(--oh-color-accent-primary);
       }
 
       .slot-icon {
@@ -274,30 +291,10 @@
       }
 
       /* ── Brand colors for active tabs ── */
-      .slot-btn[data-slot="chat"].active {
-        background: var(--oh-color-bg-chat-active);
-        color: var(--oh-color-accent-chat);
+      .slot-btn.active {
+        color: var(--active-color, var(--oh-color-accent-primary));
         font-weight: 600;
-      }
-      .slot-btn[data-slot="work"].active {
-        background: var(--oh-color-bg-work-active);
-        color: var(--oh-color-accent-work);
-        font-weight: 600;
-      }
-      .slot-btn[data-slot="code"].active {
-        background: var(--oh-color-bg-code-active);
-        color: var(--oh-color-accent-code);
-        font-weight: 600;
-      }
-      .slot-btn[data-slot="design"].active {
-        background: var(--oh-color-bg-design-active);
-        color: var(--oh-color-accent-design);
-        font-weight: 600;
-      }
-      .slot-btn[data-slot="projects"].active {
-        background: var(--oh-color-bg-projects-active);
-        color: var(--oh-color-accent-projects);
-        font-weight: 600;
+        background: transparent !important;
       }
 
       /* Settings gear button */
@@ -312,7 +309,6 @@
         background: transparent;
         cursor: pointer;
         color: var(--oh-color-text-secondary);
-        transition: var(--transition);
         -webkit-app-region: no-drag;
         outline: none;
         position: absolute;
@@ -324,6 +320,10 @@
       .btn-config:hover {
         background: rgba(255, 255, 255, 0.04);
         color: var(--oh-color-text-primary);
+      }
+
+      .btn-config:active {
+        opacity: 0.8;
       }
 
       @media (prefers-color-scheme: light) {
@@ -348,10 +348,6 @@
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        opacity: 0;
-        transition:
-          opacity 200ms,
-          box-shadow 300ms;
         pointer-events: none;
       }
 
@@ -359,25 +355,12 @@
         opacity: 1;
         background: var(--oh-color-warning);
         box-shadow: 0 0 6px var(--oh-color-warning);
-        animation: glow-pulse 1.5s ease-in-out infinite;
       }
 
       .slot-btn.ready .status-ring {
         opacity: 1;
         background: var(--oh-color-success);
         box-shadow: 0 0 4px var(--oh-color-success);
-      }
-
-      @keyframes glow-pulse {
-        0%,
-        100% {
-          opacity: 1;
-          box-shadow: 0 0 6px var(--oh-color-warning);
-        }
-        50% {
-          opacity: 0.5;
-          box-shadow: 0 0 3px rgba(240, 180, 41, 0.2);
-        }
       }
 
       /* Tooltip (under buttons) */
@@ -395,9 +378,6 @@
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
-        transition:
-          opacity 120ms ease,
-          transform 120ms ease;
         border: 1px solid var(--oh-color-border-strong);
         z-index: 200;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -435,7 +415,6 @@
         z-index: 99;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 220ms ease;
         -webkit-app-region: no-drag;
       }
       @media (prefers-color-scheme: dark) {
@@ -464,10 +443,6 @@
           0 32px 80px rgba(0, 0, 0, 0.55),
           0 0 0 1px rgba(255, 255, 255, 0.04);
         opacity: 0;
-        transform: translateY(14px) scale(0.96);
-        transition:
-          opacity 220ms ease,
-          transform 260ms var(--ease-default);
         -webkit-app-region: no-drag;
       }
       @media (prefers-color-scheme: light) {
@@ -479,7 +454,6 @@
       }
       #config-panel.open .config-card {
         opacity: 1;
-        transform: translateY(0) scale(1);
       }
 
       .config-card-header {
@@ -536,13 +510,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 150ms var(--ease-default);
         flex-shrink: 0;
       }
       .btn-close-cfg:hover {
         background: var(--oh-color-bg-surface);
         color: var(--oh-color-text-primary);
         border-color: var(--oh-color-border-default);
+      }
+      .btn-close-cfg:active {
+        opacity: 0.8;
       }
       .btn-close-cfg svg {
         width: 14px;
@@ -572,7 +548,6 @@
         font-weight: 500;
         color: var(--oh-color-text-muted);
         cursor: pointer;
-        transition: all 150ms var(--ease-default);
         font-family: var(--font);
         outline: none;
       }
@@ -586,6 +561,9 @@
       .config-tab:hover {
         color: var(--oh-color-text-primary);
         background: var(--oh-color-bg-surface);
+      }
+      .config-tab:active {
+        opacity: 0.8;
       }
       .config-tab.active {
         color: var(--oh-color-accent-primary);
@@ -638,11 +616,9 @@
         border: 1px solid var(--oh-color-border-subtle);
         border-radius: 10px;
         margin-bottom: 6px;
-        transition: border-color 150ms var(--ease-default);
       }
       .api-field:focus-within {
         border-color: var(--oh-color-accent-primary);
-        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
       }
 
       .api-field-icon {
@@ -707,7 +683,6 @@
         display: flex;
         align-items: center;
         border-radius: 4px;
-        transition: color 150ms var(--ease-default);
         flex-shrink: 0;
       }
       .btn-reveal:hover {
@@ -763,7 +738,6 @@
         background: var(--oh-color-border-default);
         border-radius: 10px;
         cursor: pointer;
-        transition: background 200ms var(--ease-default);
         border: 1px solid transparent;
       }
       .toggle-track::after {
@@ -776,9 +750,6 @@
         height: 14px;
         background: var(--oh-color-bg-elevated);
         border-radius: 50%;
-        transition:
-          transform 200ms var(--ease-default),
-          background 200ms;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
       .toggle-wrap input:checked + .toggle-track {
@@ -800,11 +771,9 @@
         font-family: var(--font);
         padding: 9px 12px;
         outline: none;
-        transition: border-color 150ms var(--ease-default);
       }
       .profile-field input:focus {
         border-color: var(--oh-color-accent-primary);
-        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
       }
       .profile-field input::placeholder {
         color: var(--oh-color-text-disabled);
@@ -871,7 +840,7 @@
         padding: 0;
         display: flex;
         flex-shrink: 0;
-        transition: color 120ms;
+        flex-shrink: 0;
       }
       .fact-remove:hover {
         color: var(--oh-color-error);
@@ -894,11 +863,9 @@
         font-family: var(--font);
         padding: 7px 10px;
         outline: none;
-        transition: border-color 150ms var(--ease-default);
       }
       .add-fact-row input:focus {
         border-color: var(--oh-color-accent-primary);
-        box-shadow: 0 0 0 3px var(--oh-color-accent-subtle);
       }
       .add-fact-row input::placeholder {
         color: var(--oh-color-text-disabled);
@@ -916,7 +883,6 @@
         cursor: pointer;
         white-space: nowrap;
         font-family: var(--font);
-        transition: background 120ms var(--ease-default);
       }
       .btn-add-fact:hover {
         background: var(--oh-color-accent-subtle-hover);
@@ -991,7 +957,6 @@
         font-family: var(--font);
         cursor: pointer;
         white-space: nowrap;
-        transition: all 150ms var(--ease-default);
         flex-shrink: 0;
       }
       .btn-update:hover {
@@ -1053,7 +1018,6 @@
         height: 100%;
         background: var(--oh-color-accent-primary);
         width: 0%;
-        transition: width 0.2s ease;
       }
       .ollama-actions {
         display: flex;
@@ -1069,7 +1033,6 @@
         background: var(--oh-color-bg-elevated);
         color: var(--oh-color-text-primary);
         cursor: pointer;
-        transition: all 0.2s;
         font-family: var(--font);
       }
       .btn-ollama:hover {
@@ -1124,17 +1087,13 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        transition:
-          background 150ms var(--ease-default),
-          box-shadow 150ms var(--ease-default),
-          transform 100ms;
+        gap: 6px;
       }
       .btn-save:hover {
         background: var(--oh-color-accent-hover);
-        box-shadow: 0 0 20px var(--oh-color-accent-subtle-hover);
       }
       .btn-save:active {
-        transform: scale(0.97);
+        opacity: 0.8;
       }
       .btn-save svg {
         width: 13px;
@@ -1160,7 +1119,6 @@
         cursor: pointer;
         white-space: nowrap;
         font-family: var(--font);
-        transition: all 120ms var(--ease-default);
         outline: none;
       }
       .btn-secondary:hover {
@@ -1213,7 +1171,6 @@
         height: 100%;
         background: var(--oh-color-accent-primary);
         border-radius: 3px;
-        transition: width 0.3s ease;
       }
       .cache-table-wrapper {
         background: var(--oh-color-bg-surface);
@@ -1319,6 +1276,7 @@
 
       <div class="bottom-row">
         <div class="tabs-container">
+          <div id="tab-indicator"></div>
           <button class="slot-btn" data-slot="chat">
             <span class="slot-icon">
               <svg viewBox="0 0 24 24">
@@ -1376,7 +1334,7 @@
                 ></path>
               </svg>
             </span>
-            <span class="slot-label">Projets</span>
+            <span class="slot-label">Orchestrateur</span>
             <span class="tooltip">Orchestration</span>
           </button>
         </div>
@@ -1625,18 +1583,34 @@
               <div class="api-field">
                 <div class="api-field-icon" style="font-size: 14px">🧠</div>
                 <div class="api-field-body">
-                  <div class="api-field-label">Modèle de Classification (Mémoire)</div>
+                  <div class="api-field-label">Tri des Informations (Mémoire)</div>
                   <div class="api-field-input-row">
                     <select id="ai-classifier" class="model-select"></select>
                   </div>
-                  <p class="field-hint">Analyse si une info mérite d'être retenue dans AGENT-MEMORY.md.</p>
+                </div>
+              </div>
+
+              <div class="api-field" style="margin-top: 12px;">
+                <div class="api-field-icon" style="font-size: 14px">💡</div>
+                <div class="api-field-body">
+                  <div class="api-field-label">Effort de Réflexion (par défaut)</div>
+                  <div class="api-field-input-row">
+                    <select id="default-reasoning-effort" class="model-select">
+                      <option value="none">Aucun (Désactivé)</option>
+                      <option value="minimal">Minimal (Rapide)</option>
+                      <option value="low">Bas</option>
+                      <option value="medium">Moyen (Équilibré)</option>
+                      <option value="high">Élevé</option>
+                      <option value="xhigh">Très élevé</option>
+                      <option value="max">Maximum</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div class="memory-row" style="margin-top: 10px;">
                 <div>
-                  <div class="memory-row-label">Recherche Internet Automatique</div>
-                  <div class="memory-row-sub">Sollicite Brave Search si les données sont trop anciennes.</div>
+                  <div class="memory-row-label">Recherche Internet (Brave Search)</div>
                 </div>
                 <label class="toggle-wrap">
                   <input type="checkbox" id="web-search-toggle" />
@@ -1650,8 +1624,7 @@
               
               <div class="memory-row">
                 <div>
-                  <div class="memory-row-label">Vision Proxy Local</div>
-                  <div class="memory-row-sub">Permet de "voir" des images même avec des modèles sans vision native.</div>
+                  <div class="memory-row-label">Vision Proxy (Modèles sans vision)</div>
                 </div>
                 <label class="toggle-wrap">
                   <input type="checkbox" id="vision-proxy-toggle" />
@@ -1663,7 +1636,7 @@
                 <div class="api-field">
                   <div class="api-field-icon">👁</div>
                   <div class="api-field-body">
-                    <div class="api-field-label">Modèle de Vision (Ollama)</div>
+                    <div class="api-field-label">Modèle de Vision Local (Ollama)</div>
                     <div class="api-field-input-row">
                       <select id="vision-model" class="model-select"></select>
                     </div>
@@ -1672,8 +1645,7 @@
 
                 <div class="memory-row">
                   <div>
-                    <div class="memory-row-label">Niveau de détail</div>
-                    <div class="memory-row-sub">"High" pour analyse complète, "Low" pour économiser des tokens.</div>
+                    <div class="memory-row-label">Niveau de Détail de l'Analyse</div>
                   </div>
                   <select id="vision-detail-level" style="background: var(--oh-color-bg-elevated); color: var(--oh-color-text-primary); border: 1px solid var(--oh-color-border-subtle); border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
                     <option value="high">High</option>
@@ -1689,8 +1661,7 @@
             <div class="config-group">
               <div class="memory-row">
                 <div>
-                  <div class="memory-row-label">Mémoire IA Active</div>
-                  <div class="memory-row-sub">Active l'injection des faits dans les requêtes.</div>
+                  <div class="memory-row-label">Injection de la Mémoire Long-Terme</div>
                 </div>
                 <label class="toggle-wrap">
                   <input type="checkbox" id="memory-toggle" checked />
@@ -1702,9 +1673,8 @@
             <div id="memory-body">
               <div class="config-group">
                 <div class="config-group-label">Profil Utilisateur</div>
-                <p class="config-group-desc">Tes préférences globales injectées dans chaque prompt.</p>
                 <div class="profile-field" style="margin-top: 10px;">
-                  <label class="api-field-label" style="display:block; margin-bottom:4px;">Instructions de Profil (YAML)</label>
+                  <label class="api-field-label" style="display:block; margin-bottom:4px;">Instructions de Profil Globales (YAML)</label>
                   <input type="text" id="memory-profile" placeholder="lang:fr style:concis stack:ts,electron" />
                 </div>
               </div>
@@ -1713,8 +1683,7 @@
                 <div class="config-group-label">Mémorisation Automatique</div>
                 <div class="memory-row">
                   <div>
-                    <div class="memory-row-label">Extraction de Faits (Ollama)</div>
-                    <div class="memory-row-sub">Apprend de nouveaux faits après chaque réponse.</div>
+                    <div class="memory-row-label">Auto-Extraction de Faits (Ollama)</div>
                   </div>
                   <label class="toggle-wrap">
                     <input type="checkbox" id="memory-auto-extract-toggle" />
@@ -1749,10 +1718,7 @@
                 "
               >
                 <div>
-                  <div class="memory-row-label">Mise à jour automatique</div>
-                  <div class="memory-row-sub">
-                    Télécharge et applique automatiquement les versions officielles
-                  </div>
+                  <div class="memory-row-label">Mise à Jour Automatique (Officielle)</div>
                 </div>
                 <label class="toggle-wrap">
                   <input type="checkbox" id="auto-update-toggle" />
@@ -1867,8 +1833,19 @@
 
     <script>
       var buttons = document.querySelectorAll(".slot-btn[data-slot]");
+      var indicator = document.getElementById("tab-indicator");
       var configPanel = document.getElementById("config-panel");
       var backdrop = document.getElementById("config-backdrop");
+
+      function updateIndicator(activeBtn) {
+        if (!activeBtn || !indicator) return;
+        var slot = activeBtn.dataset.slot;
+        indicator.style.width = activeBtn.offsetWidth + "px";
+        indicator.style.left = activeBtn.offsetLeft + "px";
+        indicator.style.background = "var(--oh-color-bg-active)";
+        indicator.style.opacity = "1";
+        activeBtn.style.setProperty("--active-color", "var(--oh-color-accent-primary)");
+      }
 
       // SVG templates for reveal toggle
       var eyeOpenSVG =
@@ -1898,6 +1875,11 @@
         });
       });
 
+      window.addEventListener("resize", function() {
+        var active = document.querySelector(".slot-btn.active");
+        if (active) updateIndicator(active);
+      });
+
       // Auto-open chat on startup
       document.addEventListener("DOMContentLoaded", function () {
         setLoading("chat", true);
@@ -1905,6 +1887,11 @@
           console.error("[sidebar] startup switch to chat failed:", err);
           setLoading("chat", false);
         });
+        // Initialize indicator position
+        setTimeout(function() {
+          var chatBtn = document.querySelector('.slot-btn[data-slot="chat"]');
+          if (chatBtn) updateIndicator(chatBtn);
+        }, 100);
         // Check Ollama models on startup
         setTimeout(loadOllamaStatus, 1500);
       });
@@ -1912,7 +1899,9 @@
       // Sync active state
       window.openhub.onSlotChanged(function (slot) {
         buttons.forEach(function (b) {
-          b.classList.toggle("active", b.dataset.slot === slot);
+          var isActive = b.dataset.slot === slot;
+          b.classList.toggle("active", isActive);
+          if (isActive) updateIndicator(b);
           b.classList.remove("loading");
         });
       });
@@ -2095,7 +2084,7 @@
         var currentVisionModel = await (window.openhub.getVisionModel ? window.openhub.getVisionModel() : Promise.resolve(''));
 
         try {
-          const res = await fetch("http://127.0.0.1:9999/v1/models/available", {
+          const res = await fetch("http://127.0.0.1:9999/v1/models/full", {
             headers: { Authorization: "Bearer openhub-local" },
           });
           const data = await res.json();
@@ -2161,6 +2150,17 @@
         if (window.openhub.getVisionDetailLevel) {
           window.openhub.getVisionDetailLevel().then(function(l) { document.getElementById('vision-detail-level').value = l || 'high'; });
         }
+        if (window.openhub.getDefaultReasoningEffort) {
+          window.openhub.getDefaultReasoningEffort().then(function(e) { document.getElementById('default-reasoning-effort').value = e || 'medium'; });
+        }
+        // Also sync proxy value (in case OpenCode indicator changed it)
+        fetch("http://127.0.0.1:9999/v1/reasoning/default")
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.effort) {
+              document.getElementById('default-reasoning-effort').value = data.effort;
+            }
+          }).catch(function() {});
       }
 
       function loadMemoryUI() {
@@ -2441,6 +2441,24 @@
           if (window.openhub.setVisionDetailLevel) {
             window.openhub.setVisionDetailLevel(visionDetailSelect.value);
           }
+        });
+      }
+
+      var defaultReasoningSelect = document.getElementById("default-reasoning-effort");
+      if (defaultReasoningSelect) {
+        defaultReasoningSelect.addEventListener("change", function () {
+          var val = defaultReasoningSelect.value;
+          if (window.openhub.setDefaultReasoningEffort) {
+            window.openhub.setDefaultReasoningEffort(val);
+          }
+          // Sync to localStorage for OpenCode indicator
+          try { localStorage.setItem("openhub-default-reasoning-effort", val); } catch (e) {}
+          // Also sync to proxy for OpenCode indicator
+          fetch("http://127.0.0.1:9999/v1/reasoning/default", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer openhub-local" },
+            body: JSON.stringify({ effort: val }),
+          }).catch(function () {});
         });
       }
 

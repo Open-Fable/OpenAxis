@@ -128,8 +128,8 @@
     dragOverlay.style.position = "fixed";
     dragOverlay.style.inset = "0";
     dragOverlay.style.zIndex = "999999";
-    dragOverlay.style.background = "rgba(124, 106, 242, 0.06)";
-    dragOverlay.style.border = "2px dashed #7C6AF2";
+    dragOverlay.style.background = "rgba(13, 148, 136, 0.06)";
+    dragOverlay.style.border = "2px dashed #0D9488";
     dragOverlay.style.borderRadius = "12px";
     dragOverlay.style.display = "flex";
     dragOverlay.style.alignItems = "center";
@@ -137,9 +137,9 @@
     dragOverlay.style.pointerEvents = "none";
 
     var label = document.createElement("div");
-    label.style.background = "rgba(30, 30, 40, 0.95)";
-    label.style.border = "1px solid #2E2E3E";
-    label.style.color = "#EAEAF0";
+    label.style.background = "rgba(0, 0, 0, 0.85)";
+    label.style.border = "1px solid #2a2a2a";
+    label.style.color = "#ececec";
     label.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.3)";
     label.textContent = "Déposer les fichiers à importer";
 
