@@ -188,7 +188,7 @@
   color: #fff;
   border: none;
   padding: 10px 24px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-lg, 12px);
   font-weight: 650;
   font-size: 13.5px;
   cursor: pointer;

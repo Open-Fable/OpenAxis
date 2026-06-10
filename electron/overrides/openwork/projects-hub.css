@@ -201,7 +201,7 @@
   color: white;
   border: none;
   padding: 10px 24px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-lg, 12px);
   font-weight: 600;
   cursor: pointer;
 }
