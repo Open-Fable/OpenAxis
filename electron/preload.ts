@@ -50,6 +50,38 @@ contextBridge.exposeInMainWorld("openhub", {
   }) => ipcRenderer.invoke("save-project", project),
   deleteProject: (id: string) => ipcRenderer.invoke("delete-project", id),
 
+  getWorkflows: () => ipcRenderer.invoke("get-workflows"),
+  saveWorkflow: (workflow: {
+    id?: string;
+    name: string;
+    orchProjectId?: string;
+    linkedProjectIds?: string[];
+    agentTypes?: Record<string, string>;
+    workDir?: string;
+  }) => ipcRenderer.invoke("save-workflow", workflow),
+  deleteWorkflow: (id: string) => ipcRenderer.invoke("delete-workflow", id),
+
+  getOrchRuns: (workflowId?: string) => ipcRenderer.invoke("get-orch-runs", workflowId),
+  saveOrchRun: (run: {
+    workflowId: string;
+    orchProjectId: string;
+    task: string;
+    status: string;
+    nodeResults: Array<{
+      projectId: string;
+      name: string;
+      status: string;
+      result?: string;
+    }>;
+    logs: string[];
+    startedAt: number;
+    finishedAt: number;
+    duration: number;
+  }) => ipcRenderer.invoke("save-orch-run", run),
+  deleteOrchRun: (id: string) => ipcRenderer.invoke("delete-orch-run", id),
+  clearOrchRuns: (workflowId?: string) =>
+    ipcRenderer.invoke("clear-orch-runs", workflowId),
+
   getChatConfig: () => ipcRenderer.invoke("get-chat-config"),
 
   exportHtmlToPdf: (html: string) => ipcRenderer.invoke("export-html-to-pdf", html),
@@ -72,6 +104,7 @@ contextBridge.exposeInMainWorld("openhub", {
   deleteSkill: (filename: string) => ipcRenderer.invoke("delete-skill", filename),
   executeOrchestration: (id: string, task: string) =>
     ipcRenderer.invoke("execute-orchestration", id, task),
+  cancelOrchestration: () => ipcRenderer.invoke("cancel-orchestration"),
   onOrchestrationStatus: (
     cb: (data: {
       projectId: string;
@@ -95,20 +128,26 @@ contextBridge.exposeInMainWorld("openhub", {
   setAutoUpdate: (enabled: boolean) => ipcRenderer.invoke("set-auto-update", enabled),
   runGraphifyUpdate: (dir?: string) => ipcRenderer.invoke("run-graphify-update", dir),
   getWebSearchEnabled: () => ipcRenderer.invoke("get-web-search-enabled"),
-  setWebSearchEnabled: (enabled: boolean) => ipcRenderer.invoke("set-web-search-enabled", enabled),
+  setWebSearchEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("set-web-search-enabled", enabled),
   getVisionProxyEnabled: () => ipcRenderer.invoke("get-vision-proxy-enabled"),
-  setVisionProxyEnabled: (enabled: boolean) => ipcRenderer.invoke("set-vision-proxy-enabled", enabled),
+  setVisionProxyEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("set-vision-proxy-enabled", enabled),
   getVisionModel: () => ipcRenderer.invoke("get-vision-model"),
   setVisionModel: (model: string) => ipcRenderer.invoke("set-vision-model", model),
   getVisionDetailLevel: () => ipcRenderer.invoke("get-vision-detail-level"),
-  setVisionDetailLevel: (level: string) => ipcRenderer.invoke("set-vision-detail-level", level),
+  setVisionDetailLevel: (level: string) =>
+    ipcRenderer.invoke("set-vision-detail-level", level),
 
   getAiWorkflowProModel: () => ipcRenderer.invoke("get-ai-workflow-pro-model"),
-  setAiWorkflowProModel: (model: string) => ipcRenderer.invoke("set-ai-workflow-pro-model", model),
+  setAiWorkflowProModel: (model: string) =>
+    ipcRenderer.invoke("set-ai-workflow-pro-model", model),
   getAiWorkflowFlashModel: () => ipcRenderer.invoke("get-ai-workflow-flash-model"),
-  setAiWorkflowFlashModel: (model: string) => ipcRenderer.invoke("set-ai-workflow-flash-model", model),
+  setAiWorkflowFlashModel: (model: string) =>
+    ipcRenderer.invoke("set-ai-workflow-flash-model", model),
   getAiClassifierModel: () => ipcRenderer.invoke("get-ai-classifier-model"),
-  setAiClassifierModel: (model: string) => ipcRenderer.invoke("set-ai-classifier-model", model),
+  setAiClassifierModel: (model: string) =>
+    ipcRenderer.invoke("set-ai-classifier-model", model),
 
   readChatBackup: () => ipcRenderer.invoke("read-chat-backup"),
   writeChatBackup: (data: string) => ipcRenderer.invoke("write-chat-backup", data),
@@ -116,8 +155,8 @@ contextBridge.exposeInMainWorld("openhub", {
   ollamaCheckModels: () => ipcRenderer.invoke("ollama-check-models"),
   ollamaPullModel: (model: string) => ipcRenderer.send("ollama-pull-model", model),
   ollamaCancelPull: (model: string) => ipcRenderer.send("ollama-cancel-pull", model),
-  onOllamaPullProgress: (cb: (progress: any) => void) => {
-    const handler = (_e: any, progress: any) => cb(progress);
+  onOllamaPullProgress: (cb: (progress: unknown) => void) => {
+    const handler = (_e: unknown, progress: unknown) => cb(progress);
     ipcRenderer.on("ollama-pull-progress", handler);
     return () => ipcRenderer.removeListener("ollama-pull-progress", handler);
   },

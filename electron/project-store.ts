@@ -8,7 +8,8 @@ export interface Project {
   readonly name: string;
   readonly instructions: string;
   readonly color: string;
-  readonly type?: "code" | "design" | "work" | "orchestrator" | "verifier";
+  readonly type?: "code" | "design" | "work" | "orchestrator" | "verifier" | "recherche";
+  readonly path?: string;
   readonly model?: string;
   readonly linked?: readonly string[];
   readonly dependencies?: readonly string[];
@@ -22,12 +23,26 @@ export interface Project {
   readonly x?: number;
   readonly y?: number;
   readonly task?: string;
+  readonly steps?: readonly string[];
+  readonly autoSteps?: boolean;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}
+
+export interface Workflow {
+  readonly id: string;
+  readonly name: string;
+  readonly orchProjectId: string;
+  readonly linkedProjectIds: readonly string[];
+  readonly agentTypes: Record<string, string>;
+  readonly workDir?: string;
   readonly createdAt: number;
   readonly updatedAt: number;
 }
 
 interface ProjectStoreData {
   readonly projects: readonly Project[];
+  readonly workflows: readonly Workflow[];
   readonly activeProjectId: string | null;
 }
 
@@ -157,9 +172,24 @@ async function load(): Promise<ProjectStoreData> {
   try {
     const raw = await fs.readFile(STORE_PATH, "utf-8");
     cache = JSON.parse(raw) as ProjectStoreData;
+    // Ensure workflows field exists (backward compat with old files)
+    if (!cache.workflows) cache = { ...cache, workflows: [] };
     return cache;
   } catch {
-    cache = { projects: INITIAL_PROJECTS, activeProjectId: "p4" };
+    const defaultWorkflow: Workflow = {
+      id: "wf-default",
+      name: "Refonte onboarding",
+      orchProjectId: "p4",
+      linkedProjectIds: ["p1", "p2", "p3", "p5"],
+      agentTypes: { p1: "code", p2: "design", p3: "work", p5: "code" },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    cache = {
+      projects: INITIAL_PROJECTS,
+      workflows: [defaultWorkflow],
+      activeProjectId: "p4",
+    };
     await save(cache);
     return cache;
   }
@@ -206,6 +236,7 @@ export async function saveProject(
       instructions: project.instructions ?? existing.instructions ?? "",
       color: project.color ?? existing.color ?? "",
       type: project.type ?? existing.type,
+      path: project.path ?? existing.path,
       model: project.model ?? existing.model,
       linked: project.linked ?? existing.linked,
       dependencies: project.dependencies ?? existing.dependencies,
@@ -215,11 +246,14 @@ export async function saveProject(
       x: project.x ?? existing.x,
       y: project.y ?? existing.y,
       task: project.task ?? existing.task,
+      steps: project.steps ?? existing.steps,
+      autoSteps: project.autoSteps ?? existing.autoSteps,
       updatedAt: now,
     };
     await save({
       ...data,
       projects: data.projects.map((p) => (p.id === updated.id ? updated : p)),
+      workflows: data.workflows,
     });
     return updated;
   }
@@ -230,6 +264,7 @@ export async function saveProject(
     instructions: project.instructions || "",
     color: project.color || DEFAULT_COLORS[data.projects.length % DEFAULT_COLORS.length],
     type: project.type,
+    path: project.path,
     model: project.model,
     linked: project.linked || [],
     dependencies: project.dependencies || [],
@@ -239,10 +274,16 @@ export async function saveProject(
     x: project.x,
     y: project.y,
     task: project.task || "",
+    steps: project.steps || [],
+    autoSteps: project.autoSteps,
     createdAt: now,
     updatedAt: now,
   };
-  await save({ ...data, projects: [...data.projects, created] });
+  await save({
+    ...data,
+    projects: [...data.projects, created],
+    workflows: data.workflows,
+  });
   return created;
 }
 
@@ -251,6 +292,7 @@ export async function deleteProject(id: string): Promise<void> {
   const nextActive = data.activeProjectId === id ? null : data.activeProjectId;
   await save({
     projects: data.projects.filter((p) => p.id !== id),
+    workflows: data.workflows,
     activeProjectId: nextActive,
   });
 }
@@ -258,5 +300,131 @@ export async function deleteProject(id: string): Promise<void> {
 export async function setActiveProject(id: string | null): Promise<void> {
   const data = await load();
   if (id && !data.projects.some((p) => p.id === id)) return;
-  await save({ ...data, activeProjectId: id });
+  await save({ ...data, activeProjectId: id, workflows: data.workflows });
+}
+
+export async function getWorkflows(): Promise<readonly Workflow[]> {
+  const data = await load();
+  return data.workflows;
+}
+
+export async function saveWorkflow(
+  workflow: Partial<Omit<Workflow, "createdAt" | "updatedAt">> & {
+    name: string;
+    id?: string;
+  },
+): Promise<Workflow> {
+  const data = await load();
+  const now = Date.now();
+  const existing = workflow.id ? data.workflows.find((w) => w.id === workflow.id) : null;
+
+  if (existing) {
+    const updated: Workflow = {
+      ...existing,
+      name: workflow.name,
+      orchProjectId: workflow.orchProjectId ?? existing.orchProjectId,
+      linkedProjectIds: workflow.linkedProjectIds ?? existing.linkedProjectIds,
+      agentTypes: workflow.agentTypes ?? existing.agentTypes,
+      workDir: workflow.workDir ?? existing.workDir,
+      updatedAt: now,
+    };
+    await save({
+      ...data,
+      workflows: data.workflows.map((w) => (w.id === updated.id ? updated : w)),
+    });
+    return updated;
+  }
+
+  const created: Workflow = {
+    id: workflow.id || randomBytes(8).toString("hex"),
+    name: workflow.name,
+    orchProjectId: workflow.orchProjectId || "",
+    linkedProjectIds: workflow.linkedProjectIds || [],
+    agentTypes: workflow.agentTypes || {},
+    workDir: workflow.workDir,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await save({ ...data, workflows: [...data.workflows, created] });
+  return created;
+}
+
+export async function deleteWorkflow(id: string): Promise<void> {
+  const data = await load();
+  await save({
+    ...data,
+    workflows: data.workflows.filter((w) => w.id !== id),
+  });
+}
+
+// ── Orchestration Run History ──────────────────────────────────────────────────
+
+export interface OrchRunNodeResult {
+  readonly projectId: string;
+  readonly name: string;
+  readonly status: "done" | "error" | "skipped" | "warning";
+  readonly result?: string;
+}
+
+export interface OrchRun {
+  readonly id: string;
+  readonly workflowId: string;
+  readonly orchProjectId: string;
+  readonly task: string;
+  readonly status: "done" | "error" | "cancelled";
+  readonly nodeResults: readonly OrchRunNodeResult[];
+  readonly logs: readonly string[];
+  readonly startedAt: number;
+  readonly finishedAt: number;
+  readonly duration: number;
+}
+
+const HISTORY_PATH = path.join(STORE_DIR, "orch-history.json");
+const MAX_RUNS = 50;
+
+async function loadHistory(): Promise<readonly OrchRun[]> {
+  try {
+    const raw = await fs.readFile(HISTORY_PATH, "utf-8");
+    return JSON.parse(raw) as OrchRun[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveHistory(runs: readonly OrchRun[]): Promise<void> {
+  await ensureDir();
+  const trimmed = runs.slice(0, MAX_RUNS);
+  const tmpPath = HISTORY_PATH + ".tmp." + randomBytes(4).toString("hex");
+  await fs.writeFile(tmpPath, JSON.stringify(trimmed, null, 2), "utf-8");
+  await fs.rename(tmpPath, HISTORY_PATH);
+}
+
+export async function getOrchRuns(workflowId?: string): Promise<readonly OrchRun[]> {
+  const runs = await loadHistory();
+  if (workflowId) return runs.filter((r) => r.workflowId === workflowId);
+  return runs;
+}
+
+export async function saveOrchRun(run: Omit<OrchRun, "id">): Promise<OrchRun> {
+  const runs = await loadHistory();
+  const created: OrchRun = {
+    ...run,
+    id: "run-" + randomBytes(8).toString("hex"),
+  };
+  await saveHistory([created, ...runs]);
+  return created;
+}
+
+export async function deleteOrchRun(id: string): Promise<void> {
+  const runs = await loadHistory();
+  await saveHistory(runs.filter((r) => r.id !== id));
+}
+
+export async function clearOrchRuns(workflowId?: string): Promise<void> {
+  if (!workflowId) {
+    await saveHistory([]);
+    return;
+  }
+  const runs = await loadHistory();
+  await saveHistory(runs.filter((r) => r.workflowId !== workflowId));
 }

@@ -19,8 +19,15 @@ interface StatusUpdate {
 export class OrchestratorRunner {
   private isRunning = false;
   private currentOrchestratorId: string | null = null;
+  private abortController: AbortController | null = null;
 
   constructor(private sendStatus: (update: StatusUpdate) => void) {}
+
+  cancel(): void {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+  }
 
   /**
    * Run the orchestration pipeline starting from the given orchestrator ID
@@ -32,6 +39,7 @@ export class OrchestratorRunner {
 
     this.isRunning = true;
     this.currentOrchestratorId = orchestratorId;
+    this.abortController = new AbortController();
 
     try {
       const allProjects = await getProjects();
@@ -117,6 +125,10 @@ export class OrchestratorRunner {
 
       // Step 5: Execute each node in order
       for (const node of executionOrder) {
+        if (this.abortController?.signal.aborted) {
+          throw new Error("Orchestration annulée par l'utilisateur.");
+        }
+
         // Check dependencies
         const deps = node.dependencies || [];
         const isDepFailed = deps.some(
@@ -162,10 +174,11 @@ export class OrchestratorRunner {
               error: "Le rendu a échoué aux tests de cohérence.",
             });
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
           console.error(`[orchestrator] Node ${node.name} failed:`, err);
           executionStatuses[node.id] = "error";
-          this.sendStatus({ projectId: node.id, status: "error", error: err.message });
+          this.sendStatus({ projectId: node.id, status: "error", error: msg });
         }
       }
 
@@ -199,12 +212,14 @@ export class OrchestratorRunner {
       // Complete orchestrator status
       const finalStatus = hasErrors ? "error" : "done";
       this.sendStatus({ projectId: orchestratorId, status: finalStatus });
-    } catch (err: any) {
-      this.sendStatus({ projectId: orchestratorId, status: "error", error: err.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.sendStatus({ projectId: orchestratorId, status: "error", error: msg });
       throw err;
     } finally {
       this.isRunning = false;
       this.currentOrchestratorId = null;
+      this.abortController = null;
     }
   }
 
@@ -439,8 +454,9 @@ Réponds par un JSON strict :
           const response = await this.callLLMWithWatchdog(node, prompt, chunkTimeout);
           finalResponseText += response;
           isDone = true; // Completed successfully without timeout
-        } catch (err: any) {
-          if (err.message === "WATCHDOG_TIMEOUT") {
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          if (errMsg === "WATCHDOG_TIMEOUT") {
             console.warn(
               `[orchestrator] Node ${node.name} hit watchdog timeout. Attempting continuation...`,
             );
@@ -484,6 +500,12 @@ Réponds par un JSON strict :
     };
 
     const controller = new AbortController();
+    const orchSignal = this.abortController?.signal;
+    if (orchSignal?.aborted) {
+      throw new Error("Orchestration annulée par l'utilisateur.");
+    }
+    orchSignal?.addEventListener("abort", () => controller.abort(), { once: true });
+
     const timeoutSignal = controller.signal;
 
     let timer: NodeJS.Timeout | undefined = undefined;
@@ -553,9 +575,11 @@ Réponds par un JSON strict :
         }
       }
       return accumulatedText;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (orchSignal?.aborted) {
+        throw new Error("Orchestration annulée par l'utilisateur.");
+      }
       if (timeoutSignal.aborted) {
-        // Watchdog abort
         throw new Error("WATCHDOG_TIMEOUT");
       }
       throw err;
@@ -584,6 +608,11 @@ Réponds par un JSON strict :
       bypassInjection: bypassMemory || node.bypassMemory || true,
     };
 
+    const signal = this.abortController?.signal;
+    if (signal?.aborted) {
+      throw new Error("Orchestration annulée par l'utilisateur.");
+    }
+
     const response = await fetch(proxyUrl, {
       method: "POST",
       headers: {
@@ -591,6 +620,7 @@ Réponds par un JSON strict :
         Authorization: "Bearer openhub-local",
       },
       body: JSON.stringify(body),
+      signal: signal ?? undefined,
     });
 
     if (!response.ok) {
@@ -631,12 +661,10 @@ Réponds par un JSON strict :
             await execAsync("npm run lint", { cwd: workspaceDir });
           }
         }
-      } catch (err: any) {
-        console.warn(
-          "[orchestrator] Linter verification returned warnings/errors:",
-          err.message,
-        );
-        throw new Error(`Le linter (npm run lint) a échoué : ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("[orchestrator] Linter verification returned warnings/errors:", msg);
+        throw new Error(`Le linter (npm run lint) a échoué : ${msg}`);
       }
     } else if (node.type === "design") {
       console.warn(`[orchestrator] Exporting renders for OpenDesign: ${node.name}`);
@@ -650,8 +678,9 @@ Réponds par un JSON strict :
           // trigger compiling assets if an endpoint exists.
           console.warn("[orchestrator] OpenDesign daemon projects list queried.");
         }
-      } catch (err: any) {
-        console.warn("[orchestrator] Failed to sync OpenDesign daemon:", err.message);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("[orchestrator] Failed to sync OpenDesign daemon:", msg);
       }
     }
   }
@@ -749,8 +778,9 @@ Réponds sous forme de JSON strict :
 
       await fs.writeFile(indexPath, content, "utf-8");
       console.warn("[orchestrator] WORKSPACE_INDEX.md updated.");
-    } catch (err: any) {
-      console.error("[orchestrator] Failed to update WORKSPACE_INDEX.md:", err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[orchestrator] Failed to update WORKSPACE_INDEX.md:", msg);
     }
   }
 }

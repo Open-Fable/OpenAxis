@@ -16,6 +16,13 @@ import {
   deleteProject,
   setActiveProject,
   getActiveProject,
+  getWorkflows,
+  saveWorkflow,
+  deleteWorkflow,
+  getOrchRuns,
+  saveOrchRun,
+  deleteOrchRun,
+  clearOrchRuns,
 } from "./project-store.js";
 import {
   getMemory,
@@ -42,11 +49,37 @@ const SLOT_URLS: Record<Exclude<SlotName, "config" | "chat" | "projects">, strin
   design: "", // captured at spawn
 };
 
+const SPLASH_MIN_MS = 1200;
+
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
+let splashShownAt = 0;
 const views = new Map<SlotName, WebContentsView>();
 let activeSlot: SlotName = "work";
 let processManager: ProcessManager | null = null;
 let proxyToken = "";
+
+function createSplash(): BrowserWindow {
+  const splash = new BrowserWindow({
+    width: 320,
+    height: 320,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    center: true,
+    skipTaskbar: true,
+    hasShadow: true,
+    roundedCorners: true,
+    backgroundColor: "#00000000",
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  splash.loadFile(path.join(__dirname, "splash.html"));
+  return splash;
+}
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
@@ -54,14 +87,13 @@ async function createWindow(): Promise<void> {
     height: 760,
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
+    show: false,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 18 },
     backgroundColor: "#18181E",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
-      // sidebar.html is our own code — no sandbox needed here
-      // WebContentsViews (external apps) keep sandbox: true
       nodeIntegration: false,
     },
   });
@@ -70,6 +102,19 @@ async function createWindow(): Promise<void> {
     console.warn(
       `[sidebar:console] [level:${level}] ${message} (at ${sourceId}:${line})`,
     );
+  });
+
+  mainWindow.once("ready-to-show", () => {
+    const elapsed = Date.now() - splashShownAt;
+    const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+        splashWindow = null;
+      }
+      mainWindow?.show();
+    }, remaining);
   });
 
   await mainWindow.loadFile(path.join(__dirname, "sidebar.html"));
@@ -83,15 +128,15 @@ async function createWindow(): Promise<void> {
 function createSlotView(
   slot: Exclude<SlotName, "config" | "chat" | "projects">,
 ): WebContentsView {
-      const view = new WebContentsView({
-        webPreferences: {
-          contextIsolation: true,
-          sandbox: true,
-          nodeIntegration: false,
-          preload: path.join(__dirname, "preload.js"),
-          partition: "persist:chat",
-        },
-      });
+  const view = new WebContentsView({
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.cjs"),
+      partition: "persist:chat",
+    },
+  });
 
   view.webContents.on("did-navigate", () => injectOverrides(slot, view));
   view.webContents.on("did-navigate-in-page", () => injectOverrides(slot, view));
@@ -196,7 +241,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
           contextIsolation: true,
           sandbox: true,
           nodeIntegration: false,
-          preload: path.join(__dirname, "preload.js"),
+          preload: path.join(__dirname, "preload.cjs"),
         },
       });
       view.webContents.setWindowOpenHandler(({ url }) => {
@@ -230,7 +275,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
           contextIsolation: true,
           sandbox: true,
           nodeIntegration: false,
-          preload: path.join(__dirname, "preload.js"),
+          preload: path.join(__dirname, "preload.cjs"),
         },
       });
       view.webContents.setWindowOpenHandler(({ url }) => {
@@ -473,6 +518,15 @@ ipcMain.handle(
 );
 ipcMain.handle("delete-project", (_e, id: string) => deleteProject(id));
 
+ipcMain.handle("get-workflows", () => getWorkflows());
+ipcMain.handle("save-workflow", (_e, workflow) => saveWorkflow(workflow));
+ipcMain.handle("delete-workflow", (_e, id: string) => deleteWorkflow(id));
+
+ipcMain.handle("get-orch-runs", (_e, workflowId?: string) => getOrchRuns(workflowId));
+ipcMain.handle("save-orch-run", (_e, run) => saveOrchRun(run));
+ipcMain.handle("delete-orch-run", (_e, id: string) => deleteOrchRun(id));
+ipcMain.handle("clear-orch-runs", (_e, workflowId?: string) => clearOrchRuns(workflowId));
+
 let runner: OrchestratorRunner | null = null;
 ipcMain.handle("execute-orchestration", async (_e, id: string, task: string) => {
   if (!runner) {
@@ -485,6 +539,10 @@ ipcMain.handle("execute-orchestration", async (_e, id: string, task: string) => 
     });
   }
   await runner.run(id, task);
+});
+
+ipcMain.handle("cancel-orchestration", () => {
+  runner?.cancel();
 });
 
 // ── Chat backup (file-system persistence for conversations) ─────────────────
@@ -642,23 +700,41 @@ interface BraveSearchResponse {
 
 function cleanSearchQuery(query: string): string {
   let cleaned = query.trim();
-  
+
   // Remove quotes
   cleaned = cleaned.replace(/['"«»„“]+|&quot;/g, "");
-  
+
   // Remove common prefix filler phrases (French)
-  cleaned = cleaned.replace(/^(fait|fais|ecris|rédige|redige|cherche|trouve|explique|donne)\s+(moi|nous)?\s*(un|une|des)?\s*(essai|essais|resume|résumé|explication|recherche|information|informations|details|détails)?\s*(sur|de|concernant|a propos de|à propos de)\s+/i, "");
-  cleaned = cleaned.replace(/^(qu'est-ce que|qu'est ce que|qui est|quel est|quels sont|quelle est|quelles sont)\s+/i, "");
-  cleaned = cleaned.replace(/^(peux-tu|peux tu|pourrais-tu|pourrais tu)\s+(me|nous)?\s*(chercher|trouver|expliquer|dire|faire)\s+/i, "");
-  
+  cleaned = cleaned.replace(
+    /^(fait|fais|ecris|rédige|redige|cherche|trouve|explique|donne)\s+(moi|nous)?\s*(un|une|des)?\s*(essai|essais|resume|résumé|explication|recherche|information|informations|details|détails)?\s*(sur|de|concernant|a propos de|à propos de)\s+/i,
+    "",
+  );
+  cleaned = cleaned.replace(
+    /^(qu'est-ce que|qu'est ce que|qui est|quel est|quels sont|quelle est|quelles sont)\s+/i,
+    "",
+  );
+  cleaned = cleaned.replace(
+    /^(peux-tu|peux tu|pourrais-tu|pourrais tu)\s+(me|nous)?\s*(chercher|trouver|expliquer|dire|faire)\s+/i,
+    "",
+  );
+
   // Remove common prefix filler phrases (English)
-  cleaned = cleaned.replace(/^(write|make|create|do|search|find|explain|give)\s+(me|us)?\s*(a|an|the)?\s*(essay|summary|explanation|search|information|details)?\s*(on|about|for|of)\s+/i, "");
-  cleaned = cleaned.replace(/^(what is|who is|which is|what are|who are|which are)\s+/i, "");
-  cleaned = cleaned.replace(/^(can you|could you)\s+(search|find|explain|tell|do)\s+/i, "");
-  
+  cleaned = cleaned.replace(
+    /^(write|make|create|do|search|find|explain|give)\s+(me|us)?\s*(a|an|the)?\s*(essay|summary|explanation|search|information|details)?\s*(on|about|for|of)\s+/i,
+    "",
+  );
+  cleaned = cleaned.replace(
+    /^(what is|who is|which is|what are|who are|which are)\s+/i,
+    "",
+  );
+  cleaned = cleaned.replace(
+    /^(can you|could you)\s+(search|find|explain|tell|do)\s+/i,
+    "",
+  );
+
   // Replace "3eme" or "3ème" or "3e" followed by "guerre" with "troisieme guerre" to avoid school grade confusion
   cleaned = cleaned.replace(/\b3(eme|ème|e)?\s+guerre\b/i, "troisieme guerre");
-  
+
   return cleaned.trim() || query;
 }
 
@@ -1087,7 +1163,7 @@ async function getOpencodeBinaryVersion(): Promise<string | null> {
   try {
     const binaryPath = path.join(homedir(), ".opencode", "bin", "opencode");
     let cmd = "opencode";
-    
+
     try {
       await fs.access(binaryPath);
       cmd = binaryPath;
@@ -1173,7 +1249,9 @@ ipcMain.handle("run-app-update", async (_e, appName: string) => {
           };
         }
       } else if (versionAfter !== null && versionAfter === binaryVersion) {
-        console.warn(`[update] opencode binary already at v${versionAfter}, no sync needed`);
+        console.warn(
+          `[update] opencode binary already at v${versionAfter}, no sync needed`,
+        );
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -1183,7 +1261,6 @@ ipcMain.handle("run-app-update", async (_e, appName: string) => {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
-
 
 let autoUpdateEnabled = false;
 let webSearchEnabled = false;
@@ -1263,7 +1340,8 @@ ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
     if (workspaceDir === homeDir || workspaceDir === path.normalize("/")) {
       return {
         ok: false,
-        error: "Veuillez d'abord ouvrir un projet spécifique pour lancer la cartographie.",
+        error:
+          "Veuillez d'abord ouvrir un projet spécifique pour lancer la cartographie.",
       };
     }
 
@@ -1292,7 +1370,7 @@ ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
         try {
           // Utilise sudo si nécessaire ou tente une install standard
           await execPromise("npm install -g graphify-ai");
-        } catch (err) {
+        } catch {
           return {
             ok: false,
             error:
@@ -1399,6 +1477,9 @@ async function ensureBinarySynced(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  splashWindow = createSplash();
+  splashShownAt = Date.now();
+
   await loadSettings();
   registerOllamaHandlers();
   proxyToken = await startProxy();
