@@ -7,7 +7,11 @@ import path from "path";
 import { readAllApiKeys, readSecret } from "../keychain.js";
 import { getActiveProject } from "../project-store.js";
 import { buildMemoryBlock } from "../memory-store.js";
-import { getCacheMetrics, recordCacheMetric, resetCacheMetrics } from "../cache-metrics.js";
+import {
+  getCacheMetrics,
+  recordCacheMetric,
+  resetCacheMetrics,
+} from "../cache-metrics.js";
 
 const PROXY_PORT = 9999;
 const PROXY_HOST = "127.0.0.1";
@@ -257,7 +261,9 @@ export async function startProxy(): Promise<string> {
           if (!params.has(k)) params.set(k, v);
         }
         const qs = params.size ? `?${params.toString()}` : "";
-        const sRes = await fetch(`http://127.0.0.1:${OPENCODE_PORT}/session${qs}`);
+        const sRes = await fetch(`http://127.0.0.1:${OPENCODE_PORT}/session${qs}`, {
+          signal: AbortSignal.timeout(10000),
+        });
         const raw = (await sRes.json()) as unknown[];
         res.json({ items: Array.isArray(raw) ? raw : [] });
       } catch {
@@ -395,6 +401,270 @@ export async function startProxy(): Promise<string> {
     res.json({ ok: true });
   });
 
+  // Returns the model from the most recent chat completion request + whether it supports reasoning
+  // Placed before auth middleware so the OpenCode page can read it without a token
+  app.get("/v1/reasoning/current-model", (_req, res) => {
+    res.json({
+      model: currentChatModel,
+      supportsReasoning: currentChatModel
+        ? modelSupportsReasoningEffort(currentChatModel)
+        : true,
+    });
+  });
+
+  // Returns the reasoning levels available for a given model+provider query
+  app.get("/v1/reasoning/levels", (req: Request, res: Response) => {
+    let model = ((req.query.model as string) || "").toLowerCase();
+    const provider = ((req.query.provider as string) || "").toLowerCase();
+    if (provider && !model.includes("/")) model = `${provider}/${model}`;
+    const supportsReasoning = modelSupportsReasoningEffort(model);
+    if (!supportsReasoning) {
+      res.json({ supportsReasoning: false, levels: [{ id: "none", name: "Aucun" }] });
+      return;
+    }
+    if (resolveReasoningStyle(model) === "anthropic") {
+      res.json({
+        supportsReasoning: true,
+        levels: [
+          { id: "none", name: "Aucun" },
+          { id: "minimal", name: "Minimal" },
+          { id: "low", name: "Bas" },
+          { id: "medium", name: "Moyen" },
+          { id: "high", name: "Élevé" },
+          { id: "xhigh", name: "Très élevé" },
+          { id: "max", name: "Maximum" },
+        ],
+      });
+      return;
+    }
+    res.json({
+      supportsReasoning: true,
+      levels: [
+        { id: "none", name: "Aucun" },
+        { id: "low", name: "Bas" },
+        { id: "medium", name: "Moyen" },
+        { id: "high", name: "Élevé" },
+      ],
+    });
+  });
+
+  // ── Assistant Orchestrateur (no auth needed, uses openhub-local token) ──
+  app.post("/v1/orch/assistant", async (req: Request, res: Response) => {
+    const { messages, context, model: reqModel } = req.body;
+    const settings = await loadOrchSettings();
+    const model = reqModel || settings.assistantModel || "deepseek/deepseek-v4-flash";
+
+    const projects = context?.projects || [];
+    const workflows = context?.workflows || [];
+    const activeWfId = context?.activeWorkflowId || null;
+    const activeWf = activeWfId
+      ? workflows.find((w: Record<string, unknown>) => w.id === activeWfId)
+      : null;
+
+    // Build context block
+    const wfLines = workflows
+      .map(
+        (w: Record<string, unknown>) =>
+          `- "${String(w.name)}" (${(Array.isArray(w.linkedProjectIds) ? w.linkedProjectIds : []).length} projets)`,
+      )
+      .join("\n");
+    const projLines = projects
+      .filter((p: Record<string, unknown>) => p.type !== "orchestrator")
+      .map(
+        (p: Record<string, unknown>) =>
+          `- "${String(p.name)}" (modèle: ${String(p.model || "défaut")})\n  Instructions: ${String(p.instructions || "").substring(0, 200)}`,
+      )
+      .join("\n");
+
+    const contextBlock = [
+      `Workflows (${workflows.length}) :`,
+      wfLines || "  Aucun workflow",
+      activeWf ? `\nWorkflow actif : "${String(activeWf.name)}"` : "",
+      `\nProjets disponibles (${projects.filter((p: Record<string, unknown>) => p.type !== "orchestrator").length}) :`,
+      projLines || "  Aucun projet",
+    ].join("\n");
+
+    const systemPrompt = `Tu es un assistant spécialisé en création de projets. Ton rôle est d'aider n'importe qui, même sans connaissances techniques, à organiser et réaliser ses idées.
+
+RÈGLE ABSOLUE : PARLE COMME UN AMI, pas comme un expert technique.
+- Utilise des mots de tous les jours. Pas de jargon, pas d'anglais technique, pas de termes informatiques.
+- Imagine que tu expliques à quelqu'un qui ne sait pas ce qu'est un "serveur", une "API" ou du "code".
+- Si tu dois parler de quelque chose de technique, dis-le avec des mots simples : "le programme qui gère les comptes", "la partie visible du site", "le stockage des informations".
+- Tes phrases doivent être courtes et faciles à lire.
+- Sois chaleureux, encourageant, et explique pourquoi chaque chose est utile.
+
+Exemple de bon message :
+"J'ai découpé ton idée en 4 morceaux. Chaque morceau fera une tâche précise. Tu peux les valider un par un en cliquant sur Confirmer."
+
+Exemple de mauvais message :
+"Je te propose une architecture en microservices avec API REST, JWT et BDD PostgreSQL."
+
+QUAND L'UTILISATEUR EST VAGUE, POSE LUI DES QUESTIONS :
+Si la demande de l'utilisateur n'est pas assez précise pour créer des projets, pose-lui des questions pour clarifier.
+Utilise ce format structuré pour poser plusieurs questions à la fois :
+
+\`\`\`questions
+{"questions": [
+  {"text": "As-tu déjà une charte graphique (couleurs, logo, polices) ?", "options": ["Oui", "Non", "Je ne sais pas"], "allowCustom": true},
+  {"text": "As-tu déjà du contenu (textes, images, vidéos) ?", "options": ["Oui", "Non", "Un peu"], "allowCustom": false},
+  {"text": "Quel est ton objectif principal ?", "options": ["Vendre en ligne", "Présenter mon activité", "Blog / Information", "Application interactive"], "allowCustom": true}
+]}
+\`\`\`
+
+Règles pour les questions :
+- Pose 3 à 5 questions à la fois (pas plus)
+- Chaque question doit avoir 2 à 4 options de réponse
+- Quand l'utilisateur répond, utilise sa réponse pour adapter ta proposition
+- Si l'utilisateur répond "Je ne sais pas", prend une décision raisonnable à sa place
+- Les questions doivent être simples, avec des mots de tous les jours
+
+QUAND TU PROPOSES DES PROJETS :
+- Donne-leur des noms que tout le monde comprend, comme "Gestion des comptes" au lieu de "API Authentification".
+- Explique ce que fait le projet en une phrase simple.
+- N'utilise JAMAIS de mots comme : API, Backend, Frontend, endpoint, JWT, token, CI/CD, pipeline, déploiement, architecture, framework, librairie, middleware, websocket, webhook, SaaS, PaaS, IaaS, serverless, docker, container, microservice, REST, GraphQL, SQL, NoSQL, ORM, responsive, mobile-first, SSR, SPA, SEO, référencement technique, balisage, sémantique, cache, CDN, DNS, HTTPS, SSL, OAuth, SSO, CRUD, MVC, MVP, MVVM, TypeScript, JavaScript, Node.js, React, Vue, Angular, etc.
+
+QUAND L'UTILISATEUR DEMANDE DE CRÉER UN WORKFLOW :
+Décompose son besoin en petits morceaux simples. Chaque morceau = un projet.
+Ne te limite pas à 2 ou 3 projets. Si tu hésites entre mettre deux tâches dans le même projet ou les séparer, SÉPARE-LES.
+
+Exemple pour "créer un site e-commerce" :
+- Analyse de ce qu'il faut faire (recherche)
+- Organisation du stockage des données (code)
+- Programme côté serveur pour les comptes et la connexion (code)
+- Programme côté serveur pour les produits et le catalogue (code)
+- Programme côté serveur pour le panier et les commandes (code)
+- Programme côté serveur pour les paiements (code)
+- Charte graphique : couleurs, polices, style visuel (design)
+- Croquis des pages (design)
+- Pages principales du site : accueil, catalogue (work)
+- Page du panier et de la commande (work)
+- Page d'administration du site (work)
+- Référencement pour être trouvé sur Google (recherche)
+- Tests de sécurité pour vérifier qu'il n'y a pas de failles (verifier)
+- Vérificateur qualité pour s'assurer que tout fonctionne ensemble (verifier)
+- Mise en ligne automatique du site (work)
+
+AJOUTE PLUSIEURS VÉRIFICATEURS : sécurité, qualité, performance. 
+Chaque vérificateur est un projet supplémentaire qui relit et valide le travail des autres projets.
+Plus il y a de vérificateurs, plus le résultat final est fiable.
+
+Si tu utilises des blocs action, garde les instructions en langage simple aussi.
+
+TU PEUX PROPOSER DES ACTIONS :
+Si l'utilisateur te demande EXPLICITEMENT de créer ou modifier quelque chose, exécute l'action directement :
+\`\`\`action
+{"type": "create_workflow", "name": "Nom du workflow", "auto": true}
+\`\`\`
+\`\`\`action
+{"type": "create_project", "name": "Nom du projet", "instructions": "Instructions...", "linkToWf": true, "auto": true}
+\`\`\`
+
+Tu peux créer plusieurs projets à la suite en enchaînant les blocs action.
+
+RÈGLES IMPORTANTES :
+- auto=true → l'action est exécutée immédiatement sans confirmation
+- auto=false ou absent → l'utilisateur doit confirmer avant exécution
+- Explique toujours ce que tu vas faire avant les blocs action
+- Sois concis mais complet
+
+Contexte actuel :
+${contextBlock}`;
+
+    // Prevent timeout for SSE
+    req.socket.setTimeout(0);
+    res.socket?.setTimeout(0);
+
+    try {
+      const keys = await readAllApiKeys();
+      const route = resolveRoute(model, keys);
+      const targetUrl = route.targetUrl;
+      const headers = { "Content-Type": "application/json", ...route.headers };
+      const upstreamModel = route.model;
+
+      const body = {
+        model: upstreamModel ?? model,
+        messages: [{ role: "system", content: systemPrompt }, ...(messages || [])],
+        stream: true,
+        temperature: 0.3,
+      };
+
+      const upstream = await fetch(targetUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!upstream.ok) {
+        const errorText = await upstream.text().catch(() => "Unknown error");
+        console.error(
+          "[proxy] Assistant upstream error:",
+          upstream.status,
+          errorText.substring(0, 300),
+        );
+        res
+          .status(upstream.status)
+          .json({ error: `Upstream error: ${errorText.substring(0, 200)}` });
+        return;
+      }
+
+      // SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      const reader = upstream.body?.getReader();
+      if (!reader) {
+        res.write('data: {"error":"No response stream"}\n\n');
+        res.end();
+        return;
+      }
+
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.trim().startsWith("data:")) {
+            res.write(line + "\n");
+          }
+        }
+      }
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[proxy] Assistant error:", errMsg);
+      res.write(
+        'data: {"error":"' + (errMsg || "Unknown error").replace(/"/g, "'") + '"}\n\n',
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
+  });
+
+  // Settings for assistant model
+  const ORCH_ASSISTANT_PATH = path.join(
+    homedir(),
+    ".config",
+    "openhub",
+    "orch-assistant.json",
+  );
+
+  async function loadOrchSettings(): Promise<Record<string, unknown>> {
+    try {
+      return JSON.parse(await fs.readFile(ORCH_ASSISTANT_PATH, "utf-8"));
+    } catch {
+      return {};
+    }
+  }
+
   // ── Auth middleware for LLM proxy routes ──
   // Accept both the proxy session token (for LLM calls) and "openhub-local"
   // (hardcoded token OpenWork receives via openworkServerInfo IPC).
@@ -415,6 +685,49 @@ export async function startProxy(): Promise<string> {
 
   // ── In-memory selected models ──
   let selectedModelIds: string[] = [];
+  let defaultReasoningEffort = "medium";
+  let currentChatModel = "";
+
+  // Load default reasoning effort from settings
+  try {
+    const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+    const raw = await fs.readFile(settingsPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed.defaultReasoningEffort)
+      defaultReasoningEffort = parsed.defaultReasoningEffort;
+  } catch {
+    /* no settings yet */
+  }
+
+  // Endpoints for reading/writing default reasoning effort (used by OpenCode indicator)
+  app.get("/v1/reasoning/default", (_req, res) => {
+    res.json({ effort: defaultReasoningEffort });
+  });
+  app.post("/v1/reasoning/default", (req: Request, res: Response) => {
+    const body = req.body as { effort?: string };
+    if (body.effort) {
+      defaultReasoningEffort = body.effort;
+      // Persist to settings file so it survives restart
+      const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+      void (async () => {
+        try {
+          let settings: Record<string, unknown> = {};
+          try {
+            const raw = await fs.readFile(settingsPath, "utf-8");
+            settings = JSON.parse(raw);
+          } catch {
+            /* no existing */
+          }
+          settings.defaultReasoningEffort = defaultReasoningEffort;
+          await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+        } catch {
+          /* non-critical */
+        }
+      })();
+    }
+    res.json({ effort: defaultReasoningEffort });
+  });
+
   try {
     const configPath = path.join(homedir(), ".config", "opencode", "opencode.json");
     const raw = await fs.readFile(configPath, "utf-8");
@@ -424,17 +737,42 @@ export async function startProxy(): Promise<string> {
     if (ohub?.models) {
       selectedModelIds = Object.keys(ohub.models as Record<string, unknown>);
     }
-  } catch { /* no persisted config yet */ }
+  } catch {
+    /* no persisted config yet */
+  }
 
   app.get("/v1/models", async (_req, res) => {
     const keys = await readAllApiKeys();
     const all = await buildModelList(keys);
+
+    // Migration: if selectedModelIds contains legacy names, map them to current names
+    const legacyToNew: Record<string, string> = {
+      "claude-sonnet-4-6": "claude-3-7-sonnet-latest",
+      "claude-opus-4-6": "claude-3-opus-latest",
+      "claude-haiku-4-5": "claude-3-5-haiku-latest",
+      "google/gemini-3-flash-preview": "google/gemini-2.0-flash",
+      "google/gemini-3-pro-preview": "google/gemini-2.0-pro-exp-02-05",
+      "deepseek/deepseek-v4-pro": "deepseek/deepseek-chat",
+      "deepseek/deepseek-v4-flash": "deepseek/deepseek-r1",
+    };
+
     if (selectedModelIds.length > 0) {
-      const filtered = all.filter(m => selectedModelIds.includes(m.id));
-      res.json({ object: "list", data: filtered });
-    } else {
-      res.json({ object: "list", data: all });
+      // Create a set of expanded IDs (selected + their new mapped versions)
+      const expandedSelection = new Set<string>();
+      for (const id of selectedModelIds) {
+        expandedSelection.add(id);
+        if (legacyToNew[id]) expandedSelection.add(legacyToNew[id]);
+      }
+
+      const filtered = all.filter((m) => expandedSelection.has(m.id));
+      if (filtered.length > 0) {
+        res.json({ object: "list", data: filtered });
+        return;
+      }
     }
+
+    // Fallback: return everything from our catalog + dynamic OpenRouter models
+    res.json({ object: "list", data: all });
   });
 
   app.get("/v1/models/full", async (_req, res) => {
@@ -444,7 +782,7 @@ export async function startProxy(): Promise<string> {
     const orModels = keys.openrouterKey
       ? await fetchOpenRouterModels(keys.openrouterKey)
       : [];
-    const catalogIds = new Set(catalog.map(c => c.id));
+    const catalogIds = new Set(catalog.map((c) => c.id));
     for (const m of orModels) {
       if (!catalogIds.has(m.id)) {
         catalog.push({ id: m.id, object: "model", source: "openrouter" });
@@ -492,7 +830,9 @@ export async function startProxy(): Promise<string> {
       try {
         const raw = await fs.readFile(configPath, "utf-8");
         config = JSON.parse(raw);
-      } catch { /* create fresh */ }
+      } catch {
+        /* create fresh */
+      }
 
       const providers = (config.provider ?? {}) as Record<string, unknown>;
       const ohub = (providers.openhub ?? {}) as Record<string, unknown>;
@@ -513,6 +853,31 @@ export async function startProxy(): Promise<string> {
     }
   });
 
+  function modelSupportsReasoningEffort(id: string): boolean {
+    if (!id) return false;
+    const l = id.toLowerCase();
+    // Skip models known NOT to support the parameter but having o1 in name
+    if (l.includes("o1-mini") || l.includes("o1-preview")) return false;
+
+    return (
+      l.includes("o1") ||
+      l.includes("o3") ||
+      l.includes("o4") ||
+      l.includes("deepseek") ||
+      l.includes("claude-3-7") ||
+      l.includes("claude-3.7") ||
+      l.includes("thinking") ||
+      l.includes("reasoning") ||
+      l.includes("reflection") ||
+      l.includes("r1") ||
+      l.includes("pro-exp") ||
+      l.includes("thinking-exp") ||
+      l.includes("reasoner") ||
+      l.includes("sonnet") || // Many reasoning models use sonnet (3.7)
+      l.includes("opus") // Opus might support it in future or current versions
+    );
+  }
+
   app.post("/v1/chat/completions", async (req: Request, res: Response) => {
     try {
       const keys = await readAllApiKeys();
@@ -524,7 +889,12 @@ export async function startProxy(): Promise<string> {
       const route = resolveRoute(model, keys);
       const { targetUrl, headers, model: upstreamModel, provider } = route;
 
-      let messages = rest.messages as Array<{ role: string; content: string }> | undefined;
+      // Track the most recently used model for the reasoning indicator
+      currentChatModel = upstreamModel ?? model;
+
+      let messages = rest.messages as
+        | Array<{ role: string; content: string }>
+        | undefined;
 
       if (messages && !bypassInjection) {
         // ── 0. Élagage intelligent du contexte ──
@@ -558,20 +928,23 @@ export async function startProxy(): Promise<string> {
         }
 
         // ── 1. Démêlage du prompt système principal ──
-        let mainSystemContent = messages.find((m) => m.role === "system")?.content || "";
-        
+        const mainSystemContent =
+          messages.find((m) => m.role === "system")?.content || "";
+
         // Séparer les blocs : Comportement (Stable) vs Données Projet (Variable)
         const splitMarkers = [
           "You are powered by the model named",
           "Here is some useful information about the environment",
-          "Instructions from:"
+          "Instructions from:",
         ];
-        
+
         let coreBehavior = mainSystemContent;
         let extractedGraphify = "";
 
         // Extraction du Graphify s'il est déjà présent dans le prompt
-        const graphifyMatch = mainSystemContent.match(/Instructions from:.*?graphify-out\/GRAPH_REPORT\.md\n([\s\S]*?)(?=\nInstructions from:|$)/);
+        const graphifyMatch = mainSystemContent.match(
+          /Instructions from:.*?graphify-out\/GRAPH_REPORT\.md\n([\s\S]*?)(?=\nInstructions from:|$)/,
+        );
         if (graphifyMatch) {
           extractedGraphify = graphifyMatch[1].trim();
         }
@@ -585,9 +958,10 @@ export async function startProxy(): Promise<string> {
         // ── 2. Préparation des blocs de contexte gelés ──
         const project = await getActiveProject();
         const projInstructions = project?.instructions || "";
-        
+
         // Extraire le message utilisateur pour la détection intelligente de mots-clés
-        const lastUserContent = messages.filter((m) => m.role === "user").pop()?.content || "";
+        const lastUserContent =
+          messages.filter((m) => m.role === "user").pop()?.content || "";
         const memBlock = await buildMemoryBlock(lastUserContent);
 
         // Lire AGENT-MEMORY.md et tenter de lire Graphify sur disque si absent du prompt
@@ -596,34 +970,49 @@ export async function startProxy(): Promise<string> {
           const workspaceDir = getActiveWorkspaceDir();
           const agentMemPath = path.join(workspaceDir, "AGENT-MEMORY.md");
           agentMemory = await fs.readFile(agentMemPath, "utf-8");
-          
+
           if (!extractedGraphify) {
             const graphPath = path.join(workspaceDir, "graphify-out", "GRAPH_REPORT.md");
             extractedGraphify = await fs.readFile(graphPath, "utf-8");
           }
-        } catch { /* ignore reading errors */ }
+        } catch {
+          /* ignore reading errors */
+        }
 
         // ── 4. Assembler les messages système (Stable Prefix Strategy) ──
         // HIÉRARCHIE : Stable (Main) -> Stable/Lourd (Graphify) -> Semi-stable (Project) -> Stable (Date) -> Mutant (Memory)
         // On place les blocs les plus lourds et stables en haut.
         const structuredSystem = [
           { role: "system", content: coreBehavior.trim() }, // 1. Règles de base
-          { role: "system", content: extractedGraphify ? `[KNOWLEDGE GRAPH]\n${extractedGraphify.trim()}` : "" }, // 2. LE LOURD (Frozen)
+          {
+            role: "system",
+            content: extractedGraphify
+              ? `[KNOWLEDGE GRAPH]\n${extractedGraphify.trim()}`
+              : "",
+          }, // 2. LE LOURD (Frozen)
           { role: "system", content: projInstructions.trim() }, // 3. Instructions Projet
-          { role: "system", content: `Today's date: ${new Date().toISOString().split("T")[0]}` }, // 4. Date (24h)
-          { role: "system", content: agentMemory ? `[PROJECT MEMORY]\n${agentMemory.trim()}` : "" }, // 5. Notes de fin de tâche
+          {
+            role: "system",
+            content: `Today's date: ${new Date().toISOString().split("T")[0]}`,
+          }, // 4. Date (24h)
+          {
+            role: "system",
+            content: agentMemory ? `[PROJECT MEMORY]\n${agentMemory.trim()}` : "",
+          }, // 5. Notes de fin de tâche
           { role: "system", content: memBlock ? memBlock.trim() : "" }, // 6. Mots-clés (Mutant ultime)
-        ].filter(m => m.content !== "");
+        ].filter((m) => m.content !== "");
 
         // ── 5. Réinjecter sans toucher à l'historique utilisateur ──
         const conversationMessages = messages.filter((m) => m.role !== "system");
-        
+
         messages = [...structuredSystem, ...conversationMessages];
         rest.messages = messages;
       }
 
       // Estimate prompt tokens AFTER injection (for cache metrics)
-      const finalMessages = rest.messages as Array<{ role: string; content: string }> | undefined;
+      const finalMessages = rest.messages as
+        | Array<{ role: string; content: string }>
+        | undefined;
       let estimatedSystemTokens = 0;
       let estimatedNonSystemTokens = 0;
       if (finalMessages) {
@@ -639,12 +1028,19 @@ export async function startProxy(): Promise<string> {
       if (provider === "gemini") {
         const googleAuth = await getGoogleAuth();
         if (!googleAuth) {
-          res.status(401).json({ error: "Google OAuth token not available — run 'opencode auth login' first" });
+          res
+            .status(401)
+            .json({
+              error: "Google OAuth token not available — run 'opencode auth login' first",
+            });
           return;
         }
         headers["Authorization"] = `Bearer ${googleAuth.accessToken}`;
 
-        const finalMsgs = (rest.messages ?? []) as Array<{ role: string; content: string }>;
+        const finalMsgs = (rest.messages ?? []) as Array<{
+          role: string;
+          content: string;
+        }>;
         const geminiModel = upstreamModel ?? model.replace("google/", "");
         const { contents, systemInstruction } = convertOpenAIToGemini(finalMsgs);
         const innerRequest: Record<string, unknown> = {
@@ -665,10 +1061,70 @@ export async function startProxy(): Promise<string> {
         geminiBody = JSON.stringify(cloudCodeAssistBody);
       }
 
+      // ── Parameter Mapping for Reasoning/Thinking (Claude 3.7 & others) ──
+      const isAnthropicProvider = provider === "anthropic";
+      const isOpenRouter = targetUrl.includes("openrouter.ai");
+      const modelId = (upstreamModel ?? model).toLowerCase();
+      const isClaude37 = modelId.includes("claude-3-7") || modelId.includes("claude-3.7");
+
+      const finalRest = { ...rest };
+
+      // Apply global default if effort is missing (e.g. from OpenCode)
+      if (
+        !finalRest.reasoning_effort &&
+        modelSupportsReasoningEffort(upstreamModel ?? model)
+      ) {
+        if (defaultReasoningEffort && defaultReasoningEffort !== "none") {
+          finalRest.reasoning_effort = defaultReasoningEffort;
+        }
+      }
+
+      if (finalRest.reasoning_effort && finalRest.reasoning_effort !== "none") {
+        const effort = finalRest.reasoning_effort as string;
+
+        // --- Anthropic Mapping (thinking block) ---
+        if (isAnthropicProvider || (isOpenRouter && isClaude37)) {
+          let budget = 1024;
+          if (effort === "low" || effort === "minimal") budget = 1024;
+          else if (effort === "medium") budget = 4000;
+          else if (effort === "high") budget = 16000;
+          else if (effort === "xhigh") budget = 32000;
+          else if (effort === "max") budget = 64000;
+
+          (finalRest as Record<string, unknown>).thinking = {
+            type: "enabled",
+            budget_tokens: budget,
+          };
+          delete (finalRest as Record<string, unknown>).reasoning_effort;
+
+          // Ensure max_tokens > budget_tokens
+          const currentMaxTokens = (finalRest.max_tokens as number) || 8192;
+          if (currentMaxTokens <= budget) {
+            finalRest.max_tokens = budget + 4000;
+          }
+        }
+        // --- OpenAI/OpenRouter Mapping (reasoning_effort) ---
+        else if (provider === "openai" || isOpenRouter) {
+          // Map OpenHub's expanded levels back to OpenAI's supported 3 levels
+          if (effort === "minimal") finalRest.reasoning_effort = "low";
+          else if (effort === "xhigh" || effort === "max")
+            finalRest.reasoning_effort = "high";
+          // others (low, medium, high) pass through as is
+
+          // For OpenRouter: force reasoning content to be included
+          if (isOpenRouter) {
+            (finalRest as Record<string, unknown>).include_reasoning = true;
+          }
+        }
+      } else if (finalRest.reasoning_effort === "none") {
+        delete (finalRest as Record<string, unknown>).reasoning_effort;
+      }
+
       const upstream = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: geminiBody ?? JSON.stringify({ model: upstreamModel ?? model, ...rest }),
+        body:
+          geminiBody ?? JSON.stringify({ model: upstreamModel ?? model, ...finalRest }),
       });
 
       // ── 4. Vérification immédiate du statut upstream ──
@@ -690,7 +1146,14 @@ export async function startProxy(): Promise<string> {
 
       res.status(upstream.status);
       if (provider !== "gemini") {
-        upstream.headers.forEach((v, k) => res.setHeader(k, v));
+        upstream.headers.forEach((v, k) => {
+          // Skip headers that would cause the client to misread the body
+          const lower = k.toLowerCase();
+          if (lower === "content-encoding") return;
+          if (lower === "transfer-encoding") return;
+          if (lower === "content-length") return;
+          res.setHeader(k, v);
+        });
       }
 
       const clientStreaming = (rest.stream as boolean) ?? true;
@@ -736,7 +1199,9 @@ export async function startProxy(): Promise<string> {
                 if (parsed.usage) {
                   responseUsage = parsed.usage;
                 }
-              } catch { /* ignore */ }
+              } catch {
+                /* ignore */
+              }
             }
 
             if (clientStreaming) {
@@ -763,7 +1228,9 @@ export async function startProxy(): Promise<string> {
                   fullContent += p.choices[0].delta.content;
                 }
                 if (p.usage) finalUsage = p.usage;
-              } catch { /* ignore */ }
+              } catch {
+                /* ignore */
+              }
             }
           }
           const response: Record<string, unknown> = {
@@ -771,12 +1238,17 @@ export async function startProxy(): Promise<string> {
             object: "chat.completion",
             created: Math.floor(Date.now() / 1000),
             model: upstreamModel ?? model,
-            choices: [{
-              index: 0,
-              message: { role: "assistant", content: fullContent || fullResponseContent },
-              finish_reason: "stop",
-              logprobs: null,
-            }],
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: fullContent || fullResponseContent,
+                },
+                finish_reason: "stop",
+                logprobs: null,
+              },
+            ],
           };
           if (finalUsage) response.usage = finalUsage;
           res.setHeader("Content-Type", "application/json");
@@ -803,7 +1275,9 @@ export async function startProxy(): Promise<string> {
                 }
                 const delta = parsed.choices?.[0]?.delta?.content || "";
                 fullResponseContent += delta;
-              } catch { /* ignore parsing errors */ }
+              } catch {
+                /* ignore parsing errors */
+              }
             }
           }
         }
@@ -812,9 +1286,11 @@ export async function startProxy(): Promise<string> {
       }
 
       // ── 6. Enregistrement des métriques de cache ──
-      const wsName = workspaces.find((w) => w.id === activeWorkspaceId)?.name || "default";
+      const wsName =
+        workspaces.find((w) => w.id === activeWorkspaceId)?.name || "default";
       const usage = responseUsage ?? {};
-      const upstreamCached = usage.prompt_cache_hit_tokens ?? usage.cache_read_input_tokens ?? 0;
+      const upstreamCached =
+        usage.prompt_cache_hit_tokens ?? usage.cache_read_input_tokens ?? 0;
       const promptTokens = usage.prompt_tokens ?? usage.input_tokens ?? 0;
       const total_est = estimatedSystemTokens + estimatedNonSystemTokens || 1;
       const actualSystemTokens = promptTokens
@@ -823,7 +1299,13 @@ export async function startProxy(): Promise<string> {
       const actualNonSystemTokens = promptTokens
         ? Math.round(promptTokens * (estimatedNonSystemTokens / total_est))
         : estimatedNonSystemTokens;
-      recordCacheMetric(model, wsName, actualSystemTokens, actualNonSystemTokens, upstreamCached);
+      recordCacheMetric(
+        model,
+        wsName,
+        actualSystemTokens,
+        actualNonSystemTokens,
+        upstreamCached,
+      );
 
       // Lancer la maintenance en tâche de fond (Fire-and-forget)
       // Cela évite d'invalider le cache de la requête actuelle ou de faire ramer le client.
@@ -835,11 +1317,24 @@ export async function startProxy(): Promise<string> {
       const cause = err instanceof Error && err.cause ? ` | cause: ${err.cause}` : "";
       // Détection du type d'erreur pour un diagnostic précis
       let errorType = "upstream_error";
-      if (msg.includes("fetch") || msg.includes("network") || msg.includes("ENOTFOUND") || msg.includes("ECONNREFUSED")) {
+      if (
+        msg.includes("fetch") ||
+        msg.includes("network") ||
+        msg.includes("ENOTFOUND") ||
+        msg.includes("ECONNREFUSED")
+      ) {
         errorType = "network_error";
-      } else if (msg.includes("timeout") || msg.includes("Timeout") || msg.includes("abort")) {
+      } else if (
+        msg.includes("timeout") ||
+        msg.includes("Timeout") ||
+        msg.includes("abort")
+      ) {
         errorType = "provider_timeout";
-      } else if (msg.includes("token") || msg.includes("context_length") || msg.includes("max_tokens")) {
+      } else if (
+        msg.includes("token") ||
+        msg.includes("context_length") ||
+        msg.includes("max_tokens")
+      ) {
         errorType = "token_limit_exceeded";
       } else if (msg.includes("rate") || msg.includes("quota") || msg.includes("429")) {
         errorType = "rate_limited";
@@ -851,7 +1346,7 @@ export async function startProxy(): Promise<string> {
 
   await new Promise<void>((resolve) => {
     const server = app.listen(PROXY_PORT, PROXY_HOST, () => resolve());
-    server.on("error", (err: any) => {
+    server.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
         console.warn(`[proxy] Port ${PROXY_PORT} in use, assuming ghost proxy is ok.`);
         resolve();
@@ -869,30 +1364,23 @@ export async function startProxy(): Promise<string> {
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
 const GEMINI_TO_OPENROUTER: Record<string, string> = {
-  "gemini-3-flash-preview": "google/gemini-3-flash-preview",
-  "gemini-3-pro-preview": "google/gemini-3-pro-preview",
-  "gemini-3.1-pro-preview": "google/gemini-3.1-pro-preview",
-  "gemini-3.5-flash": "google/gemini-3.5-flash",
-  "gemini-2.5-pro": "google/gemini-2.5-pro",
-  "gemini-2.5-flash": "google/gemini-2.5-flash",
+  "gemini-2.0-flash-thinking-exp": "google/gemini-2.0-flash-thinking-exp:free",
+  "gemini-2.0-pro-exp-02-05": "google/gemini-2.0-pro-exp-02-05",
+  "gemini-2.0-flash": "google/gemini-2.0-flash",
 };
 
 // ── Google Gemini direct route (via OAuth) ──
 
 const GEMINI_DIRECT_MODELS = new Set([
-  "google/gemini-3-flash-preview",
-  "google/gemini-3-pro-preview",
-  "google/gemini-3.1-pro-preview",
-  "google/gemini-2.5-pro",
-  "google/gemini-2.5-flash",
+  "google/gemini-2.0-flash-thinking-exp",
+  "google/gemini-2.0-pro-exp-02-05",
+  "google/gemini-2.0-flash",
 ]);
 
 const GEMINI_MODEL_NAME_MAP: Record<string, string> = {
-  "google/gemini-3-flash-preview": "gemini-3-flash-preview",
-  "google/gemini-3-pro-preview": "gemini-3-pro-preview",
-  "google/gemini-3.1-pro-preview": "gemini-3.1-pro-preview",
-  "google/gemini-2.5-pro": "gemini-2.5-pro",
-  "google/gemini-2.5-flash": "gemini-2.5-flash",
+  "google/gemini-2.0-flash-thinking-exp": "gemini-2.0-flash-thinking-exp",
+  "google/gemini-2.0-pro-exp-02-05": "gemini-2.0-pro-exp-02-05",
+  "google/gemini-2.0-flash": "gemini-2.0-flash",
 };
 
 const GEMINI_API_BASE = "https://cloudcode-pa.googleapis.com";
@@ -901,17 +1389,26 @@ type GoogleAuth = { accessToken: string; managedProjectId: string } | null;
 
 async function getGoogleAuth(): Promise<GoogleAuth> {
   try {
-    const accountPath = path.join(homedir(), ".local", "share", "opencode", "account.json");
+    const accountPath = path.join(
+      homedir(),
+      ".local",
+      "share",
+      "opencode",
+      "account.json",
+    );
     const raw = await fs.readFile(accountPath, "utf-8");
     const parsed = JSON.parse(raw) as {
-      accounts?: Record<string, {
-        credential?: {
-          access?: string;
-          expires?: number;
-          refresh?: string;
-          type?: string;
-        };
-      }>;
+      accounts?: Record<
+        string,
+        {
+          credential?: {
+            access?: string;
+            expires?: number;
+            refresh?: string;
+            type?: string;
+          };
+        }
+      >;
       active?: { google?: string };
     };
     const activeId = parsed.active?.google;
@@ -939,15 +1436,17 @@ async function getGoogleAuth(): Promise<GoogleAuth> {
   }
 }
 
-const GEMINI_OAUTH_CLIENT_ID = "***REMOVED-CLIENT-ID***";
+const GEMINI_OAUTH_CLIENT_ID =
+  "***REMOVED-CLIENT-ID***";
 
 async function refreshGoogleToken(refreshToken: string): Promise<string | null> {
   try {
     // Extract the actual refresh token (strip project suffix after | separator)
     const actualToken = refreshToken.split("|")[0];
-    const clientSecret = await readSecret("openhub", "google-oauth-client-secret")
-      ?? (typeof process !== "undefined" ? process.env.GEMINI_OAUTH_CLIENT_SECRET : null)
-      ?? "";
+    const clientSecret =
+      (await readSecret("openhub", "google-oauth-client-secret")) ??
+      (typeof process !== "undefined" ? process.env.GEMINI_OAUTH_CLIENT_SECRET : null) ??
+      "";
 
     const res = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -966,17 +1465,28 @@ async function refreshGoogleToken(refreshToken: string): Promise<string | null> 
 
     // Update account.json with new access token and expiry
     try {
-      const accountPath = path.join(homedir(), ".local", "share", "opencode", "account.json");
+      const accountPath = path.join(
+        homedir(),
+        ".local",
+        "share",
+        "opencode",
+        "account.json",
+      );
       const raw = await fs.readFile(accountPath, "utf-8");
       const cfg = JSON.parse(raw) as Record<string, unknown>;
-      const accounts = cfg.accounts as Record<string, { credential?: Record<string, unknown> }> | undefined;
+      const accounts = cfg.accounts as
+        | Record<string, { credential?: Record<string, unknown> }>
+        | undefined;
       const activeId = (cfg.active as Record<string, string> | undefined)?.google;
       if (activeId && accounts?.[activeId]?.credential) {
         accounts[activeId].credential.access = data.access_token;
-        accounts[activeId].credential.expires = Date.now() + (data.expires_in ?? 3600) * 1000;
+        accounts[activeId].credential.expires =
+          Date.now() + (data.expires_in ?? 3600) * 1000;
         await fs.writeFile(accountPath, JSON.stringify(cfg, null, 2), "utf-8");
       }
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
 
     return data.access_token;
   } catch {
@@ -984,17 +1494,19 @@ async function refreshGoogleToken(refreshToken: string): Promise<string | null> 
   }
 }
 
-function convertOpenAIToGemini(
-  messages: Array<{ role: string; content: string }>,
-): { contents: Array<{ role: string; parts: Array<{ text: string }> }>; systemInstruction?: { parts: Array<{ text: string }> } } {
-  const systemMsgs = messages.filter(m => m.role === "system");
-  const nonSystemMsgs = messages.filter(m => m.role !== "system");
+function convertOpenAIToGemini(messages: Array<{ role: string; content: string }>): {
+  contents: Array<{ role: string; parts: Array<{ text: string }> }>;
+  systemInstruction?: { parts: Array<{ text: string }> };
+} {
+  const systemMsgs = messages.filter((m) => m.role === "system");
+  const nonSystemMsgs = messages.filter((m) => m.role !== "system");
 
-  const systemInstruction = systemMsgs.length > 0
-    ? { parts: systemMsgs.map(m => ({ text: m.content })) }
-    : undefined;
+  const systemInstruction =
+    systemMsgs.length > 0
+      ? { parts: systemMsgs.map((m) => ({ text: m.content })) }
+      : undefined;
 
-  const contents = nonSystemMsgs.map(m => {
+  const contents = nonSystemMsgs.map((m) => {
     let role = m.role;
     if (role === "assistant") role = "model";
     return { role, parts: [{ text: m.content }] };
@@ -1003,9 +1515,7 @@ function convertOpenAIToGemini(
   return { contents, systemInstruction };
 }
 
-function convertGeminiChunkToOpenAI(
-  chunk: string,
-): string | null {
+function convertGeminiChunkToOpenAI(chunk: string): string | null {
   if (!chunk.startsWith("data:")) return null;
   const payload = chunk.slice(5).trim();
   if (!payload) return null;
@@ -1029,12 +1539,14 @@ function convertGeminiChunkToOpenAI(
     }
 
     const openai: Record<string, unknown> = {
-      choices: [{
-        index: 0,
-        delta: text ? { content: text } : {},
-        finish_reason: finishReason,
-        logprobs: null,
-      }],
+      choices: [
+        {
+          index: 0,
+          delta: text ? { content: text } : {},
+          finish_reason: finishReason,
+          logprobs: null,
+        },
+      ],
     };
 
     if (usage) {
@@ -1051,10 +1563,40 @@ function convertGeminiChunkToOpenAI(
   }
 }
 
+function resolveReasoningStyle(model: string): "anthropic" | "openai" {
+  const m = model.toLowerCase();
+  if (GEMINI_DIRECT_MODELS.has(model) || GEMINI_TO_OPENROUTER[model]) return "openai";
+  if (m.includes("/")) return "openai";
+  if (m.startsWith("claude-")) return "anthropic";
+  if (
+    m.startsWith("gpt-") ||
+    m.startsWith("o1") ||
+    m.startsWith("o3") ||
+    m.startsWith("o4")
+  )
+    return "openai";
+  return "openai";
+}
+
 function resolveRoute(
   model: string,
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
-): { targetUrl: string; headers: Record<string, string>; model?: string; provider: string } {
+): {
+  targetUrl: string;
+  headers: Record<string, string>;
+  model?: string;
+  provider: string;
+} {
+  // Aliases for Direct providers
+  let upstreamModel = model;
+  if (model === "claude-3-7-sonnet-latest") upstreamModel = "claude-3-7-sonnet-20250219";
+  else if (model === "claude-3-5-sonnet-latest" || model === "claude-sonnet-4-6")
+    upstreamModel = "claude-3-5-sonnet-20241022";
+  else if (model === "claude-3-5-haiku-latest" || model === "claude-haiku-4-5")
+    upstreamModel = "claude-3-5-haiku-20241022";
+  else if (model === "claude-3-opus-latest" || model === "claude-opus-4-6")
+    upstreamModel = "claude-3-opus-20240229";
+
   // Google Gemini direct route (via OAuth — uses Cloud Code Assist API)
   if (GEMINI_DIRECT_MODELS.has(model)) {
     const geminiModel = GEMINI_MODEL_NAME_MAP[model] ?? model.replace("google/", "");
@@ -1087,17 +1629,24 @@ function resolveRoute(
     return {
       targetUrl: "https://api.anthropic.com/v1/messages",
       headers: { "x-api-key": keys.anthropic ?? "", "anthropic-version": "2023-06-01" },
+      model: upstreamModel,
       provider: "anthropic",
     };
   }
   if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3")) {
+    // Note: for OpenAI o1 models, they might need different handling if they don't support reasoning_effort yet via standard API
     return {
       targetUrl: "https://api.openai.com/v1/chat/completions",
       headers: { Authorization: `Bearer ${keys.openai ?? ""}` },
+      model: upstreamModel,
       provider: "openai",
     };
   }
-  return { targetUrl: `${keys.ollamaUrl}/v1/chat/completions`, headers: {}, provider: "ollama" };
+  return {
+    targetUrl: `${keys.ollamaUrl}/v1/chat/completions`,
+    headers: {},
+    provider: "ollama",
+  };
 }
 
 // Cache OpenRouter model list for 5 minutes to avoid hammering their API
@@ -1128,24 +1677,49 @@ async function fetchOpenRouterModels(
 
 function getFullModelCatalog(): Array<{ id: string; object: string; source: string }> {
   return [
-    { id: "claude-sonnet-4-6", object: "model", source: "direct" },
-    { id: "claude-opus-4-6", object: "model", source: "direct" },
-    { id: "claude-haiku-4-5", object: "model", source: "direct" },
+    // --- Direct Models ---
+    { id: "claude-3-7-sonnet-latest", object: "model", source: "direct" },
+    { id: "claude-3-5-sonnet-latest", object: "model", source: "direct" },
+    { id: "claude-3-5-haiku-latest", object: "model", source: "direct" },
+    { id: "claude-3-opus-latest", object: "model", source: "direct" },
+    { id: "claude-sonnet-4-6", object: "model", source: "direct" }, // Legacy Alias
+    { id: "claude-opus-4-6", object: "model", source: "direct" }, // Legacy Alias
+    { id: "claude-haiku-4-5", object: "model", source: "direct" }, // Legacy Alias
     { id: "gpt-4o", object: "model", source: "direct" },
     { id: "gpt-4o-mini", object: "model", source: "direct" },
+    { id: "o1", object: "model", source: "direct" },
+    { id: "o1-preview", object: "model", source: "direct" },
+    { id: "o1-mini", object: "model", source: "direct" },
     { id: "o3-mini", object: "model", source: "direct" },
-    { id: "google/gemini-3-flash-preview", object: "model", source: "gemini" },
-    { id: "google/gemini-3-pro-preview", object: "model", source: "gemini" },
-    { id: "google/gemini-3.1-pro-preview", object: "model", source: "gemini" },
-    { id: "google/gemini-2.5-pro", object: "model", source: "gemini" },
-    { id: "google/gemini-2.5-flash", object: "model", source: "gemini" },
+
+    // --- Gemini Models ---
+    { id: "google/gemini-2.0-flash-thinking-exp", object: "model", source: "gemini" },
+    { id: "google/gemini-2.0-pro-exp-02-05", object: "model", source: "gemini" },
+    { id: "google/gemini-2.0-flash", object: "model", source: "gemini" },
+    { id: "google/gemini-3-flash-preview", object: "model", source: "gemini" }, // Legacy Alias
+    { id: "google/gemini-3-pro-preview", object: "model", source: "gemini" }, // Legacy Alias
+
+    // --- OpenRouter Models ---
+    { id: "anthropic/claude-3.7-sonnet", object: "model", source: "openrouter" },
+    { id: "anthropic/claude-3.7-sonnet:thinking", object: "model", source: "openrouter" },
     { id: "anthropic/claude-opus-4", object: "model", source: "openrouter" },
     { id: "anthropic/claude-sonnet-4-5", object: "model", source: "openrouter" },
+    { id: "openai/o1", object: "model", source: "openrouter" },
+    { id: "openai/o3-mini", object: "model", source: "openrouter" },
     { id: "openai/gpt-4o", object: "model", source: "openrouter" },
     { id: "deepseek/deepseek-r1", object: "model", source: "openrouter" },
-    { id: "deepseek/deepseek-v4-pro", object: "model", source: "openrouter" },
-    { id: "deepseek/deepseek-v4-flash", object: "model", source: "openrouter" },
+    { id: "deepseek/deepseek-chat", object: "model", source: "openrouter" },
+    { id: "deepseek/deepseek-v3", object: "model", source: "openrouter" },
+    { id: "deepseek/deepseek-v4-pro", object: "model", source: "openrouter" }, // Restored
+    { id: "deepseek/deepseek-v4-flash", object: "model", source: "openrouter" }, // Restored
     { id: "meta-llama/llama-3.3-70b-instruct", object: "model", source: "openrouter" },
+    {
+      id: "google/gemini-2.0-flash-thinking-exp:free",
+      object: "model",
+      source: "openrouter",
+    },
+
+    // --- Local Models ---
     { id: "llama3", object: "model", source: "local" },
     { id: "mistral", object: "model", source: "local" },
   ];
@@ -1155,14 +1729,15 @@ async function buildModelList(
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
 ): Promise<Array<{ id: string; object: string; source: string }>> {
   const catalog = getFullModelCatalog();
-  const catalogIds = new Set(catalog.map(c => c.id));
+  const catalogIds = new Set(catalog.map((c) => c.id));
 
   const available: Array<{ id: string; object: string; source: string }> = [];
 
   for (const m of catalog) {
     if (m.source === "direct") {
       const isAnthropic = m.id.startsWith("claude-") && !m.id.includes("/");
-      const isOpenAI = m.id.startsWith("gpt-") || m.id.startsWith("o1") || m.id.startsWith("o3");
+      const isOpenAI =
+        m.id.startsWith("gpt-") || m.id.startsWith("o1") || m.id.startsWith("o3");
       if (isAnthropic && !keys.anthropic) continue;
       if (isOpenAI && !keys.openai) continue;
       available.push(m);
@@ -1232,21 +1807,26 @@ async function triggerAutoExtraction(
   try {
     const keys = await readAllApiKeys();
     const lastUserMessage = history.filter((m) => m.role === "user").pop()?.content || "";
-    
+
     if (!lastUserMessage || !assistantResponse) return;
 
-    // TODO: Implémenter la logique d'extraction intelligente ici 
+    // TODO: Implémenter la logique d'extraction intelligente ici
     // Pour l'instant, on utilise callModel pour satisfaire TS et préparer le terrain.
     if (process.env.DEBUG_MAINTENANCE) {
-      const summary = await callModel("workflow-deepseek-v4-flash", [
-        { role: "system", content: "Résume en 5 mots." },
-        { role: "user", content: assistantResponse }
-      ], keys);
+      const summary = await callModel(
+        "workflow-deepseek-v4-flash",
+        [
+          { role: "system", content: "Résume en 5 mots." },
+          { role: "user", content: assistantResponse },
+        ],
+        keys,
+      );
       console.warn("[proxy:maintenance] Résumé de réponse:", summary);
     }
-    
+
     console.warn("[proxy:maintenance] Extraction déclenchée (Background)");
-  } catch (err: any) {
-    console.error("[proxy:maintenance] Erreur:", err.message);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[proxy:maintenance] Erreur:", errMsg);
   }
 }
