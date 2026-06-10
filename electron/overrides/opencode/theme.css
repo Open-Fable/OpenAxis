@@ -306,3 +306,17 @@ div.hidden.xl\:flex {
 .hidden.xl\:block[class*="pointer-events-none"][class*="z-25"] {
   display: none !important;
 }
+
+/* ── Menu/Select v2 — couleur accent teal ────────────────────────────────
+   --menu-v2-accent est défini au niveau de [data-component="menu-v2-item"],
+   pas à :root. L'override de --v2-text-text-accent sur :root ne cascade
+   pas correctement dans ce scope. On force directement ici. */
+[data-component="menu-v2-item"] {
+  --menu-v2-accent: #0d9488 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-component="menu-v2-item"] {
+    --menu-v2-accent: #2dd4bf !important;
+  }
+}
