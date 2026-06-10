@@ -47,34 +47,58 @@
       <div class="main">
         <!-- Chat Panel (left, collapsible) -->
         <div class="chat-panel" id="chatPanel">
-          <div class="chat-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <div style="flex:1;min-width:0;">
-              <div class="conv-selector" id="convSelector" onclick="toggleConvDropdown(event)">
-                <span id="convTitle" class="conv-title">Nouvelle conversation</span>
-                <svg class="conv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-              <div class="conv-dropdown" id="convDropdown"></div>
-            </div>
-            <div class="chat-header-sub">
-              <select id="assistantModelSelect" class="chat-model-select">
-                <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (défaut)</option>
-                <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet</option>
-                <option value="anthropic/claude-3-5-haiku-20241022">Claude Haiku</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
-                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-              </select>
-            </div>
-            <button class="chat-collapse-btn" id="btnCollapseChat" title="Replier l'assistant">
+          <div class="chat-panel-tabs">
+            <button class="chat-tab active" id="tabChat" onclick="switchPanelTab('chat')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Assistant
+            </button>
+            <button class="chat-tab" id="tabHistory" onclick="switchPanelTab('history')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Historique
+            </button>
+            <div style="flex:1"></div>
+            <button class="chat-collapse-btn" id="btnCollapseChat" title="Replier">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           </div>
-          <div class="chat-messages" id="chatMessages"></div>
-          <div class="chat-input-area">
-            <textarea class="chat-input" id="chatInput" placeholder="Message à l'assistant…" rows="1"></textarea>
-            <button class="chat-send-btn" id="btnSendChat" onclick="sendChat()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+
+          <!-- Tab: Chat -->
+          <div class="chat-tab-content active" id="tabContentChat">
+            <div class="chat-header">
+              <div style="flex:1;min-width:0;">
+                <div class="conv-selector" id="convSelector" onclick="toggleConvDropdown(event)">
+                  <span id="convTitle" class="conv-title">Nouvelle conversation</span>
+                  <svg class="conv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="conv-dropdown" id="convDropdown"></div>
+              </div>
+              <div class="chat-header-sub">
+                <select id="assistantModelSelect" class="chat-model-select">
+                  <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (défaut)</option>
+                  <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet</option>
+                  <option value="anthropic/claude-3-5-haiku-20241022">Claude Haiku</option>
+                  <option value="openai/gpt-4o">GPT-4o</option>
+                  <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                </select>
+              </div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chatInput" placeholder="Message à l'assistant…" rows="1"></textarea>
+              <button class="chat-send-btn" id="btnSendChat" onclick="sendChat()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab: Historique -->
+          <div class="chat-tab-content" id="tabContentHistory">
+            <div class="history-panel-header">
+              <span class="history-panel-title">Exécutions passées</span>
+            </div>
+            <div class="orch-history" id="orchHistoryList">
+              <div class="history-empty">Aucune exécution enregistrée.</div>
+            </div>
           </div>
         </div>
 
