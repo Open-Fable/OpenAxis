@@ -217,6 +217,7 @@ function addChatMessage(role, text) {
     (role === "user" ? "cm user" : role === "assistant" ? "cm assistant" : "cm system");
   var bubble = document.createElement("div");
   bubble.className = "bub";
+  if (text) bubble.textContent = text;
   msg.appendChild(bubble);
   if (role === "user" || role === "assistant") {
     msg.appendChild(makeCopyButton(bubble));
@@ -240,6 +241,22 @@ function addMessageToConv(role, content) {
   saveConversations();
 }
 
+var THINKING_SVG =
+  '<svg viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round" opacity="0.25"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/></g></svg>';
+
+function showThinkingIndicator(bubble) {
+  var indicator = document.createElement("div");
+  indicator.className = "msg-thinking";
+  indicator.innerHTML =
+    THINKING_SVG + '<span class="msg-thinking-label">Réflexion…</span>';
+  bubble.appendChild(indicator);
+}
+
+function removeThinkingIndicator(bubble) {
+  var el = bubble.querySelector(".msg-thinking");
+  if (el) el.remove();
+}
+
 function sendChat() {
   var input = document.getElementById("chatInput");
   var text = input.value.trim();
@@ -250,6 +267,7 @@ function sendChat() {
   addMessageToConv("user", text);
 
   var bubble = addChatMessage("assistant", "");
+  showThinkingIndicator(bubble);
   var fullText = "";
 
   var model = document.getElementById("assistantModelSelect").value;
@@ -285,6 +303,7 @@ function sendChat() {
   })
     .then(async function (res) {
       if (!res.ok) {
+        removeThinkingIndicator(bubble);
         bubble.textContent =
           "❌ Erreur " +
           res.status +
@@ -320,6 +339,7 @@ function sendChat() {
                 continue;
               }
               fullText += delta;
+              removeThinkingIndicator(bubble);
               bubble.textContent = fullText;
             } catch (e) {}
           }
@@ -331,6 +351,7 @@ function sendChat() {
       addMessageToConv("assistant", fullText);
     })
     .catch(function (err) {
+      removeThinkingIndicator(bubble);
       bubble.textContent = "❌ Erreur de connexion : " + (err.message || "inconnue");
     });
 }
@@ -415,21 +436,66 @@ function processQuestions(bubbleEl, fullText) {
     var qs = parsed.questions || (parsed.text ? [parsed] : []);
     if (qs.length === 0) return;
     bubbleEl.textContent = fullText.replace(/```questions\n[\s\S]*?\n```/g, "").trim();
+
+    var answers = {};
+    var allCards = [];
+
+    var confirmWrapper = document.createElement("div");
+    confirmWrapper.className = "question-confirm-wrapper";
+    var confirmBtn = document.createElement("button");
+    confirmBtn.className = "question-confirm-btn";
+    confirmBtn.textContent = "Confirmer les réponses (0/" + qs.length + ")";
+    confirmBtn.disabled = true;
+    confirmWrapper.appendChild(confirmBtn);
+
+    function updateConfirmState() {
+      var count = Object.keys(answers).length;
+      confirmBtn.textContent = "Confirmer les réponses (" + count + "/" + qs.length + ")";
+      confirmBtn.disabled = count < qs.length;
+    }
+
+    confirmBtn.onclick = function () {
+      var combinedText = qs
+        .map(function (q, i) {
+          return "• " + q.text + " → " + (answers[i] || "");
+        })
+        .join("\n");
+      allCards.forEach(function (c) {
+        c.remove();
+      });
+      confirmWrapper.remove();
+      addChatMessage("user", combinedText);
+      addMessageToConv("user", combinedText);
+      sendChatWithText(combinedText);
+    };
+
     qs.forEach(function (q, idx) {
       var card = document.createElement("div");
       card.className = "question-card";
+      allCards.push(card);
       var label = document.createElement("div");
       label.className = "question-label";
       label.textContent = q.text;
       card.appendChild(label);
       var optWrap = document.createElement("div");
       optWrap.className = "question-options";
+
+      function selectOption(value, activeBtn) {
+        answers[idx] = value;
+        optWrap.querySelectorAll(".question-opt-btn").forEach(function (b) {
+          b.classList.remove("selected");
+        });
+        if (activeBtn) activeBtn.classList.add("selected");
+        label.classList.add("question-answered");
+        updateConfirmState();
+      }
+
       (q.options || []).forEach(function (opt) {
         var btn = document.createElement("button");
         btn.className = "question-opt-btn";
         btn.textContent = opt;
         btn.onclick = function () {
-          answerQuestion(q.text, opt, idx);
+          selectOption(opt, btn);
         };
         optWrap.appendChild(btn);
       });
@@ -437,24 +503,27 @@ function processQuestions(bubbleEl, fullText) {
         var customInput = document.createElement("input");
         customInput.className = "question-custom-input";
         customInput.placeholder = "Autre réponse…";
-        customInput.onkeydown = function (e) {
-          if (e.key === "Enter" && customInput.value.trim()) {
-            answerQuestion(q.text, customInput.value.trim(), idx);
+        customInput.oninput = function () {
+          if (customInput.value.trim()) {
+            selectOption(customInput.value.trim(), null);
+          } else {
+            delete answers[idx];
+            label.classList.remove("question-answered");
+            updateConfirmState();
           }
         };
-        var customBtn = document.createElement("button");
-        customBtn.className = "question-opt-btn custom";
-        customBtn.textContent = "Réponse personnalisée";
-        customBtn.onclick = function () {
-          if (customInput.value.trim())
-            answerQuestion(q.text, customInput.value.trim(), idx);
+        customInput.onkeydown = function (e) {
+          if (e.key === "Enter" && customInput.value.trim()) {
+            selectOption(customInput.value.trim(), null);
+          }
         };
         optWrap.appendChild(customInput);
-        optWrap.appendChild(customBtn);
       }
       card.appendChild(optWrap);
       bubbleEl.parentNode.appendChild(card);
     });
+
+    bubbleEl.parentNode.appendChild(confirmWrapper);
   } catch (e) {}
 }
 
