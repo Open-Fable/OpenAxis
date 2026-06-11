@@ -1,4 +1,12 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, WebContentsView } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  WebContentsView,
+  Menu,
+} from "electron";
 import path from "path";
 import { homedir } from "os";
 import { fileURLToPath } from "url";
@@ -38,7 +46,9 @@ import { OrchestratorRunner } from "./orchestrator-runner.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const HEADER_HEIGHT = 82;
+const HEADER_HEIGHT_TOPBAR = 82;
+const HEADER_HEIGHT_DROPDOWN = 38;
+let headerHeight = HEADER_HEIGHT_TOPBAR;
 const MIN_WIDTH = 550;
 const MIN_HEIGHT = 450;
 
@@ -89,7 +99,7 @@ async function createWindow(): Promise<void> {
     minHeight: MIN_HEIGHT,
     show: false,
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 18 },
+    trafficLightPosition: { x: 16, y: 13 },
     backgroundColor: "#18181E",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -123,6 +133,51 @@ async function createWindow(): Promise<void> {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  const shortcutSlots: SlotName[] = ["chat", "code", "work", "design", "projects"];
+  const appMenu = Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: "about" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "Navigation",
+      submenu: shortcutSlots.map((slot, i) => ({
+        label: slot.charAt(0).toUpperCase() + slot.slice(1),
+        accelerator: `CmdOrCtrl+${i + 1}`,
+        click: () => switchSlot(slot),
+      })),
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" as const },
+        { role: "redo" as const },
+        { type: "separator" as const },
+        { role: "cut" as const },
+        { role: "copy" as const },
+        { role: "paste" as const },
+        { role: "selectAll" as const },
+      ],
+    },
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" as const },
+        { role: "zoom" as const },
+        { role: "close" as const },
+      ],
+    },
+  ]);
+  Menu.setApplicationMenu(appMenu);
 }
 
 function createSlotView(
@@ -205,12 +260,11 @@ let configOpen = false;
 function repositionViews(): void {
   if (!mainWindow) return;
   const [width, height] = mainWindow.getContentSize();
-  const contentY = HEADER_HEIGHT;
-  const contentHeight = height - HEADER_HEIGHT;
+  const contentY = headerHeight;
+  const contentHeight = height - headerHeight;
 
   for (const [slot, view] of views) {
     const isActive = slot === activeSlot;
-    // Hide active view when config modal is open so sidebar.html shows through
     view.setVisible(isActive && !configOpen);
     if (isActive) {
       view.setBounds({ x: 0, y: contentY, width: width, height: contentHeight });
@@ -221,6 +275,70 @@ function repositionViews(): void {
 ipcMain.on("config-visibility", (_e, open: boolean) => {
   configOpen = open;
   repositionViews();
+});
+
+let navPopup: BrowserWindow | null = null;
+
+ipcMain.on("show-nav-menu", (_e, x: number, y: number) => {
+  if (navPopup && !navPopup.isDestroyed()) {
+    navPopup.close();
+    navPopup = null;
+    return;
+  }
+  if (!mainWindow) return;
+
+  const popupWidth = 260;
+  const popupHeight = 252;
+  const winBounds = mainWindow.getBounds();
+  const contentBounds = mainWindow.getContentBounds();
+  const frameTop = contentBounds.y - winBounds.y;
+  const frameLeft = contentBounds.x - winBounds.x;
+
+  navPopup = new BrowserWindow({
+    width: popupWidth,
+    height: popupHeight,
+    x: winBounds.x + frameLeft + Math.round(x) - Math.round(popupWidth / 2),
+    y: winBounds.y + frameTop + Math.round(y),
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: false,
+    roundedCorners: false,
+    parent: mainWindow,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.cjs"),
+    },
+  });
+
+  navPopup.loadFile(path.join(__dirname, "nav-popup.html"), {
+    query: { active: activeSlot },
+  });
+
+  navPopup.on("blur", () => {
+    if (navPopup && !navPopup.isDestroyed()) {
+      navPopup.close();
+    }
+    navPopup = null;
+  });
+
+  navPopup.on("closed", () => {
+    navPopup = null;
+  });
+});
+
+ipcMain.on("nav-popup-select", (_e, slot: SlotName) => {
+  if (navPopup && !navPopup.isDestroyed()) {
+    navPopup.close();
+    navPopup = null;
+  }
+  switchSlot(slot);
 });
 
 async function switchSlot(slot: SlotName): Promise<void> {
@@ -358,6 +476,39 @@ async function switchSlot(slot: SlotName): Promise<void> {
 }
 
 ipcMain.handle("switch-slot", (_e, slot: SlotName) => switchSlot(slot));
+
+async function stopSlot(slot: SlotName): Promise<void> {
+  const view = views.get(slot);
+  if (view) {
+    mainWindow?.contentView.removeChildView(view);
+    views.delete(slot);
+  }
+  if (slot === "work" || slot === "code" || slot === "design") {
+    processManager?.stop(slot as Exclude<SlotName, "config" | "chat" | "projects">);
+  }
+  if (activeSlot === slot) {
+    const fallback: SlotName = slot === "chat" ? "work" : "chat";
+    await switchSlot(fallback);
+  }
+}
+
+ipcMain.on("show-slot-context-menu", (_e, slot: SlotName) => {
+  const slotLabels: Record<string, string> = {
+    work: "Work",
+    code: "Code",
+    design: "Design",
+    chat: "Chat",
+    projects: "Orchestrateur",
+  };
+  const label = slotLabels[slot] ?? slot;
+  const menu = Menu.buildFromTemplate([
+    {
+      label: `Fermer ${label}`,
+      click: () => stopSlot(slot),
+    },
+  ]);
+  menu.popup({ window: mainWindow ?? undefined });
+});
 
 ipcMain.handle("export-pdf", async () => {
   const view = views.get(activeSlot as Exclude<SlotName, "config">);
@@ -558,6 +709,30 @@ ipcMain.handle("write-chat-backup", async (_e, data: string) => {
   try {
     await fs.mkdir(path.dirname(CHAT_BACKUP_PATH), { recursive: true });
     await fs.writeFile(CHAT_BACKUP_PATH, data, "utf-8");
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+// ── Orchestrator conversations (file-system persistence) ─────────────────────
+const ORCH_CONVS_PATH = path.join(
+  homedir(),
+  ".config",
+  "openhub",
+  "orch-conversations.json",
+);
+ipcMain.handle("read-orch-conversations", async () => {
+  try {
+    return await fs.readFile(ORCH_CONVS_PATH, "utf-8");
+  } catch {
+    return null;
+  }
+});
+ipcMain.handle("write-orch-conversations", async (_e, data: string) => {
+  try {
+    await fs.mkdir(path.dirname(ORCH_CONVS_PATH), { recursive: true });
+    await fs.writeFile(ORCH_CONVS_PATH, data, "utf-8");
     return true;
   } catch {
     return false;
@@ -1262,6 +1437,7 @@ ipcMain.handle("run-app-update", async (_e, appName: string) => {
   }
 });
 
+let navMode: "topbar" | "dropdown" = "topbar";
 let autoUpdateEnabled = false;
 let webSearchEnabled = false;
 let visionProxyEnabled = true;
@@ -1276,8 +1452,9 @@ async function loadSettings(): Promise<void> {
   try {
     const raw = await fs.readFile(SETTINGS_PATH, "utf-8");
     const parsed = JSON.parse(raw);
+    navMode = parsed.navMode === "dropdown" ? "dropdown" : "topbar";
+    headerHeight = navMode === "dropdown" ? HEADER_HEIGHT_DROPDOWN : HEADER_HEIGHT_TOPBAR;
     autoUpdateEnabled = !!parsed.autoUpdate;
-    webSearchEnabled = !!parsed.webSearchEnabled;
     visionProxyEnabled = !!parsed.visionProxyEnabled;
     visionModel = parsed.visionModel || "openbmb/minicpm-v4.6";
     visionDetailLevel = parsed.visionDetailLevel || "high";
@@ -1285,8 +1462,9 @@ async function loadSettings(): Promise<void> {
     aiWorkflowFlashModel = parsed.aiWorkflowFlashModel || "deepseek/deepseek-v4-flash";
     aiClassifierModel = parsed.aiClassifierModel || "deepseek/deepseek-v4-flash";
   } catch {
+    navMode = "topbar";
+    headerHeight = HEADER_HEIGHT_TOPBAR;
     autoUpdateEnabled = false;
-    webSearchEnabled = false;
     visionProxyEnabled = true;
     visionModel = "openbmb/minicpm-v4.6";
     visionDetailLevel = "high";
@@ -1303,6 +1481,7 @@ async function saveSettings(): Promise<void> {
       SETTINGS_PATH,
       JSON.stringify(
         {
+          navMode,
           autoUpdate: autoUpdateEnabled,
           webSearchEnabled,
           visionProxyEnabled,
@@ -1319,6 +1498,15 @@ async function saveSettings(): Promise<void> {
     );
   } catch {}
 }
+
+ipcMain.handle("get-nav-mode", () => navMode);
+ipcMain.handle("set-nav-mode", async (_e, mode: string) => {
+  navMode = mode === "dropdown" ? "dropdown" : "topbar";
+  headerHeight = navMode === "dropdown" ? HEADER_HEIGHT_DROPDOWN : HEADER_HEIGHT_TOPBAR;
+  await saveSettings();
+  repositionViews();
+  mainWindow?.webContents.send("nav-mode-changed", navMode);
+});
 
 ipcMain.handle("get-auto-update", () => autoUpdateEnabled);
 ipcMain.handle("set-auto-update", async (_e, enabled: boolean) => {

@@ -392,6 +392,7 @@
         box-shadow: 0 0 4px var(--oh-color-success);
       }
 
+
       /* Tooltip (under buttons) */
       .tooltip {
         position: absolute;
@@ -417,6 +418,107 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
+
+      /* ── Dropdown navigation mode ── */
+      .header.dropdown-mode {
+        height: 38px;
+      }
+
+      .header.dropdown-mode .top-row {
+        border-bottom: none;
+        position: relative;
+      }
+
+      .header.dropdown-mode .bottom-row {
+        display: none;
+      }
+
+      .header.dropdown-mode .brand-title {
+        display: none;
+      }
+
+      .dropdown-config-btn {
+        display: none;
+        position: static;
+        transform: none;
+        -webkit-app-region: no-drag;
+      }
+
+      .header.dropdown-mode .dropdown-config-btn {
+        display: flex;
+      }
+
+      .dropdown-trigger {
+        display: none;
+        -webkit-app-region: no-drag;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+        height: 26px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        cursor: pointer;
+        color: var(--oh-color-text-primary);
+        font-size: 13px;
+        font-weight: 600;
+        font-family: var(--font);
+        transition: background var(--duration-150) var(--ease-default);
+      }
+
+      .dropdown-trigger:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      @media (prefers-color-scheme: light) {
+        .dropdown-trigger:hover {
+          background: rgba(0, 0, 0, 0.04);
+        }
+      }
+
+      .dropdown-trigger .trigger-icon {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .dropdown-trigger .trigger-icon svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .dropdown-trigger .trigger-chevron {
+        width: 12px;
+        height: 12px;
+        opacity: 0.5;
+        transition: transform var(--duration-150) var(--ease-default);
+      }
+
+      .dropdown-trigger .trigger-chevron svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .dropdown-trigger.open .trigger-chevron {
+        transform: rotate(180deg);
+      }
+
+      .header.dropdown-mode .dropdown-trigger {
+        display: flex;
+      }
+
 
       /* ── Config modal (brand redesign) ── */
       #config-panel {
@@ -1296,6 +1398,24 @@
           </div>
           <span>OpenHub</span>
         </div>
+
+        <button class="dropdown-trigger" id="dropdown-trigger">
+          <span class="trigger-icon" id="trigger-icon"></span>
+          <span class="trigger-label" id="trigger-label">Chat</span>
+          <span class="trigger-chevron">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+          </span>
+        </button>
+
+
+        <button class="btn-config dropdown-config-btn" id="dropdown-config-btn" aria-label="Configuration">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            />
+          </svg>
+        </button>
         <div class="window-right-spacer"></div>
       </div>
 
@@ -1376,7 +1496,6 @@
       </div>
     </div>
 
-    <!-- Welcome screen -->
     <!-- Config modal (redesigned) -->
     <div id="config-panel">
       <div class="config-card">
@@ -1752,6 +1871,38 @@
               </div>
             </div>
             <div class="config-group">
+              <div class="config-group-label">Apparence</div>
+              <div
+                class="memory-row"
+                style="
+                  padding-bottom: 12px;
+                  border-bottom: 1px solid var(--oh-color-border-subtle);
+                "
+              >
+                <div>
+                  <div class="memory-row-label">Style de Navigation</div>
+                  <div style="font-size: 11px; color: var(--oh-color-text-muted); margin-top: 2px;">
+                    Barre d'onglets ou menu déroulant
+                  </div>
+                </div>
+                <select id="nav-mode-select" style="
+                  -webkit-app-region: no-drag;
+                  background: var(--oh-color-bg-surface);
+                  color: var(--oh-color-text-primary);
+                  border: 1px solid var(--oh-color-border-default);
+                  border-radius: var(--radius-sm);
+                  padding: 4px 8px;
+                  font-size: 12px;
+                  font-family: var(--font);
+                  cursor: pointer;
+                  outline: none;
+                ">
+                  <option value="topbar">Barre d'onglets</option>
+                  <option value="dropdown">Menu déroulant</option>
+                </select>
+              </div>
+            </div>
+            <div class="config-group">
               <div class="config-group-label">Applications</div>
               <div id="update-list"></div>
             </div>
@@ -1862,6 +2013,90 @@
       var configPanel = document.getElementById("config-panel");
       var backdrop = document.getElementById("config-backdrop");
 
+      // ── Dropdown navigation mode ──
+      var headerEl = document.querySelector(".header");
+      var dropdownTrigger = document.getElementById("dropdown-trigger");
+      var triggerIcon = document.getElementById("trigger-icon");
+      var triggerLabel = document.getElementById("trigger-label");
+      var currentNavMode = "topbar";
+
+      var slotIcons = {
+        chat: '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>',
+        work: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>',
+        code: '<svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>',
+        design: '<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>',
+        projects: '<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>'
+      };
+
+      var slotLabels = {
+        chat: "Chat",
+        work: "Work",
+        code: "Code",
+        design: "Design",
+        projects: "Orchestrateur"
+      };
+
+      function applyNavMode(mode) {
+        currentNavMode = mode;
+        if (mode === "dropdown") {
+          headerEl.classList.add("dropdown-mode");
+          updateDropdownTrigger(activeSlotName || "chat");
+        } else {
+          headerEl.classList.remove("dropdown-mode");
+          var activeBtn = document.querySelector(".slot-btn.active");
+          if (activeBtn) {
+            setTimeout(function() { updateIndicator(activeBtn); }, 50);
+          }
+        }
+      }
+
+      var activeSlotName = "chat";
+
+      function updateDropdownTrigger(slot) {
+        activeSlotName = slot;
+        triggerLabel.textContent = slotLabels[slot] || slot;
+        triggerIcon.innerHTML = slotIcons[slot] || "";
+      }
+
+      dropdownTrigger.addEventListener("click", function() {
+        var rect = dropdownTrigger.getBoundingClientRect();
+        window.openhub.showNavMenu(Math.round(rect.left), Math.round(rect.bottom + 4));
+      });
+
+      document.getElementById("dropdown-config-btn").addEventListener("click", function() {
+        openConfig();
+      });
+
+      // Load saved nav mode on startup
+      if (window.openhub.getNavMode) {
+        window.openhub.getNavMode().then(function(mode) {
+          applyNavMode(mode || "topbar");
+          var sel = document.getElementById("nav-mode-select");
+          if (sel) sel.value = mode || "topbar";
+        }).catch(function() {});
+      }
+
+      // Listen for nav mode changes from main process
+      if (window.openhub.onNavModeChanged) {
+        window.openhub.onNavModeChanged(function(mode) {
+          applyNavMode(mode);
+          var sel = document.getElementById("nav-mode-select");
+          if (sel) sel.value = mode;
+        });
+      }
+
+      // Nav mode select in config panel
+      var navModeSelect = document.getElementById("nav-mode-select");
+      if (navModeSelect) {
+        navModeSelect.addEventListener("change", function() {
+          var mode = navModeSelect.value;
+          applyNavMode(mode);
+          if (window.openhub.setNavMode) {
+            window.openhub.setNavMode(mode);
+          }
+        });
+      }
+
       function updateIndicator(activeBtn) {
         if (!activeBtn || !indicator) return;
         var slot = activeBtn.dataset.slot;
@@ -1898,11 +2133,34 @@
             setLoading(slot, false);
           });
         });
+
+        btn.addEventListener("contextmenu", function (e) {
+          e.preventDefault();
+          var slot = btn.dataset.slot;
+          if (!slot || slot === "config") return;
+          window.openhub.showSlotContextMenu(slot);
+        });
       });
 
       window.addEventListener("resize", function() {
         var active = document.querySelector(".slot-btn.active");
         if (active) updateIndicator(active);
+      });
+
+      // Keyboard shortcuts ⌘1-5
+      var shortcutSlots = ["chat", "code", "work", "design", "projects"];
+      window.addEventListener("keydown", function(e) {
+        if (!e.metaKey && !e.ctrlKey) return;
+        var idx = parseInt(e.key, 10);
+        if (idx >= 1 && idx <= 5) {
+          e.preventDefault();
+          var slot = shortcutSlots[idx - 1];
+          setLoading(slot, true);
+          window.openhub.switchSlot(slot).catch(function(err) {
+            console.error("[sidebar] shortcut switchSlot failed:", err);
+            setLoading(slot, false);
+          });
+        }
       });
 
       // Auto-open chat on startup
@@ -1929,6 +2187,7 @@
           if (isActive) updateIndicator(b);
           b.classList.remove("loading");
         });
+        updateDropdownTrigger(slot);
       });
 
       // ── Tab switching ──
@@ -2008,6 +2267,12 @@
             })
             .catch(function () {});
         }
+        if (window.openhub.getNavMode) {
+          window.openhub.getNavMode().then(function (mode) {
+            var sel = document.getElementById("nav-mode-select");
+            if (sel) sel.value = mode || "topbar";
+          }).catch(function () {});
+        }
         loadOllamaStatus();
       }
 
@@ -2058,7 +2323,7 @@
       document
         .querySelector('[data-slot="config"]')
         .addEventListener("click", function () {
-          if (window.openhub) window.openhub.switchSlot("config");
+          openConfig();
         });
 
       // Reveal/hide password

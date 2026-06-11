@@ -13,6 +13,7 @@ cp "$ROOT/electron/sidebar.html" "$ROOT/dist/electron/sidebar.html"
 cp "$ROOT/electron/splash.html" "$ROOT/dist/electron/splash.html"
 cp "$ROOT/electron/chat.html" "$ROOT/dist/electron/chat.html"
 cp "$ROOT/electron/projects.html" "$ROOT/dist/electron/projects.html"
+cp "$ROOT/electron/nav-popup.html" "$ROOT/dist/electron/nav-popup.html"
 
 rm -rf "$ROOT/dist/electron/projects"
 cp -r "$ROOT/electron/projects" "$ROOT/dist/electron/projects"

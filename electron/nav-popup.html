@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
+    />
+    <style>
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #111111;
+        --border: #222222;
+        --text: #ececec;
+        --text-sec: #999999;
+        --text-muted: #666666;
+        --accent: #14b8a6;
+        --active-bg: rgba(20, 184, 166, 0.1);
+        --hover-bg: rgba(255, 255, 255, 0.05);
+        --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        --radius: 10px;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #ffffff;
+          --border: #e0e0e0;
+          --text: #111111;
+          --text-sec: #555555;
+          --text-muted: #888888;
+          --accent: #0d9488;
+          --active-bg: rgba(13, 148, 136, 0.08);
+          --hover-bg: rgba(0, 0, 0, 0.04);
+        }
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+
+      .card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 4px;
+        overflow: hidden;
+      }
+
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-sec);
+        font-size: 13px;
+        font-weight: 500;
+        font-family: var(--font);
+        transition: background 150ms ease, color 150ms ease;
+      }
+
+      .item:hover {
+        background: var(--hover-bg);
+        color: var(--text);
+      }
+
+      .item.active {
+        background: var(--active-bg);
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .item .icon {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .item .icon svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .item .label {
+        flex: 1;
+      }
+
+      .item .shortcut {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <button class="item" data-slot="chat">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+        <span class="label">Chat</span>
+        <span class="shortcut">&#8984;1</span>
+      </button>
+      <button class="item" data-slot="code">
+        <span class="icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+        <span class="label">Code</span>
+        <span class="shortcut">&#8984;2</span>
+      </button>
+      <button class="item" data-slot="work">
+        <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+        <span class="label">Work</span>
+        <span class="shortcut">&#8984;3</span>
+      </button>
+      <button class="item" data-slot="design">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+        <span class="label">Design</span>
+        <span class="shortcut">&#8984;4</span>
+      </button>
+      <button class="item" data-slot="projects">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>
+        <span class="label">Orchestrateur</span>
+        <span class="shortcut">&#8984;5</span>
+      </button>
+    </div>
+    <script>
+      var params = new URLSearchParams(window.location.search);
+      var active = params.get("active") || "chat";
+
+      document.querySelectorAll(".item").forEach(function(btn) {
+        if (btn.dataset.slot === active) {
+          btn.classList.add("active");
+        }
+        btn.addEventListener("click", function() {
+          window.openhub.navPopupSelect(btn.dataset.slot);
+        });
+      });
+    </script>
+  </body>
+</html>

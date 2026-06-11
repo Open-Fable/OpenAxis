@@ -4,6 +4,8 @@ type SlotName = "work" | "code" | "design" | "chat" | "config" | "projects";
 
 contextBridge.exposeInMainWorld("openhub", {
   switchSlot: (slot: SlotName) => ipcRenderer.invoke("switch-slot", slot),
+  showSlotContextMenu: (slot: SlotName) =>
+    ipcRenderer.send("show-slot-context-menu", slot),
 
   exportPdf: () => ipcRenderer.invoke("export-pdf"),
 
@@ -26,6 +28,14 @@ contextBridge.exposeInMainWorld("openhub", {
   getApiKeys: () => ipcRenderer.invoke("get-api-keys"),
 
   notifyConfigVisibility: (open: boolean) => ipcRenderer.send("config-visibility", open),
+  showNavMenu: (x: number, y: number) => ipcRenderer.send("show-nav-menu", x, y),
+  navPopupSelect: (slot: string) => ipcRenderer.send("nav-popup-select", slot),
+
+  getNavMode: () => ipcRenderer.invoke("get-nav-mode"),
+  setNavMode: (mode: string) => ipcRenderer.invoke("set-nav-mode", mode),
+  onNavModeChanged: (cb: (mode: string) => void) => {
+    ipcRenderer.on("nav-mode-changed", (_e: unknown, mode: string) => cb(mode));
+  },
 
   openworkDesktopInvoke: (command: string, ...args: unknown[]) =>
     ipcRenderer.invoke("openwork-desktop-invoke", command, ...args),
@@ -151,6 +161,10 @@ contextBridge.exposeInMainWorld("openhub", {
 
   readChatBackup: () => ipcRenderer.invoke("read-chat-backup"),
   writeChatBackup: (data: string) => ipcRenderer.invoke("write-chat-backup", data),
+
+  readOrchConversations: () => ipcRenderer.invoke("read-orch-conversations"),
+  writeOrchConversations: (data: string) =>
+    ipcRenderer.invoke("write-orch-conversations", data),
 
   ollamaCheckModels: () => ipcRenderer.invoke("ollama-check-models"),
   ollamaPullModel: (model: string) => ipcRenderer.send("ollama-pull-model", model),
