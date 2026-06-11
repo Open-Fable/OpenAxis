@@ -8,8 +8,10 @@ A macOS desktop shell that unifies [OpenWork](https://github.com/different-ai/op
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
-[![Electron](https://img.shields.io/badge/Electron-32+-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
+[![Electron](https://img.shields.io/badge/Electron-42+-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![typecheck](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/typecheck.yml?label=typecheck&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/typecheck.yml)
+[![lint](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/lint.yml?label=lint&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/lint.yml)
 
 [Francais](#-version-francaise) | [Installation](#-installation) | [Architecture](#-architecture) | [Contributing](CONTRIBUTING.md)
 

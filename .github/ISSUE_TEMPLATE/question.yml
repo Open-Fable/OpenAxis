@@ -1,0 +1,25 @@
+name: Question
+description: Ask a question about setup, usage, or how something works
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What do you want to know?
+      placeholder: e.g. "How do I add a custom model?" or "Why does the proxy return 401?"
+    validations:
+      required: true
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "e.g. macOS 15.2 Sequoia"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What have you already tried?
+      description: Steps you've taken, docs you've read, errors you've seen.
