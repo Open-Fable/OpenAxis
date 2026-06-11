@@ -4,7 +4,7 @@ import { request as httpRequest } from "http";
 import { homedir } from "os";
 import { promises as fs } from "fs";
 import path from "path";
-import { readAllApiKeys, readSecret } from "../keychain.js";
+import { readAllApiKeys } from "../keychain.js";
 import { getActiveProject } from "../project-store.js";
 import { buildMemoryBlock } from "../memory-store.js";
 import {
@@ -12,6 +12,13 @@ import {
   recordCacheMetric,
   resetCacheMetrics,
 } from "../cache-metrics.js";
+import {
+  getVisionConfig,
+  shouldBypassVisionProxy,
+  describeImage,
+  formatDescriptionForDeepSeek,
+  checkOllamaHealth,
+} from "./vision.js";
 
 const PROXY_PORT = 9999;
 const PROXY_HOST = "127.0.0.1";
@@ -450,7 +457,9 @@ export async function startProxy(): Promise<string> {
 
   // ── Assistant Orchestrateur (no auth needed, uses openhub-local token) ──
   app.post("/v1/orch/assistant", async (req: Request, res: Response) => {
-    const { messages, context, model: reqModel } = req.body;
+    const { messages, context, questionRounds: qRounds, model: reqModel } = req.body;
+    const questionRounds: number = typeof qRounds === "number" ? qRounds : 0;
+    const MAX_QUESTION_ROUNDS = 3;
     const settings = await loadOrchSettings();
     const model = reqModel || settings.assistantModel || "deepseek/deepseek-v4-flash";
 
@@ -462,26 +471,43 @@ export async function startProxy(): Promise<string> {
       : null;
 
     // Build context block
+    const activeLinkedIds: string[] =
+      activeWf && Array.isArray(activeWf.linkedProjectIds)
+        ? (activeWf.linkedProjectIds as string[])
+        : [];
+
     const wfLines = workflows
-      .map(
-        (w: Record<string, unknown>) =>
-          `- "${String(w.name)}" (${(Array.isArray(w.linkedProjectIds) ? w.linkedProjectIds : []).length} projets)`,
-      )
+      .map((w: Record<string, unknown>) => {
+        const linked = Array.isArray(w.linkedProjectIds) ? w.linkedProjectIds : [];
+        return `- id="${String(w.id)}" "${String(w.name)}" (${linked.length} agents liés)`;
+      })
       .join("\n");
-    const projLines = projects
-      .filter((p: Record<string, unknown>) => p.type !== "orchestrator")
-      .map(
-        (p: Record<string, unknown>) =>
-          `- "${String(p.name)}" (modèle: ${String(p.model || "défaut")})\n  Instructions: ${String(p.instructions || "").substring(0, 200)}`,
-      )
-      .join("\n");
+
+    const nonOrchProjects = projects.filter(
+      (p: Record<string, unknown>) => p.type !== "orchestrator",
+    );
+    const linkedProjects = nonOrchProjects.filter((p: Record<string, unknown>) =>
+      activeLinkedIds.includes(String(p.id)),
+    );
+    const unlinkedProjects = nonOrchProjects.filter(
+      (p: Record<string, unknown>) => !activeLinkedIds.includes(String(p.id)),
+    );
+
+    const formatProj = (p: Record<string, unknown>) =>
+      `- id="${String(p.id)}" "${String(p.name)}" (type: ${String(p.type || "non défini")}, modèle: ${String(p.model || "défaut")})`;
 
     const contextBlock = [
       `Workflows (${workflows.length}) :`,
       wfLines || "  Aucun workflow",
-      activeWf ? `\nWorkflow actif : "${String(activeWf.name)}"` : "",
-      `\nProjets disponibles (${projects.filter((p: Record<string, unknown>) => p.type !== "orchestrator").length}) :`,
-      projLines || "  Aucun projet",
+      activeWf
+        ? `\nWorkflow actif : id="${String(activeWf.id)}" "${String(activeWf.name)}"`
+        : "",
+      linkedProjects.length > 0
+        ? `\nAgents liés au workflow actif (${linkedProjects.length}) :\n${linkedProjects.map(formatProj).join("\n")}`
+        : "\nAucun agent lié au workflow actif.",
+      unlinkedProjects.length > 0
+        ? `\nAgents disponibles non liés (${unlinkedProjects.length}) :\n${unlinkedProjects.map(formatProj).join("\n")}`
+        : "",
     ].join("\n");
 
     const systemPrompt = `Tu es un assistant spécialisé en création de projets. Ton rôle est d'aider n'importe qui, même sans connaissances techniques, à organiser et réaliser ses idées.
@@ -512,11 +538,14 @@ Utilise ce format structuré pour poser plusieurs questions à la fois :
 \`\`\`
 
 Règles pour les questions :
-- Pose 3 à 5 questions à la fois (pas plus)
-- Chaque question doit avoir 2 à 4 options de réponse
+- Pose autant de questions que nécessaire (entre 1 et 15) pour bien comprendre le besoin
+- Chaque question doit avoir 2 à 5 options de réponse
 - Quand l'utilisateur répond, utilise sa réponse pour adapter ta proposition
 - Si l'utilisateur répond "Je ne sais pas", prend une décision raisonnable à sa place
 - Les questions doivent être simples, avec des mots de tous les jours
+- Tu peux poser des questions de suivi après les réponses de l'utilisateur si tu as besoin de plus de détails
+- Tu as le droit à ${MAX_QUESTION_ROUNDS} tours de questions maximum dans une conversation
+- Tu as déjà posé ${questionRounds} tour(s) de questions${questionRounds >= MAX_QUESTION_ROUNDS ? "\n- TU AS ATTEINT LA LIMITE DE QUESTIONS. Ne pose PLUS de questions. Utilise les informations disponibles pour proposer directement des projets." : questionRounds === MAX_QUESTION_ROUNDS - 1 ? "\n- C'est ton DERNIER tour de questions possible. Après celui-ci, tu devras proposer directement." : ""}
 
 QUAND TU PROPOSES DES PROJETS :
 - Donne-leur des noms que tout le monde comprend, comme "Gestion des comptes" au lieu de "API Authentification".
@@ -552,18 +581,48 @@ Si tu utilises des blocs action, garde les instructions en langage simple aussi.
 
 TU PEUX PROPOSER DES ACTIONS :
 Si l'utilisateur te demande EXPLICITEMENT de créer ou modifier quelque chose, exécute l'action directement :
+
+Créer un workflow :
 \`\`\`action
 {"type": "create_workflow", "name": "Nom du workflow", "auto": true}
 \`\`\`
+
+Créer un agent et le lier au workflow actif :
 \`\`\`action
-{"type": "create_project", "name": "Nom du projet", "instructions": "Instructions...", "linkToWf": true, "auto": true}
+{"type": "create_project", "name": "Nom du projet", "instructions": "Instructions détaillées...", "agentType": "code", "linkToWf": true, "auto": true}
 \`\`\`
 
+Lier un agent EXISTANT au workflow actif (utilise l'id du projet depuis le contexte) :
+\`\`\`action
+{"type": "link_project", "projectId": "id-du-projet", "auto": true}
+\`\`\`
+
+Les valeurs possibles de agentType (OBLIGATOIRE pour chaque projet) :
+- "code" → programme, API, logique serveur, base de données
+- "design" → maquettes, charte graphique, style visuel
+- "work" → pages visibles du site, interface utilisateur
+- "verifier" → vérification qualité, sécurité, tests
+- "recherche" → analyse de marché, SEO, documentation
+
 Tu peux créer plusieurs projets à la suite en enchaînant les blocs action.
+
+RÈGLE CRITIQUE — TOUT CRÉER EN UNE SEULE RÉPONSE :
+Quand l'utilisateur confirme ou dit "oui", "go", "démarre", "lance", "c'est parti" → génère IMMÉDIATEMENT TOUS les blocs action dans cette même réponse.
+Ne dis JAMAIS "Je commence par X" puis attends. Ne découpe JAMAIS la création en plusieurs échanges.
+Crée le workflow ET tous les projets dans UN SEUL message.
+
+RÈGLE CRITIQUE — NE JAMAIS CRÉER DE DOUBLONS :
+Avant de créer un projet, vérifie TOUJOURS la liste des agents dans le contexte ci-dessous.
+Si un agent avec le même nom ou le même rôle existe déjà → utilise link_project avec son id.
+Ne crée un projet que si AUCUN agent existant ne correspond.
+Quand l'utilisateur demande de "lier", "relier", "rattacher" ou "connecter" des agents → c'est TOUJOURS link_project, JAMAIS create_project.
 
 RÈGLES IMPORTANTES :
 - auto=true → l'action est exécutée immédiatement sans confirmation
 - auto=false ou absent → l'utilisateur doit confirmer avant exécution
+- Chaque projet DOIT avoir un agentType
+- Pour lier un agent existant, utilise TOUJOURS son id exact depuis le contexte (le champ id="..." de chaque agent)
+- Ne dis JAMAIS que tu as fait quelque chose sans générer le bloc action correspondant
 - Explique toujours ce que tu vas faire avant les blocs action
 - Sois concis mais complet
 
@@ -578,20 +637,59 @@ ${contextBlock}`;
       const keys = await readAllApiKeys();
       const route = resolveRoute(model, keys);
       const targetUrl = route.targetUrl;
-      const headers = { "Content-Type": "application/json", ...route.headers };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...route.headers,
+      };
       const upstreamModel = route.model;
 
-      const body = {
-        model: upstreamModel ?? model,
-        messages: [{ role: "system", content: systemPrompt }, ...(messages || [])],
-        stream: true,
-        temperature: 0.3,
-      };
+      const allMessages = [
+        { role: "system", content: systemPrompt },
+        ...(messages || []),
+      ];
+      let requestBody: string;
+      let isGemini = false;
 
-      const upstream = await fetch(targetUrl, {
+      if (route.provider === "gemini") {
+        isGemini = true;
+        const googleAuth = await getGoogleAuth();
+        if (!googleAuth) {
+          res
+            .status(401)
+            .json({
+              error:
+                "Token Google expiré — lance 'opencode auth login' dans un terminal pour te reconnecter",
+            });
+          return;
+        }
+        headers["Authorization"] = `Bearer ${googleAuth.accessToken}`;
+
+        const { contents, systemInstruction } = convertOpenAIToGemini(allMessages);
+        const innerRequest: Record<string, unknown> = {
+          contents,
+          generationConfig: { temperature: 0.3 },
+        };
+        if (systemInstruction) innerRequest.systemInstruction = systemInstruction;
+        requestBody = JSON.stringify({
+          project: googleAuth.managedProjectId,
+          model: upstreamModel ?? model.replace("google/", ""),
+          user_prompt_id: randomBytes(16).toString("hex"),
+          request: innerRequest,
+        });
+      } else {
+        requestBody = JSON.stringify({
+          model: upstreamModel ?? model,
+          messages: allMessages,
+          stream: true,
+          temperature: 0.3,
+          max_tokens: 16000,
+        });
+      }
+
+      const upstream = await fetchWithRetry(targetUrl, {
         method: "POST",
         headers,
-        body: JSON.stringify(body),
+        body: requestBody,
       });
 
       if (!upstream.ok) {
@@ -631,7 +729,11 @@ ${contextBlock}`;
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         for (const line of lines) {
-          if (line.trim().startsWith("data:")) {
+          if (!line.trim().startsWith("data:")) continue;
+          if (isGemini) {
+            const converted = convertGeminiChunkToOpenAI(line.trim());
+            if (converted) res.write(converted);
+          } else {
             res.write(line + "\n");
           }
         }
@@ -750,8 +852,8 @@ ${contextBlock}`;
       "claude-sonnet-4-6": "claude-3-7-sonnet-latest",
       "claude-opus-4-6": "claude-3-opus-latest",
       "claude-haiku-4-5": "claude-3-5-haiku-latest",
-      "google/gemini-3-flash-preview": "google/gemini-2.0-flash",
-      "google/gemini-3-pro-preview": "google/gemini-2.0-pro-exp-02-05",
+      "google/gemini-3-flash-preview": "google/gemini-3-flash-preview",
+      "google/gemini-3-pro-preview": "google/gemini-3-pro-preview",
       "deepseek/deepseek-v4-pro": "deepseek/deepseek-chat",
       "deepseek/deepseek-v4-flash": "deepseek/deepseek-r1",
     };
@@ -896,6 +998,68 @@ ${contextBlock}`;
         | Array<{ role: string; content: string }>
         | undefined;
 
+      // ── Vision Proxy: convert images to text for text-only models ──
+      if (messages && !bypassInjection && !shouldBypassVisionProxy(model)) {
+        const visionConfig = await getVisionConfig(keys.ollamaUrl ?? null);
+        if (visionConfig.visionProxyEnabled) {
+          let ollamaReachable: boolean | null = null;
+          const rawMessages = messages as Array<{
+            role: string;
+            content: string | unknown[];
+          }>;
+          for (let i = 0; i < rawMessages.length; i++) {
+            const msg = rawMessages[i];
+            if (msg.role !== "user" || !Array.isArray(msg.content)) continue;
+
+            const parts = msg.content as Array<{
+              type: string;
+              text?: string;
+              image_url?: { url: string };
+            }>;
+            const hasImages = parts.some((p) => p.type === "image_url");
+            if (!hasImages) continue;
+
+            if (ollamaReachable === null) {
+              ollamaReachable = await checkOllamaHealth(visionConfig.ollamaUrl);
+              if (!ollamaReachable) {
+                console.warn("[proxy:vision] Ollama non joignable, images non traitées");
+                break;
+              }
+            }
+
+            const textParts: string[] = [];
+            for (const part of parts) {
+              if (part.type === "text" && part.text) {
+                textParts.push(part.text);
+              } else if (part.type === "image_url" && part.image_url?.url) {
+                try {
+                  const description = await describeImage(
+                    part.image_url.url,
+                    visionConfig,
+                  );
+                  textParts.push(
+                    formatDescriptionForDeepSeek(
+                      description,
+                      visionConfig.visionDetailLevel,
+                    ),
+                  );
+                } catch (err) {
+                  const errMsg = err instanceof Error ? err.message : String(err);
+                  console.warn("[proxy:vision] Erreur describeImage:", errMsg);
+                  textParts.push("[Image non analysée — erreur Ollama]");
+                }
+              }
+            }
+
+            (messages as Array<{ role: string; content: string }>)[i] = {
+              role: msg.role,
+              content: textParts.join("\n"),
+            };
+          }
+          rest.messages = messages;
+        }
+      }
+
       if (messages && !bypassInjection) {
         // ── 0. Élagage intelligent du contexte ──
         // Si la conversation dépasse 90 000 tokens estimés, on supprime les
@@ -1028,11 +1192,10 @@ ${contextBlock}`;
       if (provider === "gemini") {
         const googleAuth = await getGoogleAuth();
         if (!googleAuth) {
-          res
-            .status(401)
-            .json({
-              error: "Google OAuth token not available — run 'opencode auth login' first",
-            });
+          res.status(401).json({
+            error:
+              "Token Google expiré — lance 'opencode auth login' dans un terminal pour te reconnecter",
+          });
           return;
         }
         headers["Authorization"] = `Bearer ${googleAuth.accessToken}`;
@@ -1047,18 +1210,16 @@ ${contextBlock}`;
           contents,
           generationConfig: {
             temperature: (rest.temperature as number) ?? 0.7,
-            maxOutputTokens: (rest.max_tokens as number) ?? 8192,
+            ...(rest.max_tokens ? { maxOutputTokens: rest.max_tokens as number } : {}),
           },
         };
         if (systemInstruction) innerRequest.systemInstruction = systemInstruction;
-
-        const cloudCodeAssistBody = {
+        geminiBody = JSON.stringify({
           project: googleAuth.managedProjectId,
           model: geminiModel,
           user_prompt_id: randomBytes(16).toString("hex"),
           request: innerRequest,
-        };
-        geminiBody = JSON.stringify(cloudCodeAssistBody);
+        });
       }
 
       // ── Parameter Mapping for Reasoning/Thinking (Claude 3.7 & others) ──
@@ -1120,7 +1281,7 @@ ${contextBlock}`;
         delete (finalRest as Record<string, unknown>).reasoning_effort;
       }
 
-      const upstream = await fetch(targetUrl, {
+      const upstream = await fetchWithRetry(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body:
@@ -1361,134 +1522,161 @@ ${contextBlock}`;
   return sessionToken;
 }
 
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  maxRetries = 3,
+): Promise<globalThis.Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const resp = await fetch(url, init);
+    if (resp.status !== 429 || attempt === maxRetries) return resp;
+
+    const body = await resp.text();
+    const match = body.match(/after\s+(\d+)s/i);
+    const waitSec = match ? Math.min(parseInt(match[1], 10), 60) : 5 * (attempt + 1);
+    console.log(
+      `[proxy] 429 rate-limited, retrying in ${waitSec}s (attempt ${attempt + 1}/${maxRetries})`,
+    );
+    await new Promise((r) => setTimeout(r, waitSec * 1000));
+  }
+  return fetch(url, init);
+}
+
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-const GEMINI_TO_OPENROUTER: Record<string, string> = {
-  "gemini-2.0-flash-thinking-exp": "google/gemini-2.0-flash-thinking-exp:free",
-  "gemini-2.0-pro-exp-02-05": "google/gemini-2.0-pro-exp-02-05",
-  "gemini-2.0-flash": "google/gemini-2.0-flash",
-};
+const GEMINI_TO_OPENROUTER: Record<string, string> = {};
 
 // ── Google Gemini direct route (via OAuth) ──
 
-const GEMINI_DIRECT_MODELS = new Set([
-  "google/gemini-2.0-flash-thinking-exp",
-  "google/gemini-2.0-pro-exp-02-05",
-  "google/gemini-2.0-flash",
-]);
-
 const GEMINI_MODEL_NAME_MAP: Record<string, string> = {
-  "google/gemini-2.0-flash-thinking-exp": "gemini-2.0-flash-thinking-exp",
-  "google/gemini-2.0-pro-exp-02-05": "gemini-2.0-pro-exp-02-05",
-  "google/gemini-2.0-flash": "gemini-2.0-flash",
+  "google/gemini-2.5-flash": "gemini-2.5-flash",
+  "google/gemini-2.5-pro": "gemini-2.5-pro",
+  "google/gemini-3-flash-preview": "gemini-3-flash-preview",
+  "google/gemini-3-pro-preview": "gemini-3-pro-preview",
 };
 
 const GEMINI_API_BASE = "https://cloudcode-pa.googleapis.com";
 
 type GoogleAuth = { accessToken: string; managedProjectId: string } | null;
 
-async function getGoogleAuth(): Promise<GoogleAuth> {
+const OPENCODE_AUTH_URL = "https://console.opencode.ai";
+const OPENCODE_CLIENT_ID = "opencode-cli";
+const AUTH_JSON_PATH = path.join(homedir(), ".local", "share", "opencode", "auth.json");
+const ACCOUNT_JSON_PATH = path.join(
+  homedir(),
+  ".local",
+  "share",
+  "opencode",
+  "account.json",
+);
+
+async function readGoogleAuthFile(): Promise<{
+  accessToken: string | null;
+  refreshToken: string | null;
+  expires: number;
+}> {
   try {
-    const accountPath = path.join(
-      homedir(),
-      ".local",
-      "share",
-      "opencode",
-      "account.json",
-    );
-    const raw = await fs.readFile(accountPath, "utf-8");
-    const parsed = JSON.parse(raw) as {
-      accounts?: Record<
-        string,
-        {
-          credential?: {
-            access?: string;
-            expires?: number;
-            refresh?: string;
-            type?: string;
-          };
-        }
-      >;
-      active?: { google?: string };
+    const raw = await fs.readFile(AUTH_JSON_PATH, "utf-8");
+    const auth = JSON.parse(raw) as {
+      google?: { access?: string; refresh?: string; expires?: number };
     };
-    const activeId = parsed.active?.google;
-    if (!activeId || !parsed.accounts?.[activeId]?.credential) return null;
-
-    const cred = parsed.accounts[activeId].credential;
-
-    // Extract managed project ID from refresh token format: refreshToken|project|managedProject
-    const parts = (cred.refresh ?? "").split("|");
-    const managedProjectId = parts[2] || parts[1] || "";
-
-    let accessToken = cred.access ?? null;
-    if (accessToken && cred.expires && cred.expires < Date.now()) {
-      accessToken = null; // expired, force refresh
+    if (auth.google?.access) {
+      return {
+        accessToken: auth.google.access,
+        refreshToken: auth.google.refresh ?? null,
+        expires: auth.google.expires ?? 0,
+      };
     }
-
-    if (!accessToken && cred.refresh && cred.type === "oauth") {
-      const newToken = await refreshGoogleToken(cred.refresh);
-      if (newToken) accessToken = newToken;
-    }
-
-    return accessToken ? { accessToken, managedProjectId } : null;
   } catch {
-    return null;
-  }
-}
-
-const GEMINI_OAUTH_CLIENT_ID =
-  "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com";
-
-async function refreshGoogleToken(refreshToken: string): Promise<string | null> {
-  try {
-    // Extract the actual refresh token (strip project suffix after | separator)
-    const actualToken = refreshToken.split("|")[0];
-    const clientSecret =
-      (await readSecret("openhub", "google-oauth-client-secret")) ??
-      (typeof process !== "undefined" ? process.env.GEMINI_OAUTH_CLIENT_SECRET : null) ??
-      "";
-
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: GEMINI_OAUTH_CLIENT_ID,
-        client_secret: clientSecret,
-        refresh_token: actualToken,
-        grant_type: "refresh_token",
-      }),
-    });
-
-    if (!res.ok) return null;
-    const data = (await res.json()) as { access_token?: string; expires_in?: number };
-    if (!data.access_token) return null;
-
-    // Update account.json with new access token and expiry
     try {
-      const accountPath = path.join(
-        homedir(),
-        ".local",
-        "share",
-        "opencode",
-        "account.json",
-      );
-      const raw = await fs.readFile(accountPath, "utf-8");
-      const cfg = JSON.parse(raw) as Record<string, unknown>;
-      const accounts = cfg.accounts as
-        | Record<string, { credential?: Record<string, unknown> }>
-        | undefined;
-      const activeId = (cfg.active as Record<string, string> | undefined)?.google;
-      if (activeId && accounts?.[activeId]?.credential) {
-        accounts[activeId].credential.access = data.access_token;
-        accounts[activeId].credential.expires =
-          Date.now() + (data.expires_in ?? 3600) * 1000;
-        await fs.writeFile(accountPath, JSON.stringify(cfg, null, 2), "utf-8");
+      const raw = await fs.readFile(ACCOUNT_JSON_PATH, "utf-8");
+      const parsed = JSON.parse(raw) as {
+        accounts?: Record<
+          string,
+          { credential?: { access?: string; refresh?: string; type?: string } }
+        >;
+        active?: { google?: string };
+      };
+      const activeId = parsed.active?.google;
+      const cred = activeId ? parsed.accounts?.[activeId]?.credential : undefined;
+      if (cred?.access) {
+        return {
+          accessToken: cred.access,
+          refreshToken: cred.refresh ?? null,
+          expires: 0,
+        };
       }
     } catch {
-      /* non-critical */
+      /* no fallback */
+    }
+  }
+  return { accessToken: null, refreshToken: null, expires: 0 };
+}
+
+async function refreshGoogleToken(refreshToken: string): Promise<string | null> {
+  // Try opencode backend first (works for tokens obtained via opencode auth login)
+  try {
+    const resp = await fetch(`${OPENCODE_AUTH_URL}/auth/device/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: OPENCODE_CLIENT_ID,
+      }),
+    });
+    if (resp.ok) {
+      const data = (await resp.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+      if (data.access_token) {
+        const newExpires = Date.now() + (data.expires_in ?? 3600) * 1000;
+        const existingRaw = await fs.readFile(AUTH_JSON_PATH, "utf-8").catch(() => "{}");
+        const existing = JSON.parse(existingRaw) as Record<string, unknown>;
+        const google = (existing.google ?? {}) as Record<string, unknown>;
+        const updated = {
+          ...existing,
+          google: {
+            ...google,
+            access: data.access_token,
+            ...(data.refresh_token ? { refresh: data.refresh_token } : {}),
+            expires: newExpires,
+          },
+        };
+        await fs.writeFile(AUTH_JSON_PATH, JSON.stringify(updated, null, 2), "utf-8");
+        console.log("[proxy] Google OAuth token refreshed via opencode backend");
+        return data.access_token;
+      }
+    }
+  } catch {
+    /* backend refresh failed, continue */
+  }
+
+  console.warn(
+    "[proxy] Google OAuth token expired — run 'opencode auth login' to refresh",
+  );
+  return null;
+}
+
+async function getGoogleAuth(): Promise<GoogleAuth> {
+  try {
+    const { accessToken, refreshToken, expires } = await readGoogleAuthFile();
+    if (!accessToken) return null;
+
+    const parts = (refreshToken ?? "").split("|");
+    const managedProjectId = parts[2] || parts[1] || "";
+
+    const isExpired = expires > 0 && Date.now() > expires;
+    if (isExpired && refreshToken) {
+      const newToken = await refreshGoogleToken(refreshToken);
+      if (newToken) return { accessToken: newToken, managedProjectId };
+      // Token expired and refresh failed — return null so callers show a clear message
+      return null;
     }
 
-    return data.access_token;
+    return { accessToken, managedProjectId };
   } catch {
     return null;
   }
@@ -1565,7 +1753,6 @@ function convertGeminiChunkToOpenAI(chunk: string): string | null {
 
 function resolveReasoningStyle(model: string): "anthropic" | "openai" {
   const m = model.toLowerCase();
-  if (GEMINI_DIRECT_MODELS.has(model) || GEMINI_TO_OPENROUTER[model]) return "openai";
   if (m.includes("/")) return "openai";
   if (m.startsWith("claude-")) return "anthropic";
   if (
@@ -1597,8 +1784,8 @@ function resolveRoute(
   else if (model === "claude-3-opus-latest" || model === "claude-opus-4-6")
     upstreamModel = "claude-3-opus-20240229";
 
-  // Google Gemini direct route (via OAuth — uses Cloud Code Assist API)
-  if (GEMINI_DIRECT_MODELS.has(model)) {
+  // Google Gemini via Cloud Code Assist (OAuth)
+  if (model.startsWith("google/")) {
     const geminiModel = GEMINI_MODEL_NAME_MAP[model] ?? model.replace("google/", "");
     return {
       targetUrl: `${GEMINI_API_BASE}/v1internal:streamGenerateContent?alt=sse`,
@@ -1692,12 +1879,11 @@ function getFullModelCatalog(): Array<{ id: string; object: string; source: stri
     { id: "o1-mini", object: "model", source: "direct" },
     { id: "o3-mini", object: "model", source: "direct" },
 
-    // --- Gemini Models ---
-    { id: "google/gemini-2.0-flash-thinking-exp", object: "model", source: "gemini" },
-    { id: "google/gemini-2.0-pro-exp-02-05", object: "model", source: "gemini" },
-    { id: "google/gemini-2.0-flash", object: "model", source: "gemini" },
-    { id: "google/gemini-3-flash-preview", object: "model", source: "gemini" }, // Legacy Alias
-    { id: "google/gemini-3-pro-preview", object: "model", source: "gemini" }, // Legacy Alias
+    // --- Gemini Models (Cloud Code Assist via OAuth) ---
+    { id: "google/gemini-2.5-flash", object: "model", source: "gemini" },
+    { id: "google/gemini-2.5-pro", object: "model", source: "gemini" },
+    { id: "google/gemini-3-flash-preview", object: "model", source: "gemini" },
+    { id: "google/gemini-3-pro-preview", object: "model", source: "gemini" },
 
     // --- OpenRouter Models ---
     { id: "anthropic/claude-3.7-sonnet", object: "model", source: "openrouter" },
