@@ -61,27 +61,12 @@ npm run dev
 2. Add your API keys (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — stored in macOS Keychain
 3. Pick your models
 
+> [!TIP]
 > To use Google Gemini models directly (without OpenRouter), run `opencode auth login` in your terminal.
 
 ---
 
 ## Architecture
-
-```
-OpenHub/
-├── electron/              # Electron shell
-│   ├── main.ts            # Main process + IPC
-│   ├── preload.ts         # ContextBridge
-│   ├── proxy/             # LLM proxy (Express, localhost:9999)
-│   ├── overrides/         # CSS/JS injected per app (never touches upstream source)
-│   ├── memory-store.ts    # Persistent memory with semantic search
-│   ├── project-store.ts   # Project management
-│   └── orchestrator-runner.ts  # Multi-agent orchestrator
-├── apps/                  # Upstream repos (cloned by setup.sh, gitignored)
-└── scripts/               # Setup & utilities
-```
-
-### Data flow
 
 ```
 WebView (OpenWork / OpenCode / Open Design)
@@ -93,6 +78,8 @@ WebView (OpenWork / OpenCode / Open Design)
                              ├── Context injection (project, memory)
                              └── Background memory extraction
 ```
+
+For the full spec — ports, security model, config cascade, and overlay system — see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -121,6 +108,10 @@ WebView (OpenWork / OpenCode / Open Design)
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+**[Open an issue](https://github.com/1zalt/OpenHub/issues) · [Read the docs](ARCHITECTURE.md) · [Contribute](CONTRIBUTING.md)**
 
 ---
 
