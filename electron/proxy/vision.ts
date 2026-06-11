@@ -9,20 +9,47 @@ export interface VisionConfig {
   visionDetailLevel: "low" | "high";
 }
 
-export interface VisionDescription {
-  summary: string;
-  details: string;
-  tags: string[];
-  ui_elements?: string[];
-  text_content?: string;
+export interface VisionZone {
+  position: string;
+  description: string;
+  elements: string[];
 }
 
-export interface VisionMessagePart {
-  type: "image_url";
-  image_url: {
-    url: string;
-    detail?: "low" | "high" | "auto";
+export interface VisionTextEntry {
+  text: string;
+  position: string;
+  style: string;
+}
+
+export interface VisionInteractiveElement {
+  type: string;
+  label: string;
+  position: string;
+  state: string;
+  color: string;
+  size?: string;
+  dimensions?: string;
+  border_radius?: string;
+}
+
+export interface VisionDescription {
+  scene_type: string;
+  summary: string;
+  layout: {
+    background: string;
+    overall_structure?: string;
+    estimated_dimensions?: string;
+    zones: VisionZone[];
   };
+  text_content: VisionTextEntry[];
+  interactive_elements: VisionInteractiveElement[];
+  visual_cues: {
+    dominant_colors: string[];
+    highlighted: string;
+    spatial_relations: string[];
+  };
+  reproduction_notes?: string;
+  tags: string[];
 }
 
 /**
@@ -31,31 +58,33 @@ export interface VisionMessagePart {
  */
 export function shouldBypassVisionProxy(modelName: string): boolean {
   const lowercaseName = modelName.toLowerCase();
-  
+
   // On ne bypass JAMAIS pour DeepSeek ou Llama (modèles texte pur)
   if (lowercaseName.includes("deepseek") || lowercaseName.includes("llama")) {
     return false;
   }
 
   const nativeVisionModels = [
-    "gpt-4o", 
-    "gpt-4-vision", 
-    "claude-3-5", 
-    "claude-3-opus", 
-    "gemini-", 
-    "pixtral", 
-    "llava", 
+    "gpt-4o",
+    "gpt-4-vision",
+    "claude-3-5",
+    "claude-3-opus",
+    "gemini-",
+    "pixtral",
+    "llava",
     "o1-",
-    "vision"
+    "vision",
   ];
-  return nativeVisionModels.some(m => lowercaseName.includes(m));
+  return nativeVisionModels.some((m) => lowercaseName.includes(m));
 }
 
 /**
  * Lit la configuration de vision depuis settings.json
  * Accepte une URL optionnelle pour écraser celle par défaut (provenant du Keychain)
  */
-export async function getVisionConfig(overrideOllamaUrl?: string | null): Promise<VisionConfig> {
+export async function getVisionConfig(
+  overrideOllamaUrl?: string | null,
+): Promise<VisionConfig> {
   const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
   const defaultConfig: VisionConfig = {
     visionProxyEnabled: true,
@@ -67,7 +96,7 @@ export async function getVisionConfig(overrideOllamaUrl?: string | null): Promis
   try {
     const content = await fs.readFile(settingsPath, "utf-8");
     const settings = JSON.parse(content);
-    
+
     return {
       visionProxyEnabled: settings.visionProxyEnabled ?? defaultConfig.visionProxyEnabled,
       visionModel: settings.visionModel ?? defaultConfig.visionModel,
@@ -87,7 +116,7 @@ export const MAX_IMAGE_SIZE_MB = 10;
 export async function checkOllamaHealth(url: string): Promise<boolean> {
   try {
     const res = await fetch(`${url}/api/tags`, {
-      signal: AbortSignal.timeout(2000)
+      signal: AbortSignal.timeout(2000),
     });
     return res.ok;
   } catch {
@@ -100,36 +129,101 @@ export async function checkOllamaHealth(url: string): Promise<boolean> {
  */
 export async function describeImage(
   imageBase64: string,
-  config: VisionConfig
+  config: VisionConfig,
 ): Promise<VisionDescription> {
   // Nettoyage du base64 (retrait du préfixe data:image/...)
-  const base64Data = imageBase64.includes(",") 
-    ? imageBase64.split(",")[1] 
-    : imageBase64;
+  const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
 
   // Vérification de la taille
   const imageBuffer = Buffer.from(base64Data, "base64");
   const sizeMB = imageBuffer.length / (1024 * 1024);
   if (sizeMB > MAX_IMAGE_SIZE_MB) {
-    throw new Error(`Image trop volumineuse : ${sizeMB.toFixed(2)} Mo (max ${MAX_IMAGE_SIZE_MB} Mo)`);
+    throw new Error(
+      `Image trop volumineuse : ${sizeMB.toFixed(2)} Mo (max ${MAX_IMAGE_SIZE_MB} Mo)`,
+    );
   }
 
-  const systemPrompt = `Tu es un expert en vision par ordinateur et analyse d'images. 
-Ton but est de décrire avec précision et de manière exhaustive l'image fournie.
-Fournis une analyse détaillée couvrant :
-1. **Résumé** : Une description courte de l'image.
-2. **Détails** : Une analyse approfondie de la scène, des sujets, des objets et de l'ambiance.
-3. **Interface Utilisateur (UI)** : Si l'image est une capture d'écran, décris les composants UI (boutons, formulaires, navigation).
-4. **Texte** : Extrais tout le texte visible.
-5. **Tags** : Liste des mots-clés pertinents.
+  const systemPrompt = `Tu es les YEUX d'une IA qui ne peut pas voir. Ta description sera injectée mot pour mot dans son contexte. L'utilisateur parlera ensuite COMME SI l'IA voyait l'image. Il dira des choses comme "le truc en haut à droite", "le bouton bleu", "là où c'est surligné", "à côté du logo", "tu vois le petit truc là ?", ou même "refais-moi ça à l'identique". Ta description doit permettre à l'IA de répondre aussi naturellement que si elle voyait l'image, ET de reproduire fidèlement ce qu'elle contient si on le lui demande.
 
-Réponds TOUJOURS au format JSON suivant :
+PRINCIPE FONDAMENTAL :
+Chaque pixel compte. Si un humain qui regarde l'image pourrait le remarquer, même en plissant les yeux, tu DOIS le décrire. Aucun élément n'est trop petit, trop discret, trop évident ou trop secondaire pour être omis. Un détail que tu juges "insignifiant" pourrait être exactement celui dont l'utilisateur va parler, ou celui qui manquera si on demande de reproduire l'image.
+
+MÉTHODE DE SCAN (3 passes obligatoires) :
+
+PASSE 1 — CADRE GLOBAL :
+Type de scène, fond, proportions apparentes de l'image (paysage/portrait/carré), ambiance lumineuse (clair/sombre/contraste élevé), thème de couleurs général.
+
+PASSE 2 — ZONE PAR ZONE (grille 3×3) :
+haut-gauche → haut-centre → haut-droite → centre-gauche → centre → centre-droite → bas-gauche → bas-centre → bas-droite.
+Pour chaque zone, décris TOUT ce qui s'y trouve sans exception.
+
+PASSE 3 — INTERSTICES :
+Repasse sur les espaces vides, les marges, les gaps entre les éléments principaux. C'est là que se cachent les petits éléments (icônes, séparateurs, badges, timestamps) que tu rates le plus souvent.
+
+CE QUE TU DOIS CAPTURER (sans exception) :
+- Tout élément visuel quelle que soit sa taille : texte, icône, forme, ligne, point, ombre, bordure, dégradé.
+- Tout élément interactif ou qui y ressemble. Quand il n'y a pas de texte, DÉDUIS la fonction depuis la forme (deux carrés superposés = copier, × = fermer, crayon = éditer, engrenage = paramètres, ⋯ = plus d'options, poubelle = supprimer, loupe = rechercher, etc.).
+- Tout indicateur d'état : points colorés, coches, badges, compteurs, barres de progression, spinners, verrous, statut en ligne/hors ligne.
+- Le curseur de la souris s'il est visible, et ce qu'il survole.
+- Les éléments partiellement visibles ou tronqués par les bords.
+- Les différences subtiles entre éléments similaires : onglet plus clair = actif, bordure plus épaisse = sélectionné, opacité réduite = désactivé.
+
+POUR CHAQUE ÉLÉMENT, donne :
+- Sa POSITION (zone 3×3 + position relative aux voisins)
+- Sa COULEUR exacte (code hex si tu peux l'estimer, sinon nom précis comme "gris clair", "bleu-vert vif", "noir pur")
+- Sa TAILLE relative (petit/moyen/grand par rapport à l'image)
+- Son ÉTAT apparent (actif, inactif, survolé, sélectionné, désactivé, chargement)
+
+DÉTAILS DE REPRODUCTION — essentiels si l'utilisateur demande de recréer l'image :
+Pour chaque élément structurant (conteneur, carte, bulle, barre, panneau), estime :
+- Dimensions approximatives en % de l'image (ex: "~60% de la largeur, ~20% de la hauteur")
+- Marges et espacements par rapport aux voisins (ex: "~16px de marge avec le bord gauche", "~8px d'écart avec l'élément au-dessus")
+- Coins arrondis (aucun / légers ~4px / moyens ~8px / forts ~16px / circulaires)
+- Ombres portées (aucune / légère / prononcée, direction si visible)
+- Bordures (aucune / fine 1px / épaisse, couleur)
+- Padding interne estimé (ex: "~12px horizontal, ~8px vertical")
+
+Pour le texte, estime :
+- La police (serif / sans-serif / monospace)
+- La taille relative (très petit ~10px / petit ~12px / normal ~14px / moyen ~16px / grand ~20px / titre ~24px / très grand ~32px+)
+- La graisse (light / normal / medium / semibold / bold)
+- L'interligne (serré / normal / aéré)
+- L'alignement (gauche / centré / droite)
+
+Pour la mise en page globale :
+- Type de layout (flex colonne / flex ligne / grille / empilé / centré)
+- Alignement des éléments entre eux (alignés à gauche / centrés / justifiés / espacés uniformément)
+- Hiérarchie visuelle : quel élément domine, lesquels sont secondaires, lesquels sont discrets
+
+FORMAT JSON OBLIGATOIRE :
 {
-  "summary": "...",
-  "details": "...",
-  "ui_elements": ["...", "..."],
-  "text_content": "...",
-  "tags": ["...", "..."]
+  "scene_type": "screenshot | photo | diagram | document | other",
+  "summary": "Une phrase décrivant ce qu'on voit globalement",
+  "layout": {
+    "background": "couleur exacte du fond principal",
+    "overall_structure": "description du layout global (ex: flex colonne centré, sidebar + contenu principal, grille 2 colonnes)",
+    "estimated_dimensions": "proportions de l'image (ex: ~500×800px portrait)",
+    "zones": [
+      {
+        "position": "haut-gauche | haut-centre | haut-droite | centre-gauche | centre | centre-droite | bas-gauche | bas-centre | bas-droite",
+        "description": "ce qu'il y a dans cette zone",
+        "elements": ["CHAQUE élément : nature, couleur exacte, taille, état, dimensions estimées, marges, coins arrondis, ombres si applicable"]
+      }
+    ]
+  },
+  "text_content": [
+    {"text": "texte exact mot pour mot", "position": "où dans l'image", "style": "police, taille estimée, graisse, couleur, alignement"}
+  ],
+  "interactive_elements": [
+    {"type": "bouton|lien|champ|menu|checkbox|toggle|onglet|icône|slider|badge", "label": "texte visible OU fonction déduite", "position": "où", "state": "actif|inactif|survolé|sélectionné|désactivé", "color": "couleur exacte", "size": "petit|moyen|grand", "dimensions": "largeur×hauteur estimées", "border_radius": "aucun|léger|moyen|fort|circulaire"}
+  ],
+  "visual_cues": {
+    "dominant_colors": ["les 3-5 couleurs principales avec noms précis ou hex estimés"],
+    "highlighted": "ce qui attire l'œil en premier et pourquoi",
+    "spatial_relations": ["A est à gauche de B avec ~Npx d'écart", "C est en dessous de D", "E est centré dans F"]
+  },
+  "reproduction_notes": "résumé des informations clés pour reproduire cette image : structure du layout, palette de couleurs, typographie, espacements dominants, style général (flat/material/glassmorphism/neumorphism/etc)",
+  "tags": ["mots-clés"]
 }`;
 
   const response = await fetch(`${config.ollamaUrl}/api/chat`, {
@@ -139,18 +233,19 @@ Réponds TOUJOURS au format JSON suivant :
       model: config.visionModel,
       messages: [
         { role: "system", content: systemPrompt },
-        { 
-          role: "user", 
-          content: "Décris cette image en détail en respectant le format JSON demandé.",
-          images: [base64Data] 
-        }
+        {
+          role: "user",
+          content:
+            "Analyse cette image. Sois exhaustif sur les positions, couleurs, textes et éléments interactifs. L'utilisateur va te poser des questions comme si tu voyais l'image — ta description doit couvrir chaque détail spatial.",
+          images: [base64Data],
+        },
       ],
       stream: false,
       format: "json",
       options: {
         num_ctx: 8192, // Limite le contexte à 8k pour économiser de la RAM
-        temperature: 0.1
-      }
+        temperature: 0.1,
+      },
     }),
     signal: AbortSignal.timeout(45000), // Timeout réduit à 45s
   });
@@ -159,9 +254,18 @@ Réponds TOUJOURS au format JSON suivant :
     throw new Error(`Ollama error: ${response.statusText}`);
   }
 
-  const result = (await response.json()) as any;
-  const content = result?.message?.content || result?.content || "";
-  
+  const result = (await response.json()) as Record<string, unknown>;
+  const msg = result["message"];
+  const content = (
+    typeof msg === "object" &&
+    msg !== null &&
+    typeof (msg as Record<string, unknown>)["content"] === "string"
+      ? (msg as Record<string, unknown>)["content"]
+      : typeof result["content"] === "string"
+        ? result["content"]
+        : ""
+  ) as string;
+
   if (!content) {
     throw new Error("Réponse Ollama vide ou malformée (champ content manquant)");
   }
@@ -169,93 +273,160 @@ Réponds TOUJOURS au format JSON suivant :
   return parseVisionResponse(content);
 }
 
-/**
- * Structure la sortie du modèle avec une tolérance aux erreurs de syntaxe
- */
+const EMPTY_DESCRIPTION: VisionDescription = {
+  scene_type: "other",
+  summary: "Aucune donnée de vision",
+  layout: { background: "", zones: [] },
+  text_content: [],
+  interactive_elements: [],
+  visual_cues: { dominant_colors: [], highlighted: "", spatial_relations: [] },
+  tags: [],
+};
+
+function safeArray<T>(val: unknown): T[] {
+  return Array.isArray(val) ? (val as T[]) : [];
+}
+
 export function parseVisionResponse(content: string): VisionDescription {
-  if (!content) {
-    return {
-      summary: "Aucune donnée de vision",
-      details: "Le modèle n'a renvoyé aucun contenu.",
-      tags: [],
-    };
-  }
+  if (!content) return { ...EMPTY_DESCRIPTION };
 
   const cleanContent = content.trim();
-  
+
   try {
-    // 1. Tentative de parsing JSON standard
     const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : cleanContent;
-    const parsed = JSON.parse(jsonStr);
-    
+    const p = JSON.parse(jsonStr) as Record<string, unknown>;
+
+    const layout = (p.layout ?? {}) as Record<string, unknown>;
+    const cues = (p.visual_cues ?? {}) as Record<string, unknown>;
+
     return {
-      summary: parsed.summary || parsed.resume || "Analyse d'image",
-      details: parsed.details || parsed.description || "Aucun détail supplémentaire",
-      tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-      ui_elements: Array.isArray(parsed.ui_elements) ? parsed.ui_elements : [],
-      text_content: typeof parsed.text_content === 'string' ? parsed.text_content : JSON.stringify(parsed.text_content || ""),
+      scene_type: String(p.scene_type || "other"),
+      summary: String(p.summary || "Analyse d'image"),
+      layout: {
+        background: String(layout.background || ""),
+        overall_structure: layout.overall_structure
+          ? String(layout.overall_structure)
+          : undefined,
+        estimated_dimensions: layout.estimated_dimensions
+          ? String(layout.estimated_dimensions)
+          : undefined,
+        zones: safeArray<VisionZone>(layout.zones),
+      },
+      text_content: safeArray<VisionTextEntry>(p.text_content),
+      interactive_elements: safeArray<VisionInteractiveElement>(p.interactive_elements),
+      visual_cues: {
+        dominant_colors: safeArray<string>(cues.dominant_colors),
+        highlighted: String(cues.highlighted || ""),
+        spatial_relations: safeArray<string>(cues.spatial_relations),
+      },
+      reproduction_notes: p.reproduction_notes ? String(p.reproduction_notes) : undefined,
+      tags: safeArray<string>(p.tags),
     };
-  } catch (e) {
-    // 2. Fallback par Expressions Régulières si le JSON est malformé
-    // Utile quand le modèle liste des éléments sans crochets ou oublie des guillemets
-    
-    const summary = cleanContent.match(/"summary"\s*:\s*"([^"]+)"/i)?.[1] || 
-                    cleanContent.match(/Résumé\s*:\s*([^\n]+)/i)?.[1] || 
-                    "Analyse visuelle";
-                    
-    const details = cleanContent.match(/"details"\s*:\s*"([^"]+)"/i)?.[1] || 
-                    cleanContent.match(/Analyse détaillée\s*:\s*([\s\S]+?)(?="\w+"\s*:|###|$)/i)?.[1] || 
-                    cleanContent; // Si tout échoue, on prend le brut
-
-    // Extraction basique des tags (souvent source d'erreur JSON)
-    const tagsMatch = cleanContent.match(/"tags"\s*:\s*\[?([^\]]+)\]?/i);
-    const tags = tagsMatch ? tagsMatch[1].split(',').map(t => t.replace(/"/g, '').trim()) : [];
-
+  } catch {
+    // Fallback : le modèle a répondu en texte libre, on emballe dans summary
     return {
-      summary: summary.trim(),
-      details: details.trim(),
-      tags: tags,
-      text_content: cleanContent.match(/"text_content"\s*:\s*"([^"]+)"/i)?.[1] || ""
+      ...EMPTY_DESCRIPTION,
+      summary: cleanContent.slice(0, 200),
+      layout: {
+        background: "",
+        zones: [{ position: "centre", description: cleanContent, elements: [] }],
+      },
     };
   }
 }
 
-/**
- * Prépare la description pour injection dans le prompt final (ex: DeepSeek)
- */
 export function formatDescriptionForDeepSeek(
-  description: VisionDescription,
-  detailLevel: "low" | "high" = "high"
+  d: VisionDescription,
+  detailLevel: "low" | "high" = "high",
 ): string {
-  let output = `### [DÉBUT DU CONTEXTE VISUEL GÉNÉRÉ LOCALEMENT]\n`;
-  output += `Ce message contenait une image qui a été analysée par un modèle de vision local car ton modèle actuel ne supporte pas la vision native. Voici la transcription fidèle de ce qui est visible :\n\n`;
-  output += `**Résumé** : ${description.summary}\n`;
+  const lines: string[] = [
+    `### [CONTEXTE VISUEL — IMAGE REÇUE]`,
+    `Voici ce que tu vois dans l'image. C'est ta perception directe. Réponds comme si tu regardais l'image toi-même : ne dis JAMAIS que tu ne peux pas voir, que tu te fies à une description, ou qu'un autre modèle a analysé l'image. Pour toi, tu VOIS cette image. Si l'utilisateur dit "tu vois le truc là ?", tu réponds "oui" ou "non" directement.`,
+    ``,
+    `**Type** : ${d.scene_type}`,
+    `**Ce que je vois** : ${d.summary}`,
+  ];
 
   if (detailLevel === "low") {
-    if (description.text_content) {
-      output += `**Texte extrait** : ${description.text_content}\n`;
+    if (d.text_content.length > 0) {
+      lines.push(`**Texte visible** : ${d.text_content.map((t) => t.text).join(" | ")}`);
     }
-    output += `\n### [FIN DU CONTEXTE VISUEL]\n`;
-    return output;
+    lines.push(`### [FIN DU CONTEXTE VISUEL]`);
+    return lines.join("\n");
   }
 
-  output += `**Analyse détaillée** : ${description.details}\n`;
-  
-  if (description.text_content) {
-    output += `**Texte extrait** : ${description.text_content}\n`;
+  // Structure globale
+  if (d.layout.background) {
+    lines.push(`**Fond** : ${d.layout.background}`);
   }
-  
-  if (description.ui_elements && description.ui_elements.length > 0) {
-    output += `**Éléments UI détectés** : ${description.ui_elements.join(", ")}\n`;
+  if (d.layout.overall_structure) {
+    lines.push(`**Structure** : ${d.layout.overall_structure}`);
   }
-  
-  if (description.tags && description.tags.length > 0) {
-    output += `**Mots-clés** : ${description.tags.join(", ")}\n`;
+  if (d.layout.estimated_dimensions) {
+    lines.push(`**Dimensions estimées** : ${d.layout.estimated_dimensions}`);
   }
-  
-  output += `\n### [FIN DU CONTEXTE VISUEL]\n\n`;
-  output += `*Note : Utilise la transcription ci-dessus comme source de vérité visuelle pour répondre à la consigne suivante :*\n`;
-  
-  return output;
+
+  // Carte spatiale zone par zone
+  if (d.layout.zones.length > 0) {
+    lines.push(``, `**Carte spatiale** :`);
+    for (const z of d.layout.zones) {
+      lines.push(`- [${z.position}] ${z.description}`);
+      for (const el of z.elements) {
+        lines.push(`  - ${el}`);
+      }
+    }
+  }
+
+  // Texte extrait avec positions et style
+  if (d.text_content.length > 0) {
+    lines.push(``, `**Textes visibles** :`);
+    for (const t of d.text_content) {
+      lines.push(`- "${t.text}" → ${t.position} (${t.style})`);
+    }
+  }
+
+  // Éléments interactifs
+  if (d.interactive_elements.length > 0) {
+    lines.push(``, `**Éléments interactifs** :`);
+    for (const el of d.interactive_elements) {
+      const extras: string[] = [];
+      if (el.size) extras.push(`taille: ${el.size}`);
+      if (el.dimensions) extras.push(`~${el.dimensions}`);
+      if (el.border_radius) extras.push(`coins: ${el.border_radius}`);
+      const suffix = extras.length > 0 ? `, ${extras.join(", ")}` : "";
+      lines.push(
+        `- ${el.type} "${el.label}" → ${el.position}, ${el.color}, état: ${el.state}${suffix}`,
+      );
+    }
+  }
+
+  // Indices visuels
+  if (d.visual_cues.dominant_colors.length > 0) {
+    lines.push(
+      ``,
+      `**Couleurs dominantes** : ${d.visual_cues.dominant_colors.join(", ")}`,
+    );
+  }
+  if (d.visual_cues.highlighted) {
+    lines.push(`**Point focal** : ${d.visual_cues.highlighted}`);
+  }
+  if (d.visual_cues.spatial_relations.length > 0) {
+    lines.push(`**Relations spatiales** :`);
+    for (const r of d.visual_cues.spatial_relations) {
+      lines.push(`- ${r}`);
+    }
+  }
+
+  // Notes de reproduction
+  if (d.reproduction_notes) {
+    lines.push(``, `**Guide de reproduction** : ${d.reproduction_notes}`);
+  }
+
+  if (d.tags.length > 0) {
+    lines.push(``, `**Tags** : ${d.tags.join(", ")}`);
+  }
+
+  lines.push(``, `### [FIN DU CONTEXTE VISUEL]`);
+  return lines.join("\n");
 }
