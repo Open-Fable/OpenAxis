@@ -15,6 +15,25 @@ var dragOffset = { x: 0, y: 0 };
 var workflows = [];
 var activeWorkflowId = null;
 
+function switchPanelTab(tab) {
+  var tabChat = document.getElementById("tabChat");
+  var tabHistory = document.getElementById("tabHistory");
+  var contentChat = document.getElementById("tabContentChat");
+  var contentHistory = document.getElementById("tabContentHistory");
+  if (tab === "chat") {
+    tabChat.classList.add("active");
+    tabHistory.classList.remove("active");
+    contentChat.classList.add("active");
+    contentHistory.classList.remove("active");
+  } else {
+    tabChat.classList.remove("active");
+    tabHistory.classList.add("active");
+    contentChat.classList.remove("active");
+    contentHistory.classList.add("active");
+    loadOrchHistory();
+  }
+}
+
 function escapeHtml(text) {
   if (!text) return "";
   return text

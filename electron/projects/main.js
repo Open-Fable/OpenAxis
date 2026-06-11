@@ -1,6 +1,7 @@
 /* main.js — Workflow selector, bootstrap, global event listeners */
 
 var CHAT_COLLAPSED_KEY = "openhub-chat-collapsed";
+var LAST_WF_KEY = "openhub-last-workflow";
 
 async function loadWorkflows() {
   if (window.openhub.getWorkflows) {
@@ -8,7 +9,15 @@ async function loadWorkflows() {
   }
   renderWorkflowSelector();
   if (!activeWorkflowId && workflows.length > 0) {
-    switchWorkflow(workflows[0].id);
+    var lastWfId = localStorage.getItem(LAST_WF_KEY);
+    var target =
+      lastWfId &&
+      workflows.find(function (w) {
+        return w.id === lastWfId;
+      })
+        ? lastWfId
+        : workflows[0].id;
+    await switchWorkflow(target);
   } else if (!activeWorkflowId) {
     document.getElementById("wfName").textContent = "Aucun workflow";
   }
@@ -38,8 +47,9 @@ function renderWorkflowSelector() {
     '<div class="wf-dropdown-item" onclick="openManagement()" style="color:var(--text-muted);">Gérer les workflows</div>';
 }
 
-function switchWorkflow(id) {
+async function switchWorkflow(id) {
   activeWorkflowId = id;
+  localStorage.setItem(LAST_WF_KEY, id);
   var wf = workflows.find(function (w) {
     return w.id === id;
   });
@@ -53,11 +63,12 @@ function switchWorkflow(id) {
     if (orch && wf.linkedProjectIds) {
       orch.linked = wf.linkedProjectIds.slice();
     }
-    loadProjects();
+    await loadProjects();
   }
   document.getElementById("wfDropdown").classList.remove("open");
   activeConvId = null;
-  loadConversations();
+  await loadConversations();
+  renderCanvas();
   updateTaskCard();
   updateChatPanelVisibility();
 }
@@ -68,25 +79,6 @@ function openNewWorkflowModal() {
   setTimeout(function () {
     document.getElementById("wfNameInput").focus();
   }, 100);
-}
-
-function switchPanelTab(tab) {
-  var tabChat = document.getElementById("tabChat");
-  var tabHistory = document.getElementById("tabHistory");
-  var contentChat = document.getElementById("tabContentChat");
-  var contentHistory = document.getElementById("tabContentHistory");
-  if (tab === "chat") {
-    tabChat.classList.add("active");
-    tabHistory.classList.remove("active");
-    contentChat.classList.add("active");
-    contentHistory.classList.remove("active");
-  } else {
-    tabChat.classList.remove("active");
-    tabHistory.classList.add("active");
-    contentChat.classList.remove("active");
-    contentHistory.classList.add("active");
-    loadOrchHistory();
-  }
 }
 
 function collapseChat() {
@@ -203,6 +195,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   await loadModels();
   await loadProjects();
   await loadWorkflows();
-  loadConversations();
+  await loadConversations();
   updateChatPanelVisibility();
 });

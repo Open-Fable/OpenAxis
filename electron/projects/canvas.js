@@ -63,7 +63,14 @@ function renderCanvas() {
   var activeWf = workflows.find(function (w) {
     return w.id === activeWorkflowId;
   });
-  var linkedIds = activeWf ? activeWf.linkedProjectIds || [] : activeOrch.linked || [];
+  var conv = typeof getActiveConv === "function" ? getActiveConv() : null;
+  var convProjectIds =
+    conv && conv.projectIds && conv.projectIds.length > 0 ? conv.projectIds : null;
+  var linkedIds = convProjectIds
+    ? convProjectIds
+    : activeWf
+      ? activeWf.linkedProjectIds || []
+      : activeOrch.linked || [];
   var linkedNodes = projects.filter(function (p) {
     return linkedIds.includes(p.id) || p.id === activeOrch.id;
   });

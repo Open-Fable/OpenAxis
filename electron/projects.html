@@ -56,31 +56,28 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Historique
             </button>
-            <div style="flex:1"></div>
-            <button class="chat-collapse-btn" id="btnCollapseChat" title="Replier">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
           </div>
 
           <!-- Tab: Chat -->
           <div class="chat-tab-content active" id="tabContentChat">
             <div class="chat-header">
-              <div style="flex:1;min-width:0;">
+              <div style="flex:1;min-width:0;position:relative;">
                 <div class="conv-selector" id="convSelector" onclick="toggleConvDropdown(event)">
                   <span id="convTitle" class="conv-title">Nouvelle conversation</span>
                   <svg class="conv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 <div class="conv-dropdown" id="convDropdown"></div>
               </div>
-              <div class="chat-header-sub">
-                <select id="assistantModelSelect" class="chat-model-select">
-                  <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (défaut)</option>
-                  <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet</option>
-                  <option value="anthropic/claude-3-5-haiku-20241022">Claude Haiku</option>
-                  <option value="openai/gpt-4o">GPT-4o</option>
-                  <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-                </select>
-              </div>
+              <select id="assistantModelSelect" class="chat-model-select">
+                <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+                <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet</option>
+                <option value="anthropic/claude-3-5-haiku-20241022">Claude Haiku</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+              </select>
+              <button class="chat-collapse-btn" id="btnCollapseChat" title="Replier">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
             </div>
             <div class="chat-messages" id="chatMessages"></div>
             <div class="chat-input-area">
@@ -112,15 +109,9 @@
         <!-- Canvas Area (center) -->
         <div class="canvas-area" id="orchestrationView">
           <!-- Task card pinned at top of canvas -->
-          <div class="task-card" id="taskCard" onclick="openDetailWorkflow()">
-            <div class="task-card-left">
-              <svg class="task-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <div class="task-card-content">
-                <span class="task-card-label">Tâche globale</span>
-                <p class="task-card-text" id="taskCardText">Définis la tâche globale…</p>
-              </div>
-            </div>
-            <svg class="task-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          <div class="canvas-mission" onclick="openDetailWorkflow()">
+            <p class="canvas-mission-text" id="taskCardText">Définis la tâche globale…</p>
+            <svg class="canvas-mission-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
 
           <div class="canvas" id="orchestrationCanvas">

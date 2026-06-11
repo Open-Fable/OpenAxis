@@ -194,7 +194,8 @@ function renderOrchChatHistory() {
           : "cm system");
     var bubble = document.createElement("div");
     bubble.className = "bub";
-    bubble.textContent = msg.content;
+    bubble.textContent =
+      msg.role === "assistant" ? stripBlocks(msg.content) : msg.content;
     div.appendChild(bubble);
 
     if (msg.role === "user" || msg.role === "assistant") {
@@ -257,6 +258,15 @@ function removeThinkingIndicator(bubble) {
   if (el) el.remove();
 }
 
+function stripBlocks(text) {
+  return text
+    .replace(/```action\n[\s\S]*?\n```/g, "")
+    .replace(/```questions\n[\s\S]*?\n```/g, "")
+    .replace(/```action[\s\S]*$/, "")
+    .replace(/```questions[\s\S]*$/, "")
+    .trim();
+}
+
 function sendChat() {
   var input = document.getElementById("chatInput");
   var text = input.value.trim();
@@ -273,6 +283,10 @@ function sendChat() {
   var model = document.getElementById("assistantModelSelect").value;
   var proxyUrl = "http://127.0.0.1:9999/v1/orch/assistant";
   var msgs = getActiveConvMessages();
+
+  var questionRounds = msgs.filter(function (m) {
+    return m.role === "assistant" && /```questions\n[\s\S]*?\n```/.test(m.content);
+  }).length;
 
   fetch(proxyUrl, {
     method: "POST",
@@ -298,6 +312,7 @@ function sendChat() {
         workflows: workflows,
         activeWorkflowId: activeWorkflowId,
       },
+      questionRounds: questionRounds,
       model: model,
     }),
   })
@@ -340,12 +355,13 @@ function sendChat() {
               }
               fullText += delta;
               removeThinkingIndicator(bubble);
-              bubble.textContent = fullText;
+              bubble.textContent = stripBlocks(fullText);
             } catch (e) {}
           }
         }
       }
 
+      bubble.textContent = stripBlocks(fullText);
       processActions(bubble, fullText);
       processQuestions(bubble, fullText);
       addMessageToConv("assistant", fullText);
@@ -374,57 +390,76 @@ function describeAction(action) {
   }
 }
 
-function processActions(bubbleEl, fullText) {
+async function processActions(bubbleEl, fullText) {
   var regex = /```action\n([\s\S]*?)\n```/g;
   var match;
-  var found = false;
   var actions = [];
   while ((match = regex.exec(fullText)) !== null) {
     try {
-      var action = JSON.parse(match[1].trim());
-      actions.push(action);
-      found = true;
+      actions.push(JSON.parse(match[1].trim()));
     } catch (e) {}
   }
 
-  if (!found) return;
+  if (actions.length === 0) return;
 
   bubbleEl.textContent = fullText.replace(/```action\n[\s\S]*?\n```/g, "").trim();
 
-  for (var i = 0; i < actions.length; i++) {
-    (function (action) {
-      if (action.auto === true) {
-        addChatMessage("system", "⚡ " + describeAction(action));
-        confirmAction(JSON.stringify(action), true);
-      } else {
-        var card = document.createElement("div");
-        card.className = "chat-actions-card";
-        var desc = document.createElement("span");
-        desc.className = "action-desc";
-        desc.textContent = describeAction(action);
-        var btns = document.createElement("div");
-        btns.className = "action-btns";
-        var confirmBtn = document.createElement("button");
-        confirmBtn.className = "action-btn confirm";
-        confirmBtn.textContent = "Confirmer";
-        confirmBtn.onclick = function () {
-          confirmAction(JSON.stringify(action));
-          card.remove();
-        };
-        var dismissBtn = document.createElement("button");
-        dismissBtn.className = "action-btn dismiss";
-        dismissBtn.textContent = "✕ Ignorer";
-        dismissBtn.onclick = function () {
-          card.remove();
-        };
-        btns.appendChild(confirmBtn);
-        btns.appendChild(dismissBtn);
-        card.appendChild(desc);
-        card.appendChild(btns);
-        bubbleEl.parentNode.appendChild(card);
-      }
-    })(actions[i]);
+  var autoActions = actions.filter(function (a) {
+    return a.auto === true;
+  });
+  var manualActions = actions.filter(function (a) {
+    return a.auto !== true;
+  });
+
+  if (autoActions.length > 0) {
+    for (var i = 0; i < autoActions.length; i++) {
+      var label =
+        describeAction(autoActions[i]) + " (" + (i + 1) + "/" + autoActions.length + ")";
+      addChatMessage("system", "⚡ " + label);
+      await confirmAction(JSON.stringify(autoActions[i]), true);
+    }
+    await loadProjects();
+    renderManagement();
+    var count = autoActions.length;
+    addChatMessage(
+      "system",
+      "✅ " +
+        count +
+        " élément" +
+        (count > 1 ? "s" : "") +
+        " créé" +
+        (count > 1 ? "s" : "") +
+        ".",
+    );
   }
+
+  manualActions.forEach(function (action) {
+    var card = document.createElement("div");
+    card.className = "chat-actions-card";
+    var desc = document.createElement("span");
+    desc.className = "action-desc";
+    desc.textContent = describeAction(action);
+    var btns = document.createElement("div");
+    btns.className = "action-btns";
+    var confirmBtn = document.createElement("button");
+    confirmBtn.className = "action-btn confirm";
+    confirmBtn.textContent = "Confirmer";
+    confirmBtn.onclick = function () {
+      confirmAction(JSON.stringify(action));
+      card.remove();
+    };
+    var dismissBtn = document.createElement("button");
+    dismissBtn.className = "action-btn dismiss";
+    dismissBtn.textContent = "✕ Ignorer";
+    dismissBtn.onclick = function () {
+      card.remove();
+    };
+    btns.appendChild(confirmBtn);
+    btns.appendChild(dismissBtn);
+    card.appendChild(desc);
+    card.appendChild(btns);
+    bubbleEl.parentNode.appendChild(card);
+  });
 }
 
 function processQuestions(bubbleEl, fullText) {
@@ -544,28 +579,44 @@ async function confirmAction(actionJson, silent) {
     var action = JSON.parse(actionJson);
     switch (action.type) {
       case "create_workflow":
-        await createWorkflowFromAssistant(action.name);
+        await createWorkflowFromAssistant(action.name, silent);
         break;
       case "create_project":
-        var p = await window.openhub.saveProject({
+        var activeWf = workflows.find(function (w) {
+          return w.id === activeWorkflowId;
+        });
+        var linkedCount = activeWf ? (activeWf.linkedProjectIds || []).length : 0;
+        var col = Math.floor(linkedCount / 6);
+        var row = linkedCount % 6;
+        var projData = {
           name: action.name,
           instructions: action.instructions || "Tu es un expert.",
           color: "#0d9488",
-        });
-        if (action.linkToWf && activeWorkflowId) {
-          await linkProjectToWf(activeWorkflowId, p.id);
+          x: 400 + col * 280,
+          y: 80 + row * 140,
+        };
+        if (action.agentType) projData.type = action.agentType;
+        var p = await window.openhub.saveProject(projData);
+        projects.push(p);
+        if (action.linkToWf && activeWorkflowId && activeWf) {
+          if (!activeWf.linkedProjectIds) activeWf.linkedProjectIds = [];
+          if (!activeWf.linkedProjectIds.includes(p.id)) {
+            activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [p.id]);
+            await window.openhub.saveWorkflow(activeWf);
+          }
         }
         break;
       case "link_project":
-        if (action.workflowId && action.projectId) {
-          await linkProjectToWf(action.workflowId, action.projectId);
+        var linkWfId = action.workflowId || activeWorkflowId;
+        if (linkWfId && action.projectId) {
+          await linkProjectToWf(linkWfId, action.projectId);
         }
         break;
     }
-    renderManagement();
-    renderCanvas();
-    updateTaskCard();
     if (!silent) {
+      renderManagement();
+      renderCanvas();
+      updateTaskCard();
       addChatMessage("system", "✅ Action exécutée : " + describeAction(action));
     }
   } catch (err) {
@@ -573,7 +624,7 @@ async function confirmAction(actionJson, silent) {
   }
 }
 
-async function createWorkflowFromAssistant(name) {
+async function createWorkflowFromAssistant(name, batch) {
   if (!name) return;
   var orch = await window.openhub.saveProject({
     name: "Orchestrateur",
@@ -597,8 +648,10 @@ async function createWorkflowFromAssistant(name) {
   workflows.push(wf);
   activeWorkflowId = wf.id;
   renderWorkflowSelector();
-  switchWorkflow(wf.id);
-  renderManagement();
+  if (!batch) {
+    await switchWorkflow(wf.id);
+    renderManagement();
+  }
 }
 
 function suggestChat(text) {

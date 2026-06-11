@@ -108,11 +108,11 @@ body {
 }
 
 ::selection {
-  background: rgba(13, 148, 136, 0.15);
+  background: var(--accent-subtle-hover);
 }
 @media (prefers-color-scheme: dark) {
   ::selection {
-    background: rgba(20, 184, 166, 0.25);
+    background: var(--accent-subtle-hover);
   }
 }
 
@@ -557,7 +557,7 @@ select:focus-visible {
 .canvas {
   flex: 1;
   min-height: 0;
-  background: var(--bg-panel);
+  background: #000000;
   position: relative;
   overflow: hidden;
   user-select: none;
@@ -593,63 +593,48 @@ select:focus-visible {
   color: var(--text-muted);
   text-align: center;
   padding: var(--space-6);
-  background: var(--bg-panel);
+  background: #000000;
   z-index: 10;
   overflow-y: auto;
 }
 
 /* ── Task Card (pinned on canvas) ── */
 .task-card {
+  display: none;
+}
+
+.canvas-mission {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 24px;
   cursor: pointer;
   flex-shrink: 0;
+  transition: opacity var(--duration-150, 0.15s) ease;
 }
-.task-card:hover {
-  background: var(--bg-surface);
+.canvas-mission:hover {
+  opacity: 0.7;
 }
-.task-card-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-  flex: 1;
-}
-.task-card-icon {
-  width: 18px;
-  height: 18px;
+.canvas-mission-text {
+  font-size: 13px;
   color: var(--text-muted);
-  flex-shrink: 0;
-}
-.task-card-content {
-  min-width: 0;
-}
-.task-card-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-}
-.task-card-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.4;
+  font-style: italic;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
 }
-.task-card-chevron {
-  width: 14px;
-  height: 14px;
+.canvas-mission-edit {
+  width: 12px;
+  height: 12px;
   color: var(--text-disabled);
+  opacity: 0;
   flex-shrink: 0;
+  transition: opacity var(--duration-150, 0.15s) ease;
+}
+.canvas-mission:hover .canvas-mission-edit {
+  opacity: 1;
 }
 
 /* ── Detail Panel (right, contextual) ── */
@@ -926,13 +911,13 @@ select:focus-visible {
   margin-bottom: var(--space-2);
 }
 .node-card-type--orch {
-  color: var(--text-secondary);
+  color: var(--accent-primary);
 }
 .node-card-type--project {
   color: var(--text-secondary);
 }
 .node-card-type--verifier {
-  color: var(--text-secondary);
+  color: var(--success);
 }
 .node-card-name {
   font-family: var(--font-display);
@@ -1109,7 +1094,7 @@ select:focus-visible {
   pointer-events: none;
   display: none !important;
 }
-.zen-mode .task-card {
+.zen-mode .canvas-mission {
   display: none;
 }
 .zen-mode .canvas {
@@ -1181,12 +1166,52 @@ select:focus-visible {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-md);
 }
+/* Purple/blue → accent teal (default) */
 .template-card--purple:hover,
-.template-card--orange:hover,
-.template-card--green:hover,
 .template-card--blue:hover {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-md);
+}
+.template-card--purple .template-card-badge,
+.template-card--blue .template-card-badge {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+.template-card--purple .template-card-btn,
+.template-card--blue .template-card-btn {
+  color: var(--accent-primary);
+}
+
+/* Orange → warning amber */
+.template-card--orange {
+  border-left: 3px solid var(--warning);
+}
+.template-card--orange:hover {
+  border-color: var(--warning);
+  box-shadow: var(--shadow-md);
+}
+.template-card--orange .template-card-badge {
+  background: var(--warning-subtle);
+  color: var(--warning);
+}
+.template-card--orange .template-card-btn {
+  color: var(--warning);
+}
+
+/* Green → success */
+.template-card--green {
+  border-left: 3px solid var(--success);
+}
+.template-card--green:hover {
+  border-color: var(--success);
+  box-shadow: var(--shadow-md);
+}
+.template-card--green .template-card-badge {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+.template-card--green .template-card-btn {
+  color: var(--success);
 }
 .template-card-header {
   display: flex;
@@ -1205,13 +1230,6 @@ select:focus-visible {
   border-radius: var(--radius-full);
   background: var(--bg-surface);
   color: var(--text-secondary);
-}
-.template-card--purple .template-card-badge,
-.template-card--orange .template-card-badge,
-.template-card--green .template-card-badge,
-.template-card--blue .template-card-badge {
-  background: var(--accent-subtle);
-  color: var(--accent-primary);
 }
 .template-card-desc {
   font-size: 11px;
@@ -2350,10 +2368,22 @@ select:focus-visible {
 .chat-actions-card .action-btn.dismiss:hover {
   background: var(--bg-surface);
 }
+.chat-actions-card--done {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin: 4px 0;
+  opacity: 0.7;
+}
+.chat-actions-card--done .action-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 .cm {
   display: flex;
   flex-direction: column;
-  margin-bottom: var(--space-2);
+  margin-bottom: 4px;
   position: relative;
 }
 .cm.user {
@@ -2366,29 +2396,31 @@ select:focus-visible {
   align-items: flex-start;
 }
 .chat-copy-btn {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 12px;
   border-radius: var(--radius-xs);
   border: none;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  margin-top: 2px;
-  display: none;
+  padding: 0;
+  margin-top: 4px;
+  flex-shrink: 0;
+  visibility: hidden;
 }
 .cm:hover .chat-copy-btn {
-  display: inline-flex;
+  visibility: visible;
 }
 .chat-copy-btn:hover {
   background: var(--bg-surface);
   color: var(--text-primary);
 }
 .chat-copy-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 10px;
+  height: 10px;
 }
 .cm .bub {
   max-width: 85%;
@@ -2398,6 +2430,9 @@ select:focus-visible {
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 .cm.user .bub {
   background: var(--accent-primary);
@@ -2451,6 +2486,12 @@ select:focus-visible {
   50% {
     opacity: 1;
   }
+}
+.stream-activity {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.04));
 }
 .chat-suggestion {
   font-size: 10px;
@@ -2559,6 +2600,10 @@ select:focus-visible {
 }
 .conv-dropdown-new:hover {
   background: var(--accent-subtle);
+}
+.question-card--answered {
+  opacity: 0.7;
+  pointer-events: none;
 }
 .question-card {
   background: var(--bg-elevated);
@@ -2670,36 +2715,42 @@ select:focus-visible {
 .chat-panel-tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
+  padding: 0;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  height: 36px;
 }
 .chat-tab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 5px 12px;
+  flex: 1;
+  padding: 0 12px;
+  height: 100%;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
+  border-bottom: 2px solid transparent;
   transition:
     background var(--duration-150) var(--ease-default),
-    color var(--duration-150) var(--ease-default);
+    color var(--duration-150) var(--ease-default),
+    border-color var(--duration-150) var(--ease-default);
 }
 .chat-tab:hover {
   background: var(--bg-surface);
   color: var(--text-secondary);
 }
 .chat-tab.active {
-  background: var(--accent-subtle);
+  background: transparent;
   color: var(--accent-primary);
   font-weight: 600;
+  border-bottom-color: var(--accent-primary);
 }
 .chat-tab-content {
   display: none;
@@ -2786,8 +2837,8 @@ select:focus-visible {
   color: var(--text-muted);
 }
 .history-status--warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-subtle);
+  color: var(--warning);
 }
 .history-item-info {
   display: flex;
