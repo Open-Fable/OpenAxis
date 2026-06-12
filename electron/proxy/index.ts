@@ -1665,7 +1665,7 @@ async function fetchWithRetry(
     const body = await resp.text();
     const match = body.match(/after\s+(\d+)s/i);
     const waitSec = match ? Math.min(parseInt(match[1], 10), 60) : 5 * (attempt + 1);
-    console.log(
+    console.warn(
       `[proxy] 429 rate-limited, retrying in ${waitSec}s (attempt ${attempt + 1}/${maxRetries})`,
     );
     await new Promise((r) => setTimeout(r, waitSec * 1000));

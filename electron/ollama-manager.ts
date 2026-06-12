@@ -36,16 +36,17 @@ export async function checkOllamaModels(): Promise<{
     const res = await fetch(`${url}/api/tags`, {
       signal: AbortSignal.timeout(2000),
     });
-    if (!res.ok) return { installed: [], missing: modelsToEnsure, pulling, running: false };
+    if (!res.ok)
+      return { installed: [], missing: modelsToEnsure, pulling, running: false };
 
     const data = (await res.json()) as { models?: Array<{ name: string }> };
     const installedNames = (data.models || []).map((m) => m.name);
-    
-    const installed = modelsToEnsure.filter(req => 
-      installedNames.some(inst => inst === req || inst === `${req}:latest`)
+
+    const installed = modelsToEnsure.filter((req) =>
+      installedNames.some((inst) => inst === req || inst === `${req}:latest`),
     );
-    const missing = modelsToEnsure.filter(req => 
-      !installedNames.some(inst => inst === req || inst === `${req}:latest`)
+    const missing = modelsToEnsure.filter(
+      (req) => !installedNames.some((inst) => inst === req || inst === `${req}:latest`),
     );
 
     return { installed, missing, pulling, running: true };
@@ -54,10 +55,7 @@ export async function checkOllamaModels(): Promise<{
   }
 }
 
-async function pullModel(
-  model: string,
-  webContents: WebContents
-): Promise<void> {
+async function pullModel(model: string, webContents: WebContents): Promise<void> {
   if (activePulls.has(model)) return;
 
   const url = await getOllamaUrl();
@@ -96,7 +94,7 @@ async function pullModel(
           }
           json.model = model;
           webContents.send("ollama-pull-progress", json);
-        } catch (e) {
+        } catch {
           // Ligne peut-être encore incomplète malgré le split
         }
       }
@@ -106,7 +104,7 @@ async function pullModel(
     webContents.send("ollama-pull-progress", { model, status: "success", percent: 100 });
   } catch (err) {
     activePulls.delete(model);
-    if ((err as any).name === "AbortError") {
+    if (err instanceof Error && err.name === "AbortError") {
       webContents.send("ollama-pull-progress", { model, status: "canceled" });
     } else {
       console.error(`[ollama-manager] Error pulling ${model}:`, err);
