@@ -194,7 +194,11 @@
     }
   }
 
-  const observer = new MutationObserver(() => injectButton());
+  const observer = new MutationObserver(function () {
+    injectButton();
+    if (document.querySelector(".oh-graphify-btn")) observer.disconnect();
+  });
   observer.observe(document.body, { childList: true, subtree: true });
   injectButton();
+  if (document.querySelector(".oh-graphify-btn")) observer.disconnect();
 })();

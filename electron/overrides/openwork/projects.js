@@ -202,7 +202,7 @@
   }
 
   var observer = new MutationObserver(function () {
-    injectProjectsButton();
+    ensureInjected();
   });
   if (document.body) {
     observer.observe(document.body, { childList: true, subtree: true });
@@ -213,6 +213,4 @@
       ensureInjected();
     });
   }
-
-  setInterval(ensureInjected, 3000);
 })();

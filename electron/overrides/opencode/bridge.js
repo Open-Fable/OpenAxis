@@ -114,6 +114,11 @@
       for (var j = 0; j < added.length; j++) {
         var node = added[j];
         if (!(node instanceof HTMLElement)) continue;
+        if (
+          !node.querySelector("[data-component='dialog']") &&
+          node.getAttribute?.("data-component") !== "dialog"
+        )
+          continue;
         scheduleDialogCheck(node);
       }
     }
@@ -139,7 +144,9 @@
     if (!dialog.isConnected) return false;
 
     // Must have a file tree / folder structure (not just a generic list)
-    var tree = dialog.querySelector('[role="tree"], [data-directory-tree], .file-tree, [class*="directory"]');
+    var tree = dialog.querySelector(
+      '[role="tree"], [data-directory-tree], .file-tree, [class*="directory"]',
+    );
     if (!tree) return false;
 
     var input = dialog.querySelector("input");
@@ -147,7 +154,11 @@
 
     // Exclude provider/service selection dialogs
     if (dialog.querySelector('[role="tablist"]')) return false;
-    if (dialog.textContent && /\b(provider|model|fournisseur|modèle)\b/i.test(dialog.textContent)) return false;
+    if (
+      dialog.textContent &&
+      /\b(provider|model|fournisseur|modèle)\b/i.test(dialog.textContent)
+    )
+      return false;
 
     return true;
   }

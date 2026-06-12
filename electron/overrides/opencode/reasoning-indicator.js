@@ -270,14 +270,12 @@
     }
   });
 
-  // Polling fallback
+  // Polling fallback — localStorage sync only (observer handles DOM re-injection)
   setInterval(function () {
     var stored = localStorage.getItem(EFFORT_KEY);
     if (stored && stored !== currentEffort) {
       currentEffort = stored;
       updateInlineButton();
     }
-    refreshModelSupport();
-    injectInlineButton(); // Sécurité si l'observer rate
   }, 3000);
 })();
