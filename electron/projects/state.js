@@ -79,7 +79,13 @@ async function loadModels() {
       '<option value="">— Modèle par défaut de l\'application —</option>' +
       models
         .map(function (m) {
-          return '<option value="' + m.id + '">' + displayModelName(m.id) + "</option>";
+          return (
+            '<option value="' +
+            escapeHtml(m.id) +
+            '">' +
+            escapeHtml(displayModelName(m.id)) +
+            "</option>"
+          );
         })
         .join("");
     var asstSelect = document.getElementById("assistantModelSelect");
@@ -87,7 +93,13 @@ async function loadModels() {
       var currentVal = asstSelect.value;
       asstSelect.innerHTML = models
         .map(function (m) {
-          return '<option value="' + m.id + '">' + displayModelName(m.id) + "</option>";
+          return (
+            '<option value="' +
+            escapeHtml(m.id) +
+            '">' +
+            escapeHtml(displayModelName(m.id)) +
+            "</option>"
+          );
         })
         .join("");
       if (currentVal) {

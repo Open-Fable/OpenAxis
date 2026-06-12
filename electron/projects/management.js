@@ -1,6 +1,7 @@
 /* management.js — Workflow management overlay */
 
 var mgmtSelectedWfId = null;
+var selectedProjectIdsForDelete = [];
 
 function openManagement() {
   document.getElementById("mgmtOverlay").classList.add("open");
@@ -120,7 +121,7 @@ function renderMgmtDetail(wfId) {
       if (inOthers.length > 0) {
         var names = inOthers
           .map(function (w2) {
-            return w2.name;
+            return escapeHtml(w2.name);
           })
           .join(", ");
         inText =
@@ -164,7 +165,7 @@ function renderMgmtDetail(wfId) {
       if (inOthers.length > 0) {
         var names = inOthers
           .map(function (w2) {
-            return w2.name;
+            return escapeHtml(w2.name);
           })
           .join(", ");
         inText = '<span class="mgmt-p-in">Dans <strong>' + names + "</strong></span>";
@@ -298,60 +299,136 @@ function deleteCurrentWorkflow() {
 }
 
 function showAllProjectsModal() {
+  selectedProjectIdsForDelete = [];
   if (!window.openhub.getProjects) return;
   window.openhub.getProjects().then(function (allProjs) {
+    var nonOrchProjs = (allProjs || []).filter(function (p) {
+      return p.type !== "orchestrator";
+    });
     var html =
       '<input class="form-input" id="mgmtSearchProj" placeholder="Rechercher un agent…" style="margin-bottom:8px;" oninput="filterMgmtProjects(this.value)" />';
     html += '<div id="mgmtProjList">';
-    (allProjs || [])
-      .filter(function (p) {
-        return p.type !== "orchestrator";
-      })
-      .forEach(function (p) {
-        var inWfs = workflows.filter(function (w) {
-          return (w.linkedProjectIds || []).includes(p.id);
-        });
-        var inText =
-          inWfs.length > 0
-            ? inWfs
-                .map(function (w) {
-                  return w.name;
-                })
-                .join(", ")
-            : "Aucun workflow";
-        html +=
-          '<div class="mgmt-proj-card mgmt-proj-search-item">' +
-          '<div class="mgmt-p-icon" style="background:var(--accent-subtle);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
-          '<div class="mgmt-p-info"><div class="mgmt-p-name">' +
-          escapeHtml(p.name) +
-          "</div></div>" +
-          '<span class="mgmt-p-in">Dans <strong>' +
-          inText +
-          "</strong></span>";
-        if (
-          mgmtSelectedWfId &&
-          !inWfs.some(function (w) {
-            return w.id === mgmtSelectedWfId;
-          })
-        ) {
-          html +=
-            '<span class="mgmt-p-add" onclick="linkProjectToWf(\'' +
-            mgmtSelectedWfId +
-            "','" +
-            p.id +
-            "');closeModal('modal-all-projects')\">+ Lier</span>";
-        } else {
-          html += '<span class="mgmt-p-already">✓ Lié</span>';
-        }
-        html += "</div>";
+    nonOrchProjs.forEach(function (p) {
+      var inWfs = workflows.filter(function (w) {
+        return (w.linkedProjectIds || []).includes(p.id);
       });
+      var inText =
+        inWfs.length > 0
+          ? inWfs
+              .map(function (w) {
+                return escapeHtml(w.name);
+              })
+              .join(", ")
+          : "Aucun workflow";
+      html +=
+        '<div class="mgmt-proj-card mgmt-proj-search-item" id="proj-card-' +
+        p.id +
+        '">' +
+        '<label class="mgmt-p-checkbox"><input type="checkbox" onchange="toggleProjectSelection(\'' +
+        p.id +
+        "')\" /></label>" +
+        '<div class="mgmt-p-icon" style="background:var(--accent-subtle);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
+        '<div class="mgmt-p-info"><div class="mgmt-p-name">' +
+        escapeHtml(p.name) +
+        "</div></div>" +
+        '<span class="mgmt-p-in">Dans <strong>' +
+        inText +
+        "</strong></span>";
+      if (
+        mgmtSelectedWfId &&
+        !inWfs.some(function (w) {
+          return w.id === mgmtSelectedWfId;
+        })
+      ) {
+        html +=
+          '<span class="mgmt-p-add" onclick="linkProjectToWf(\'' +
+          mgmtSelectedWfId +
+          "','" +
+          p.id +
+          "');closeModal('modal-all-projects')\">+ Lier</span>";
+      } else if (mgmtSelectedWfId) {
+        html += '<span class="mgmt-p-already">✓ Lié</span>';
+      }
+      html += "</div>";
+    });
     html += "</div>";
     document.getElementById("mgmtAllProjBody").innerHTML = html;
     document.getElementById("mgmtAllProjCount").textContent =
-      allProjs.filter(function (p) {
-        return p.type !== "orchestrator";
-      }).length + " agents";
+      nonOrchProjs.length + " agents";
+    updateAllProjDeleteBtn();
     openModal("modal-all-projects");
+  });
+}
+
+function toggleProjectSelection(id) {
+  var idx = selectedProjectIdsForDelete.indexOf(id);
+  if (idx === -1) {
+    selectedProjectIdsForDelete.push(id);
+  } else {
+    selectedProjectIdsForDelete.splice(idx, 1);
+  }
+  var card = document.getElementById("proj-card-" + id);
+  if (card) card.classList.toggle("selected", selectedProjectIdsForDelete.includes(id));
+  updateAllProjDeleteBtn();
+}
+
+function updateAllProjDeleteBtn() {
+  var btn = document.getElementById("btnDeleteSelectedProjs");
+  if (!btn) return;
+  var n = selectedProjectIdsForDelete.length;
+  if (n > 0) {
+    btn.style.display = "inline-flex";
+    btn.textContent = "Supprimer (" + n + ")";
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+async function deleteSelectedProjects() {
+  if (selectedProjectIdsForDelete.length === 0) return;
+  var n = selectedProjectIdsForDelete.length;
+  var modal = document.getElementById("modalConfirmDelete");
+  var titleEl = modal.querySelector(".confirm-title");
+  var descEl = modal.querySelector(".confirm-desc");
+  var origTitle = titleEl.textContent;
+  titleEl.textContent = "Supprimer " + n + " agent" + (n > 1 ? "s" : "") + " ?";
+  descEl.textContent = "Cette action est irréversible. Tous les liens seront supprimés.";
+  modal.classList.add("open");
+
+  return new Promise(function (resolve) {
+    document.getElementById("confirmDeleteBtn").onclick = async function () {
+      modal.classList.remove("open");
+      titleEl.textContent = origTitle;
+      var idsToDelete = selectedProjectIdsForDelete.slice();
+      selectedProjectIdsForDelete = [];
+      for (var i = 0; i < idsToDelete.length; i++) {
+        var id = idsToDelete[i];
+        await window.openhub.deleteProject(id);
+        projects.forEach(async function (p) {
+          if (p.type === "orchestrator" && p.linked && p.linked.includes(id)) {
+            p.linked = p.linked.filter(function (lid) {
+              return lid !== id;
+            });
+            await window.openhub.saveProject(p);
+          }
+        });
+        if (selectedOrchestratorId === id) selectedOrchestratorId = null;
+      }
+      closeModal("modal-all-projects");
+      showToast(
+        idsToDelete.length +
+          " agent" +
+          (idsToDelete.length > 1 ? "s supprimés" : " supprimé"),
+        "success",
+      );
+      await loadProjects();
+      resolve();
+    };
+    document.getElementById("cancelDeleteBtn").onclick = function () {
+      modal.classList.remove("open");
+      titleEl.textContent = origTitle;
+      resolve();
+    };
   });
 }
 

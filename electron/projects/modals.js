@@ -404,11 +404,22 @@ function initModals() {
   document.getElementById("projType").onchange = onProjectTypeChange;
 
   document.getElementById("btnSaveProjectConfirm").onclick = async function () {
-    var name = document.getElementById("projName").value.trim();
+    if (this.disabled) return;
+    var nameInput = document.getElementById("projName");
+    var name = nameInput.value.trim();
     if (!name) {
+      nameInput.style.borderColor = "var(--error, #ef4444)";
+      nameInput.focus();
       showToast("Le nom de l'agent est obligatoire.", "error");
       return;
     }
+    if (name.length > 100) {
+      nameInput.style.borderColor = "var(--error, #ef4444)";
+      nameInput.focus();
+      showToast("Le nom de l'agent ne peut pas dépasser 100 caractères.", "error");
+      return;
+    }
+    nameInput.style.borderColor = "";
     var type = document.getElementById("projType").value;
     var model = document.getElementById("projModel").value;
     var instructions = document.getElementById("projInstructions").value;
@@ -454,30 +465,36 @@ function initModals() {
         });
       data.dependencies = checkedDeps;
     }
-    var saved = await window.openhub.saveProject(data);
-    if (!editId && selectedOrchestratorId && type !== "orchestrator") {
-      var activeOrch = projects.find(function (p) {
-        return p.id === selectedOrchestratorId;
-      });
-      if (activeOrch) {
-        if (!activeOrch.linked) activeOrch.linked = [];
-        activeOrch.linked.push(saved.id);
-        await window.openhub.saveProject(activeOrch);
-      }
-      var activeWf = workflows.find(function (w) {
-        return w.id === activeWorkflowId;
-      });
-      if (activeWf) {
-        if (!activeWf.linkedProjectIds) activeWf.linkedProjectIds = [];
-        if (!activeWf.linkedProjectIds.includes(saved.id)) {
-          activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [saved.id]);
-          await window.openhub.saveWorkflow(activeWf);
+    var saveBtn = document.getElementById("btnSaveProjectConfirm");
+    saveBtn.disabled = true;
+    try {
+      var saved = await window.openhub.saveProject(data);
+      if (!editId && selectedOrchestratorId && type !== "orchestrator") {
+        var activeOrch = projects.find(function (p) {
+          return p.id === selectedOrchestratorId;
+        });
+        if (activeOrch) {
+          if (!activeOrch.linked) activeOrch.linked = [];
+          activeOrch.linked.push(saved.id);
+          await window.openhub.saveProject(activeOrch);
+        }
+        var activeWf = workflows.find(function (w) {
+          return w.id === activeWorkflowId;
+        });
+        if (activeWf) {
+          if (!activeWf.linkedProjectIds) activeWf.linkedProjectIds = [];
+          if (!activeWf.linkedProjectIds.includes(saved.id)) {
+            activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [saved.id]);
+            await window.openhub.saveWorkflow(activeWf);
+          }
         }
       }
+      closeModal("modalProject");
+      showToast(editId ? "Agent mis à jour" : "Agent créé", "success");
+      await loadProjects();
+    } finally {
+      saveBtn.disabled = false;
     }
-    closeModal("modalProject");
-    showToast(editId ? "Agent mis à jour" : "Agent créé", "success");
-    await loadProjects();
   };
 
   document.querySelectorAll("[data-close-modal]").forEach(function (btn) {

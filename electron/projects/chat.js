@@ -267,10 +267,17 @@ function stripBlocks(text) {
     .trim();
 }
 
+var _chatSending = false;
+
 function sendChat() {
+  if (_chatSending) return;
   var input = document.getElementById("chatInput");
   var text = input.value.trim();
   if (!text) return;
+
+  _chatSending = true;
+  var sendBtn = document.getElementById("btnSendChat");
+  if (sendBtn) sendBtn.disabled = true;
   input.value = "";
 
   addChatMessage("user", text);
@@ -311,6 +318,9 @@ function sendChat() {
         }),
         workflows: workflows,
         activeWorkflowId: activeWorkflowId,
+        availableModels: models.map(function (m) {
+          return m.id;
+        }),
       },
       questionRounds: questionRounds,
       model: model,
@@ -353,22 +363,68 @@ function sendChat() {
                 fullText += "\n[Erreur: " + parsed.error + "]";
                 continue;
               }
-              fullText += delta;
-              removeThinkingIndicator(bubble);
-              bubble.textContent = stripBlocks(fullText);
+              if (delta) {
+                fullText += delta;
+                removeThinkingIndicator(bubble);
+                bubble.textContent = stripBlocks(fullText);
+              }
             } catch (e) {}
           }
         }
       }
 
       bubble.textContent = stripBlocks(fullText);
-      processActions(bubble, fullText);
+
+      var prevWorkflowId = activeWorkflowId;
+      var prevConvId = activeConvId;
+
+      await processActions(bubble, fullText);
       processQuestions(bubble, fullText);
-      addMessageToConv("assistant", fullText);
+
+      // If workflow changed during auto-actions, transfer the conversation
+      if (activeWorkflowId !== prevWorkflowId && prevConvId) {
+        var oldKey = CONV_KEY + "-" + prevWorkflowId;
+        try {
+          var rawOld = localStorage.getItem(oldKey);
+          if (rawOld) {
+            var oldConvs = JSON.parse(rawOld);
+            var found = oldConvs.find(function (c) {
+              return c.id === prevConvId;
+            });
+            if (found) {
+              oldConvs = oldConvs.filter(function (c) {
+                return c.id !== prevConvId;
+              });
+              localStorage.setItem(oldKey, JSON.stringify(oldConvs));
+              found.workflowId = activeWorkflowId;
+              conversations = [found];
+              activeConvId = found.id;
+              saveConversations();
+            }
+          }
+        } catch (e) {}
+      }
+
+      addMessageToConv("assistant", stripBlocks(fullText));
+
+      if (window.openhub && window.openhub.notifyTaskDone) {
+        window.openhub.notifyTaskDone("chat");
+      }
+
+      if (activeWorkflowId !== prevWorkflowId) {
+        renderOrchChatHistory();
+        renderConvDropdown();
+      }
     })
     .catch(function (err) {
       removeThinkingIndicator(bubble);
       bubble.textContent = "❌ Erreur de connexion : " + (err.message || "inconnue");
+    })
+    .finally(function () {
+      _chatSending = false;
+      var sendBtn = document.getElementById("btnSendChat");
+      if (sendBtn) sendBtn.disabled = false;
+      document.getElementById("chatInput").disabled = false;
     });
 }
 
@@ -385,6 +441,13 @@ function describeAction(action) {
       );
     case "link_project":
       return "Lier un agent au workflow";
+    case "set_model":
+      if (action.target === "all") {
+        return "Changer le modèle de tous les agents → " + action.model;
+      }
+      return "Changer le modèle → " + action.model;
+    case "set_task":
+      return "Définir la tâche globale du workflow";
     default:
       return "Action : " + action.type;
   }
@@ -412,25 +475,46 @@ async function processActions(bubbleEl, fullText) {
   });
 
   if (autoActions.length > 0) {
+    var wfName = null;
+    var agentNames = [];
     for (var i = 0; i < autoActions.length; i++) {
-      var label =
-        describeAction(autoActions[i]) + " (" + (i + 1) + "/" + autoActions.length + ")";
-      addChatMessage("system", "⚡ " + label);
+      if (autoActions[i].type === "create_workflow") wfName = autoActions[i].name;
+      if (autoActions[i].type === "create_project") agentNames.push(autoActions[i].name);
       await confirmAction(JSON.stringify(autoActions[i]), true);
     }
+    await resolveBatchDependencies(autoActions);
+    await linkRootAgentsToOrchestrator();
     await loadProjects();
     renderManagement();
-    var count = autoActions.length;
-    addChatMessage(
-      "system",
-      "✅ " +
-        count +
-        " élément" +
-        (count > 1 ? "s" : "") +
-        " créé" +
-        (count > 1 ? "s" : "") +
-        ".",
-    );
+
+    var summary = "";
+    if (wfName && agentNames.length > 0) {
+      summary =
+        "J'ai créé le workflow « " +
+        wfName +
+        " » avec " +
+        agentNames.length +
+        " agent" +
+        (agentNames.length > 1 ? "s" : "") +
+        " : " +
+        agentNames.join(", ") +
+        ".";
+    } else if (wfName) {
+      summary = "J'ai créé le workflow « " + wfName + " ».";
+    } else if (agentNames.length > 0) {
+      summary =
+        "J'ai ajouté " +
+        agentNames.length +
+        " agent" +
+        (agentNames.length > 1 ? "s" : "") +
+        " : " +
+        agentNames.join(", ") +
+        ".";
+    } else {
+      summary = "Les actions ont été appliquées.";
+    }
+    addChatMessage("assistant", summary);
+    addMessageToConv("assistant", summary);
   }
 
   manualActions.forEach(function (action) {
@@ -574,6 +658,80 @@ function sendChatWithText(text) {
   sendChat();
 }
 
+/* Résout un nom/id de dépendance en cherchant d'abord parmi les agents
+   du workflow actuel pour éviter les faux matchs sur des homonymes anciens. */
+function getActiveLinkedIds() {
+  var activeWf = workflows.find(function (w) {
+    return w.id === activeWorkflowId;
+  });
+  if (activeWf && activeWf.linkedProjectIds) return activeWf.linkedProjectIds;
+  var activeOrch = projects.find(function (p) {
+    return p.id === selectedOrchestratorId;
+  });
+  return activeOrch ? activeOrch.linked || [] : [];
+}
+
+function resolveDepRef(dep) {
+  var wfIds = getActiveLinkedIds();
+  var inWf = projects.find(function (pp) {
+    return wfIds.includes(pp.id) && (pp.id === dep || pp.name === dep);
+  });
+  if (inWf) return inWf.id;
+  var global = projects.find(function (pp) {
+    return pp.id === dep || pp.name === dep;
+  });
+  return global ? global.id : null;
+}
+
+/* Relie les agents sans dépendances à l'orchestrateur (racines du DAG). */
+async function linkRootAgentsToOrchestrator() {
+  if (!selectedOrchestratorId) return;
+  var linked = getActiveLinkedIds();
+  for (var i = 0; i < linked.length; i++) {
+    var agent = projects.find(function (p) {
+      return p.id === linked[i];
+    });
+    if (!agent) continue;
+    var deps = agent.dependencies || [];
+    if (deps.length === 0) {
+      agent.dependencies = [selectedOrchestratorId];
+      await window.openhub.saveProject(agent);
+    }
+  }
+}
+
+/* Seconde passe : résout les dépendances par nom une fois TOUS les agents
+   du batch créés (gère les références à des agents créés plus loin dans la réponse). */
+async function resolveBatchDependencies(actions) {
+  for (var i = 0; i < actions.length; i++) {
+    var action = actions[i];
+    if (
+      action.type !== "create_project" ||
+      !Array.isArray(action.dependencies) ||
+      action.dependencies.length === 0
+    )
+      continue;
+    var proj = projects.find(function (pp) {
+      return pp.name === action.name;
+    });
+    if (!proj) continue;
+    var depIds = action.dependencies
+      .map(function (dep) {
+        var id = resolveDepRef(dep);
+        return id && id !== proj.id ? id : null;
+      })
+      .filter(Boolean);
+    var current = proj.dependencies || [];
+    var missing = depIds.filter(function (id) {
+      return !current.includes(id);
+    });
+    if (missing.length > 0) {
+      proj.dependencies = current.concat(missing);
+      await window.openhub.saveProject(proj);
+    }
+  }
+}
+
 async function confirmAction(actionJson, silent) {
   try {
     var action = JSON.parse(actionJson);
@@ -596,6 +754,12 @@ async function confirmAction(actionJson, silent) {
           y: 80 + row * 140,
         };
         if (action.agentType) projData.type = action.agentType;
+        if (action.model) projData.model = action.model;
+        if (action.task) projData.task = action.task;
+        if (Array.isArray(action.dependencies) && action.dependencies.length > 0) {
+          var depIds = action.dependencies.map(resolveDepRef).filter(Boolean);
+          if (depIds.length > 0) projData.dependencies = depIds;
+        }
         var p = await window.openhub.saveProject(projData);
         projects.push(p);
         if (action.linkToWf && activeWorkflowId && activeWf) {
@@ -604,12 +768,71 @@ async function confirmAction(actionJson, silent) {
             activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [p.id]);
             await window.openhub.saveWorkflow(activeWf);
           }
+          var activeOrch = projects.find(function (pp) {
+            return pp.id === selectedOrchestratorId;
+          });
+          if (activeOrch) {
+            if (!activeOrch.linked) activeOrch.linked = [];
+            if (!activeOrch.linked.includes(p.id)) {
+              activeOrch.linked.push(p.id);
+              await window.openhub.saveProject(activeOrch);
+            }
+          }
         }
         break;
       case "link_project":
         var linkWfId = action.workflowId || activeWorkflowId;
         if (linkWfId && action.projectId) {
           await linkProjectToWf(linkWfId, action.projectId);
+        }
+        break;
+      case "set_model":
+        var modelId = action.model || "";
+        if (!modelId) break;
+        if (action.target === "all") {
+          var linkedIdsSM = getActiveLinkedIds();
+          for (var si = 0; si < projects.length; si++) {
+            if (linkedIdsSM.includes(projects[si].id)) {
+              var updatedProj = Object.assign({}, projects[si], { model: modelId });
+              await window.openhub.saveProject(updatedProj);
+              projects[si] = updatedProj;
+            }
+          }
+        } else if (action.projectId) {
+          var targetIdx = projects.findIndex(function (pp) {
+            return pp.id === action.projectId;
+          });
+          if (targetIdx !== -1) {
+            var updatedTarget = Object.assign({}, projects[targetIdx], {
+              model: modelId,
+            });
+            await window.openhub.saveProject(updatedTarget);
+            projects[targetIdx] = updatedTarget;
+          }
+        } else if (action.projectName) {
+          var targetIdxByName = projects.findIndex(function (pp) {
+            return pp.name === action.projectName;
+          });
+          if (targetIdxByName !== -1) {
+            var updatedByName = Object.assign({}, projects[targetIdxByName], {
+              model: modelId,
+            });
+            await window.openhub.saveProject(updatedByName);
+            projects[targetIdxByName] = updatedByName;
+          }
+        }
+        break;
+      case "set_task":
+        var taskText = action.task || "";
+        if (!taskText) break;
+        var orchForTask = projects.find(function (pp) {
+          return pp.id === selectedOrchestratorId;
+        });
+        if (orchForTask) {
+          orchForTask.task = taskText;
+          await window.openhub.saveProject(orchForTask);
+          var sharedTaskEl = document.getElementById("sharedTaskText");
+          if (sharedTaskEl) sharedTaskEl.value = taskText;
         }
         break;
     }
@@ -626,6 +849,10 @@ async function confirmAction(actionJson, silent) {
 
 async function createWorkflowFromAssistant(name, batch) {
   if (!name) return;
+
+  var oldWorkflowId = activeWorkflowId;
+  var oldConvId = activeConvId;
+
   var orch = await window.openhub.saveProject({
     name: "Orchestrateur",
     instructions:
@@ -645,11 +872,38 @@ async function createWorkflowFromAssistant(name, batch) {
     agentTypes: {},
     workDir: "",
   });
+  projects.push(orch);
+  selectedOrchestratorId = orch.id;
   workflows.push(wf);
   activeWorkflowId = wf.id;
   renderWorkflowSelector();
   if (!batch) {
     await switchWorkflow(wf.id);
+    // Transfer conversation from old workflow via direct localStorage access
+    if (oldWorkflowId && oldConvId) {
+      var oldKey = CONV_KEY + "-" + oldWorkflowId;
+      try {
+        var rawOld = localStorage.getItem(oldKey);
+        if (rawOld) {
+          var oldConvs = JSON.parse(rawOld);
+          var found = oldConvs.find(function (c) {
+            return c.id === oldConvId;
+          });
+          if (found && found.messages.length > 0) {
+            oldConvs = oldConvs.filter(function (c) {
+              return c.id !== oldConvId;
+            });
+            localStorage.setItem(oldKey, JSON.stringify(oldConvs));
+            found.workflowId = wf.id;
+            conversations = [found];
+            activeConvId = found.id;
+            saveConversations();
+            renderOrchChatHistory();
+            renderConvDropdown();
+          }
+        }
+      } catch (e) {}
+    }
     renderManagement();
   }
 }

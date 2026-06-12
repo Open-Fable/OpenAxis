@@ -61,7 +61,8 @@ async function switchWorkflow(id) {
       return p.id === wf.orchProjectId;
     });
     if (orch && wf.linkedProjectIds) {
-      orch.linked = wf.linkedProjectIds.slice();
+      var synced = Object.assign({}, orch, { linked: wf.linkedProjectIds.slice() });
+      await window.openhub.saveProject(synced);
     }
     await loadProjects();
   }
@@ -113,11 +114,23 @@ function updateChatPanelVisibility() {
 
 function initMain() {
   document.getElementById("btnConfirmWorkflow").onclick = async function () {
-    var name = document.getElementById("wfNameInput").value.trim();
+    var wfInput = document.getElementById("wfNameInput");
+    var name = wfInput.value.trim();
     if (!name) {
-      document.getElementById("wfNameInput").focus();
+      wfInput.focus();
+      wfInput.style.borderColor = "var(--error, #ef4444)";
+      showToast("Le nom du workflow est obligatoire.", "error");
       return;
     }
+    if (name.length > 80) {
+      wfInput.focus();
+      wfInput.style.borderColor = "var(--error, #ef4444)";
+      showToast("Le nom du workflow ne peut pas dépasser 80 caractères.", "error");
+      return;
+    }
+    wfInput.style.borderColor = "";
+    var confirmBtn = document.getElementById("btnConfirmWorkflow");
+    confirmBtn.disabled = true;
     closeModal("modalWorkflowPrompt");
     try {
       var orch = await window.openhub.saveProject({
@@ -151,6 +164,8 @@ function initMain() {
       showToast("Workflow '" + name + "' créé", "success");
     } catch (err) {
       showToast("Erreur : " + (err.message || "inconnue"), "error");
+    } finally {
+      confirmBtn.disabled = false;
     }
   };
 
