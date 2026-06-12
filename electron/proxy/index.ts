@@ -1700,9 +1700,14 @@ function createActivityRequestId(): string {
 type GoogleAuth = { accessToken: string; managedProjectId: string } | null;
 
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
+// Gemini CLI public OAuth "installed app" credentials (same as upstream Gemini CLI).
+// These are NOT truly secret per Google's OAuth spec for native apps, but prefer
+// env-var override to keep source clean.
 const GEMINI_CLIENT_ID =
+  process.env.GEMINI_CLIENT_ID ??
   "***REMOVED-CLIENT-ID***";
-const GEMINI_CLIENT_SECRET = "***REMOVED-SECRET***";
+const GEMINI_CLIENT_SECRET =
+  process.env.GEMINI_CLIENT_SECRET ?? "***REMOVED-SECRET***";
 const AUTH_JSON_PATH = path.join(homedir(), ".local", "share", "opencode", "auth.json");
 const ACCOUNT_JSON_PATH = path.join(
   homedir(),
