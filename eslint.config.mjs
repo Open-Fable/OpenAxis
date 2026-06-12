@@ -2,7 +2,7 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist/", "apps/", "node_modules/", "electron/projects/"] },
+  { ignores: ["dist/", "apps/", "node_modules/", "electron/projects/", "**/*.test.ts"] },
   ...tseslint.configs.recommended,
   {
     files: ["electron/**/*.ts", "scripts/**/*.ts"],
