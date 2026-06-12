@@ -11,7 +11,6 @@ var layoutMode = "vertical";
 var _selectedProjectPath = "";
 var dragNode = null;
 var linkStartNode = null;
-var dragOffset = { x: 0, y: 0 };
 var workflows = [];
 var activeWorkflowId = null;
 
