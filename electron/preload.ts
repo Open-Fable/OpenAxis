@@ -12,15 +12,21 @@ contextBridge.exposeInMainWorld("openhub", {
   getSlotStatus: () => ipcRenderer.invoke("get-slot-status"),
 
   onSlotChanged: (cb: (slot: SlotName) => void) => {
-    ipcRenderer.on("slot-changed", (_e: unknown, slot: SlotName) => cb(slot));
+    const handler = (_e: unknown, slot: SlotName) => cb(slot);
+    ipcRenderer.on("slot-changed", handler);
+    return () => ipcRenderer.removeListener("slot-changed", handler);
   },
 
   onShowConfig: (cb: () => void) => {
-    ipcRenderer.on("show-config", () => cb());
+    const handler = () => cb();
+    ipcRenderer.on("show-config", handler);
+    return () => ipcRenderer.removeListener("show-config", handler);
   },
 
   onApiKeysUpdated: (cb: () => void) => {
-    ipcRenderer.on("api-keys-updated", () => cb());
+    const handler = () => cb();
+    ipcRenderer.on("api-keys-updated", handler);
+    return () => ipcRenderer.removeListener("api-keys-updated", handler);
   },
 
   webSearch: (query: string) => ipcRenderer.invoke("web-search", query),
@@ -31,10 +37,20 @@ contextBridge.exposeInMainWorld("openhub", {
   showNavMenu: (x: number, y: number) => ipcRenderer.send("show-nav-menu", x, y),
   navPopupSelect: (slot: string) => ipcRenderer.send("nav-popup-select", slot),
 
+  notifyTaskDone: (source: string, body?: string) =>
+    ipcRenderer.send("task-done", source, body),
+  getNotifyMode: () => ipcRenderer.invoke("get-notify-mode"),
+  setNotifyMode: (mode: string) => ipcRenderer.invoke("set-notify-mode", mode),
+  getNotifySources: () => ipcRenderer.invoke("get-notify-sources"),
+  setNotifySources: (sources: Record<string, boolean>) =>
+    ipcRenderer.invoke("set-notify-sources", sources),
+
   getNavMode: () => ipcRenderer.invoke("get-nav-mode"),
   setNavMode: (mode: string) => ipcRenderer.invoke("set-nav-mode", mode),
   onNavModeChanged: (cb: (mode: string) => void) => {
-    ipcRenderer.on("nav-mode-changed", (_e: unknown, mode: string) => cb(mode));
+    const handler = (_e: unknown, mode: string) => cb(mode);
+    ipcRenderer.on("nav-mode-changed", handler);
+    return () => ipcRenderer.removeListener("nav-mode-changed", handler);
   },
 
   openworkDesktopInvoke: (command: string, ...args: unknown[]) =>
@@ -55,10 +71,21 @@ contextBridge.exposeInMainWorld("openhub", {
   saveProject: (project: {
     id?: string;
     name: string;
-    instructions: string;
-    color: string;
+    instructions?: string;
+    color?: string;
+    type?: string;
+    model?: string;
+    reasoningEffort?: string;
+    linked?: string[];
+    dependencies?: string[];
+    orchSettings?: Record<string, boolean>;
+    task?: string;
+    path?: string;
+    x?: number;
+    y?: number;
   }) => ipcRenderer.invoke("save-project", project),
   deleteProject: (id: string) => ipcRenderer.invoke("delete-project", id),
+  pickProjectPath: () => ipcRenderer.invoke("pick-project-path"),
 
   getWorkflows: () => ipcRenderer.invoke("get-workflows"),
   saveWorkflow: (workflow: {
@@ -112,20 +139,40 @@ contextBridge.exposeInMainWorld("openhub", {
   saveSkill: (skill: { filename?: string; title: string; content: string }) =>
     ipcRenderer.invoke("save-skill", skill),
   deleteSkill: (filename: string) => ipcRenderer.invoke("delete-skill", filename),
-  executeOrchestration: (id: string, task: string) =>
-    ipcRenderer.invoke("execute-orchestration", id, task),
+  executeOrchestration: (id: string, task: string, workDir?: string) =>
+    ipcRenderer.invoke("execute-orchestration", id, task, workDir ?? ""),
   cancelOrchestration: () => ipcRenderer.invoke("cancel-orchestration"),
+  getOrchStatusBuffer: () => ipcRenderer.invoke("get-orch-status-buffer"),
   onOrchestrationStatus: (
     cb: (data: {
       projectId: string;
       status: string;
       task?: string;
       error?: string;
+      result?: string;
+      systemPrompt?: string;
+      userPrompt?: string;
+      chunk?: string;
+      progress?: { current: number; total: number };
+      substep?: { current: number; total: number; title: string };
+      dependencies?: string[];
     }) => void,
   ) => {
     const handler = (
       _e: unknown,
-      data: { projectId: string; status: string; task?: string; error?: string },
+      data: {
+        projectId: string;
+        status: string;
+        task?: string;
+        error?: string;
+        result?: string;
+        systemPrompt?: string;
+        userPrompt?: string;
+        chunk?: string;
+        progress?: { current: number; total: number };
+        substep?: { current: number; total: number; title: string };
+        dependencies?: string[];
+      },
     ) => cb(data);
     ipcRenderer.on("orchestration-status", handler);
     return () => {
