@@ -161,7 +161,9 @@
 
     // Target the bottom container (which contains settings/help)
     // In sidebar-shell.tsx, this is the second direct child of the rail
-    const bottomContainer = rail.querySelector("div.shrink-0.flex-col.items-center");
+    const bottomContainer =
+      rail.querySelector('[data-component="sidebar-bottom"]') ||
+      rail.querySelector("div.shrink-0.flex-col.items-center");
 
     if (bottomContainer) {
       // If already present, don't re-inject
