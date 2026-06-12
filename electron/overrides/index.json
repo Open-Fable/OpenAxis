@@ -1,15 +1,23 @@
 {
   "global": {
     "theme": true,
-    "layout": true
+    "layout": true,
+    "task-done": true
   },
-  "openwork": { "bridge": true, "theme": true, "projects": true, "projects-hub": true },
+  "openwork": {
+    "bridge": true,
+    "theme": true,
+    "projects": true,
+    "projects-hub": true,
+    "task-done": true
+  },
   "opencode": {
     "bridge": true,
     "theme": true,
     "graphify": true,
     "recover-projects": true,
-    "reasoning-indicator": true
+    "reasoning-indicator": true,
+    "task-done": true
   },
-  "open-design": { "bridge": true, "theme": true }
+  "open-design": { "bridge": true, "theme": true, "task-done": true }
 }
