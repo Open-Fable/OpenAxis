@@ -1126,29 +1126,34 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
               }
             }
 
-            const textParts: string[] = [];
-            for (const part of parts) {
-              if (part.type === "text" && part.text) {
-                textParts.push(part.text);
-              } else if (part.type === "image_url" && part.image_url?.url) {
-                try {
-                  const description = await describeImage(
-                    part.image_url.url,
-                    visionConfig,
-                  );
-                  textParts.push(
-                    formatDescriptionForDeepSeek(
+            // Les descriptions d'images sont indépendantes : on les lance en
+            // parallèle (Promise.all) au lieu de bloquer séquentiellement.
+            // L'ordre des parties (texte/image) est préservé par l'index.
+            const resolvedParts = await Promise.all(
+              parts.map(async (part) => {
+                if (part.type === "text" && part.text) {
+                  return part.text;
+                }
+                if (part.type === "image_url" && part.image_url?.url) {
+                  try {
+                    const description = await describeImage(
+                      part.image_url.url,
+                      visionConfig,
+                    );
+                    return formatDescriptionForDeepSeek(
                       description,
                       visionConfig.visionDetailLevel,
-                    ),
-                  );
-                } catch (err) {
-                  const errMsg = err instanceof Error ? err.message : String(err);
-                  console.warn("[proxy:vision] Erreur describeImage:", errMsg);
-                  textParts.push("[Image non analysée — erreur Ollama]");
+                    );
+                  } catch (err) {
+                    const errMsg = err instanceof Error ? err.message : String(err);
+                    console.warn("[proxy:vision] Erreur describeImage:", errMsg);
+                    return "[Image non analysée — erreur Ollama]";
+                  }
                 }
-              }
-            }
+                return "";
+              }),
+            );
+            const textParts = resolvedParts.filter((s) => s !== "");
 
             (messages as Array<{ role: string; content: string }>)[i] = {
               role: msg.role,
