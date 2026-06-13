@@ -1713,7 +1713,7 @@
                   <legend class="settings-group-title">Base de connaissances</legend>
                   <div class="fact-list" id="fact-list"></div>
                   <div class="add-fact-row">
-                    <input class="form-input" type="text" id="new-fact" placeholder="Ajouter un fait manuellement..." />
+                    <input class="form-input" type="text" id="new-fact" placeholder="Ajouter un fait manuellement..." aria-label="Ajouter un fait à la mémoire" maxlength="500" />
                     <button class="btn-add-fact" id="btn-add-fact">+ Ajouter</button>
                   </div>
                   <div class="memory-token-hint" id="memory-token-hint"></div>
@@ -2320,20 +2320,30 @@
         var el = document.getElementById(id);
         if (!el) return;
         el.addEventListener("blur", function () {
+          // Trim whitespace from paste (clés copiées avec espaces/retours à la ligne)
+          var trimmed = el.value.trim();
+          if (trimmed !== el.value) el.value = trimmed;
           if (el.value === el.dataset.initial) return;
+          var previous = el.dataset.initial;
           el.dataset.initial = el.value;
           window.openhub
             .saveApiKeys({
-              anthropic: document.getElementById("key-anthropic").value,
-              openai: document.getElementById("key-openai").value,
-              openrouterKey: document.getElementById("key-openrouter").value,
-              ollamaUrl: document.getElementById("key-ollama").value,
-              githubToken: document.getElementById("key-github").value,
-              braveSearchKey: document.getElementById("key-brave").value,
+              anthropic: document.getElementById("key-anthropic").value.trim(),
+              openai: document.getElementById("key-openai").value.trim(),
+              openrouterKey: document.getElementById("key-openrouter").value.trim(),
+              ollamaUrl: document.getElementById("key-ollama").value.trim(),
+              githubToken: document.getElementById("key-github").value.trim(),
+              braveSearchKey: document.getElementById("key-brave").value.trim(),
             })
             .then(function () {
               showSaveToast("Clé enregistrée");
               if (id === "key-ollama") loadOllamaStatus();
+            })
+            .catch(function (err) {
+              // Ne jamais avaler l'erreur en silence : restaurer l'état et prévenir
+              el.dataset.initial = previous;
+              showSaveToast("Échec de l'enregistrement de la clé");
+              console.error("saveApiKeys failed", err);
             });
         });
       });
@@ -2827,10 +2837,20 @@
         }
         if (text.length > 500) {
           newFactInput.style.borderColor = "var(--error, #ef4444)";
+          setTimeout(function () { newFactInput.style.borderColor = ""; }, 1500);
           return;
         }
         newFactInput.value = "";
-        window.openhub.addMemoryFact(text, []).then(loadMemoryUI);
+        window.openhub
+          .addMemoryFact(text, [])
+          .then(loadMemoryUI)
+          .catch(function (err) {
+            // Restaurer la saisie en cas d'échec pour ne pas perdre le texte
+            newFactInput.value = text;
+            newFactInput.style.borderColor = "var(--error, #ef4444)";
+            setTimeout(function () { newFactInput.style.borderColor = ""; }, 1500);
+            console.error("addMemoryFact failed", err);
+          });
       });
 
       newFactInput.addEventListener("keydown", function (e) {
