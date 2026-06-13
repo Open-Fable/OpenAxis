@@ -1,172 +1,182 @@
-# Rapport d'audit — Tests manquants OpenHub
+# Audit des tests manquants — OpenHub
 
-**Date:** 2026-06-12
-**Couverture avant audit:** 0% (aucun test existant)
-**Couverture après audit:** ~15-20% (estimée — 4 modules couverts sur ~15 critiques)
-**Cible:** 80%+
+**Date de l'audit :** 2026-06-13
+**Stack :** Electron v32+, TypeScript, Vitest (unitaire), Playwright Electron (e2e)
+**Couverture cible :** 80 %+ (lignes) — seuil configuré dans `vitest.config.ts`
 
----
-
-## Tests ajoutés
-
-### 1. `electron/notifications.test.ts` — 22 tests
-
-| Scénario                                                  | Type     |
-| --------------------------------------------------------- | -------- |
-| isNotifySource — valeurs valides et invalides             | unitaire |
-| isNotifyMode — valeurs valides et invalides               | unitaire |
-| defaultNotifySources — valeurs par défaut, immutabilité   | unitaire |
-| Mode "always" — notification systématique                 | unitaire |
-| Mode "never" — aucune notification                        | unitaire |
-| Mode "sound" — shell.beep sans notification visuelle      | unitaire |
-| Mode "background" — focalisé vs non focalisé              | unitaire |
-| Mode "other-tab" — même onglet vs différent, focus vs pas | unitaire |
-| Source désactivée — pas de notification                   | unitaire |
-| Fallback beep si Notification non supporté                | unitaire |
-| Body personnalisé, par défaut, whitespace                 | unitaire |
-| Source invalide ignorée                                   | unitaire |
-| Fenêtre null en mode background                           | unitaire |
-
-### 2. `electron/memory-store.test.ts` — 18 tests
-
-| Scénario                                                      | Type     |
-| ------------------------------------------------------------- | -------- |
-| getAdvancedSimilarity — chaînes vides, matching, non liés     | unitaire |
-| Pondération par longueur de mot (rareté)                      | unitaire |
-| Bonus acronymes (OAUTH, JWT)                                  | unitaire |
-| Bonus phrase exacte                                           | unitaire |
-| Gestion accents (NFD normalization)                           | unitaire |
-| getJaccardSimilarity — vides, identiques, différents, partiel | unitaire |
-| Détection near-duplicates >0.7                                | unitaire |
-| shouldKeepFact — rejet court, headers, génériques, micro-CSS  | unitaire |
-| Acceptation faits techniques valides                          | unitaire |
-
-### 3. `electron/keychain.test.ts` — 6 tests
-
-| Scénario                                               | Type     |
-| ------------------------------------------------------ | -------- |
-| readSecret — délégation keytar, retour null            | unitaire |
-| writeSecret — délégation keytar                        | unitaire |
-| deleteSecret — délégation keytar                       | unitaire |
-| readAllApiKeys — 7 clés en parallèle, défaut ollamaUrl | unitaire |
-
-### 4. `electron/project-store.test.ts` — 10 tests
-
-| Scénario                                              | Type     |
-| ----------------------------------------------------- | -------- |
-| Initialisation 6 projets par défaut                   | unitaire |
-| getActiveProject retourne p4                          | unitaire |
-| saveProject — création avec couleur par défaut        | unitaire |
-| saveProject — mise à jour existant                    | unitaire |
-| deleteProject — suppression + reset activeProjectId   | unitaire |
-| setActiveProject — ignore id inexistant, accepte null | unitaire |
-| Workflow par défaut créé au premier chargement        | unitaire |
-| saveWorkflow — création nouveau workflow              | unitaire |
-| deleteWorkflow — suppression                          | unitaire |
-
-### Modification annexe
-
-- `eslint.config.mjs` — exclusion des `*.test.ts` du linting (incompatibles avec projectService tsconfig)
+> Cet audit met à jour le rapport précédent du 2026-06-12.
 
 ---
 
-## Matrice de couverture par module
+## 1. Résumé exécutif
 
-| Module                                       | Unitaire | Intégration | E2E | Couverture estimée            |
-| -------------------------------------------- | -------- | ----------- | --- | ----------------------------- |
-| `electron/notifications.ts`                  | 22 tests | -           | -   | **95%**                       |
-| `electron/memory-store.ts` (fonctions pures) | 18 tests | -           | -   | **70%** (I/O non couvert)     |
-| `electron/keychain.ts`                       | 6 tests  | -           | -   | **90%**                       |
-| `electron/project-store.ts`                  | 10 tests | -           | -   | **60%** (OrchRun non couvert) |
-| `electron/cache-metrics.ts`                  | -        | -           | -   | 0%                            |
-| `electron/proxy/index.ts`                    | -        | -           | -   | 0%                            |
-| `electron/orchestrator-runner.ts`            | -        | -           | -   | 0%                            |
-| `electron/orchestrator-prompts.ts`           | -        | -           | -   | 0%                            |
-| `electron/orchestrator-llm.ts`               | -        | -           | -   | 0%                            |
-| `electron/preload.ts`                        | -        | -           | -   | 0%                            |
-| `electron/main.ts`                           | -        | -           | -   | 0%                            |
-| `electron/proxy/vision.ts`                   | -        | -           | -   | 0%                            |
+| Indicateur                     | Avant audit | Après audit |
+| ------------------------------ | ----------- | ----------- |
+| Fichiers de test (`electron/`) | 5           | 7           |
+| Cas de test passants           | 90          | 139         |
+| Nouveaux cas ajoutés           | —           | +49         |
 
----
+Deux modules critiques de l'orchestrateur, jusqu'ici sans aucun test, sont
+désormais couverts à ~100 % de leurs fonctions pures.
 
-## Tests restants a ecrire (priorite)
-
-### Priorite HAUTE
-
-1. **Proxy Express — auth middleware** (intégration)
-   - Requête sans header Authorization → 401
-   - Bearer token invalide → 401
-   - Bearer sessionToken valide → next()
-   - Bearer "openhub-local" → next()
-   - Headers browser strippés (host, origin, referer)
-
-2. **Proxy Express — routage modèles** (unitaire)
-   - `resolveRoute()` — routage vers Anthropic, OpenAI, Google, OpenRouter, Ollama
-   - `buildModelList()` — filtrage par clés API disponibles
-   - `modelSupportsReasoningEffort()` — détection modèles avec reasoning
-   - `getFullModelCatalog()` — catalogue complet 40+ modèles
-
-3. **Cache metrics** (unitaire)
-   - `recordCacheMetric()` — ajout record, trimming >5000
-   - `computeMetrics()` — calcul total, ratio, breakdown, repeat detection (80%)
-   - `resetCacheMetrics()` — vidage
-   - Migration old format (prompt_tokens → system_tokens)
-
-4. **Orchestrator LLM** (unitaire, mock fetch)
-   - `callLLM()` — appel simple, gestion erreurs
-   - `callLLMStreaming()` — watchdog timeout, abort signal
-   - `callLLMWithTools()` — tool calls parsing
-
-5. **Project-store OrchRun** (unitaire)
-   - `saveOrchRun()`, `getOrchRuns()`, `deleteOrchRun()`, `clearOrchRuns()`
-   - Trimming MAX_RUNS (50)
-
-### Priorite MOYENNE
-
-6. **Memory-store I/O** (intégration, mock fs)
-   - `addFact()` — validation, dedup Jaccard >0.7, cap 50 facts
-   - `buildMemoryBlock()` — tri par pertinence, budget tokens, format XML
-   - `removeFact()`, `updateFact()` — mutations immutables
-   - Auto-cleanup au chargement
-
-7. **Orchestrator prompts** (unitaire)
-   - `buildWorkspaceContext()` — lecture WORKSPACE_INDEX.md, troncature 6000 chars
-   - `buildDependencyContext()` — formatage dépendances, troncature résultats
-   - `QUALITY_RULES` — vérification existence de chaque type d'agent
-
-8. **Format conversion proxy** (unitaire)
-   - `convertOpenAIToGemini()` — messages, images, tool calls
-   - `convertGeminiChunkToOpenAI()` — streaming SSE conversion
-   - Context pruning (token limit 90k, keep first 5 + last 15)
-
-### Priorite BASSE
-
-9. **Preload IPC** (intégration)
-   - Vérification que chaque canal IPC est exposé via contextBridge
-   - Validation des types de retour
-
-10. **E2E — cycle de vie** (Playwright Electron)
-    - Lancement app → sidebar visible → navigation entre slots
-    - Settings → ajout clé API → vérification stockée
-    - Projets → création → édition → suppression
-
-11. **Edge cases**
-    - Port 9999 occupé au démarrage proxy
-    - Keychain inaccessible (keytar throw)
-    - Réseau coupé pendant requête proxy (timeout)
-    - Override JS ciblant sélecteur disparu
+> **⚠️ BLOQUANT OUTILLAGE — couverture chiffrée indisponible**
+> `vitest.config.ts` déclare `coverage.provider: "v8"` avec un seuil
+> `thresholds: { lines: 80 }`, **mais le paquet `@vitest/coverage-v8` n'est pas
+> installé**. La commande `npx vitest run --coverage` échoue donc silencieusement
+> (aucun rapport généré). Les pourcentages ci-dessous sont **qualitatifs**
+> (estimés par analyse statique des exports testés), pas mesurés.
+> **Action requise (manuelle) :** `npm i -D @vitest/coverage-v8` puis
+> `npm test -- --coverage` pour obtenir le chiffre réel et faire respecter le
+> seuil de 80 %.
 
 ---
 
-## Bugs detectes
+## 2. Matrice de couverture par module
 
-Aucun bug détecté lors de cette session de tests.
+Légende : ✅ couvert · 🟡 partiel · ❌ absent · ⛔ non testable simplement (effets de bord Electron / réseau / port)
+
+| Module                                  | Unitaire         | Intégration | E2E | Couverture estimée                            |
+| --------------------------------------- | ---------------- | ----------- | --- | --------------------------------------------- |
+| `electron/keychain.ts`                  | ✅               | —           | ❌  | ~95 %                                         |
+| `electron/project-store.ts`             | ✅               | —           | ❌  | élevée                                        |
+| `electron/memory-store.ts`              | ✅               | —           | ❌  | élevée                                        |
+| `electron/notifications.ts`             | ✅               | 🟡          | ❌  | élevée                                        |
+| `electron/orchestrator-quality.ts`      | ✅               | —           | ❌  | élevée                                        |
+| `electron/orchestrator-prompts.ts`      | ✅ **(nouveau)** | —           | ❌  | ~100 % (pures)                                |
+| `electron/orchestrator-iterate.ts`      | 🟡 **(nouveau)** | —           | ❌  | `buildFixTask` 100 %, `planIterationFixes` ❌ |
+| `electron/orchestrator-llm.ts`          | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/orchestrator-runner.ts`       | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/orchestrator-backends/*.ts`   | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/proxy/index.ts` (auth Bearer) | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/proxy/vision.ts`              | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/proxy/routes/*`               | ❌               | ❌          | ❌  | 0 %                                           |
+| `electron/main.ts`                      | ❌               | ❌          | ⛔  | 0 %                                           |
+| `electron/preload.ts` (contextBridge)   | ❌               | ❌          | ⛔  | 0 %                                           |
+| `electron/projects/*.js` (renderer)     | ❌               | ❌          | ❌  | 0 %                                           |
 
 ---
 
-## Recommandations
+## 3. Tests ajoutés durant cet audit
 
-1. **Priorité immédiate:** écrire les tests du proxy Express (auth + routage) — c'est la surface d'attaque critique
-2. **Extraire les fonctions pures** de `proxy/index.ts` (2239 lignes) dans des modules séparés pour faciliter le test unitaire
-3. **Configurer la couverture V8** dans la CI pour suivre la progression vers 80%
-4. **Ajouter un tsconfig.test.json** pour inclure les fichiers `*.test.ts` dans le type-checking
+### 3.1 `electron/orchestrator-prompts.test.ts` (44 cas)
+
+Couvre **toutes les fonctions pures** du constructeur de prompts du pipeline
+multi-agents — module qui génère les messages système/utilisateur envoyés aux LLM.
+
+| Fonction testée                                 | Scénarios couverts                                                                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `buildDependencyContext`                        | aucune dépendance, dépendances `undefined`, id non résolu, placeholder « pas encore exécuté », troncature 60k (design) / 24k (autres) |
+| `buildPlanningSystemPrompt`                     | injection instructions perso, omission si vide, présence des 5 rôles                                                                  |
+| `buildPlanningUserPrompt`                       | liste id/nom/type, résolution des ids de dépendances → noms                                                                           |
+| `buildNodeSystemPrompt`                         | format code-fence par défaut vs outils fichiers, règles qualité design/code, fallback type inconnu, identité custom                   |
+| `buildNodeUserPrompt`                           | contrat `expected_files`, sections workspace/dépendances optionnelles, fallback tâche manquante, rappel critique                      |
+| `buildContinuationPrompt`                       | compteurs de tentative, troncature du tail à 500 chars                                                                                |
+| `buildCompletenessCheckPrompt`                  | format JSON strict                                                                                                                    |
+| `buildIterationPrompt`                          | compteurs d'itération, description du manque                                                                                          |
+| `buildVerifyPromptsSystemPrompt` / `UserPrompt` | identité custom vs fallback, sérialisation map de prompts, checklist                                                                  |
+| `buildVerifyOutputUserPrompt`                   | livrable court complet, excerpt head+tail (>6000), critères par type, fallback code                                                   |
+| `buildBrandCompliance*`                         | grille d'évaluation, identité fallback                                                                                                |
+| `buildWorkspaceIndex*`                          | prompt analyste, upper-case du type, troncature 3000 chars                                                                            |
+| `buildDecompose*`                               | règles qualité + rôle, instruction 2-à-8 étapes                                                                                       |
+| `buildSubStepUserPrompt`                        | numérotation 1-based, résultats précédents                                                                                            |
+| `buildSynthesis*`                               | fusion, listing des sous-étapes                                                                                                       |
+| `buildIterativePlanning*`                       | guidance `assign_task`/`expected_files`, comptage agents, `finish_planning`                                                           |
+
+### 3.2 `electron/orchestrator-iterate.test.ts` (5 cas)
+
+Couvre `buildFixTask` — composition de la tâche corrective lors d'une boucle
+d'itération déclenchée par feedback utilisateur.
+
+- Intégration feedback + correctif
+- Bloc « résultat précédent » présent / absent
+- Troncature à 4000 chars (`PREVIOUS_RESULT_MAX_CHARS`)
+- Présence systématique des règles critiques (« MODIFIE les fichiers existants »)
+
+---
+
+## 4. Tests restants à écrire (À AJOUTER MANUELLEMENT)
+
+### Priorité HAUTE — sécurité & cœur métier
+
+1. **Proxy Express — middleware d'authentification Bearer** (`proxy/index.ts:110-118`)
+   - _Difficulté :_ la logique d'auth est interne à `startProxy()` ; ni le
+     middleware ni l'app Express ne sont exportés, et `startProxy()` lie un port
+     réel (9999) et démarre des sous-processus.
+   - _Action recommandée :_ **refactoring de testabilité** — extraire la
+     fonction middleware `requireBearer(sessionToken)` dans un module à part
+     (`proxy/auth.ts`) exporté, puis tests unitaires :
+     - rejet 401 sans header `Authorization`
+     - rejet 401 si pas de préfixe `Bearer `
+     - rejet 401 si token ≠ token de session ET ≠ `openhub-local`
+     - acceptation du token de session
+     - acceptation du token `openhub-local` (webview OpenWork)
+     - en-têtes CORS exposés corrects
+   - _Intégration (supertest) :_ requête → auth → forward → réponse. Nécessite
+     `npm i -D supertest`.
+
+2. **`orchestrator-iterate.ts` — `planIterationFixes`** (boucle de triage LLM)
+   - Mocker `callLLMWithTools` ; vérifier : assignation de fix via `assign_fix`,
+     épuisement de la boucle (`MAX_TRIAGE_ITERATIONS=10`) → fallback
+     `fallbackAllNonSkipped`, troncature des contextes.
+
+3. **`orchestrator-llm.ts`** — `callLLM`, `callLLMWithTools`, `callLLMStreaming`
+   - Mocker `fetch` ; tester : succès, erreur HTTP, parsing des tool calls,
+     agrégation du streaming, gestion réseau coupé (timeout / abort).
+
+### Priorité MOYENNE
+
+4. **`orchestrator-runner.ts`** (classe `OrchestratorRunner`)
+   - Injecter des dépendances mockées (backends, LLM, store) ; tester
+     l'orchestration : ordre de dépendances, relances, propagation d'`AbortSignal`.
+
+5. **`orchestrator-backends/*`** — `opencode-backend.ts`, `design-backend.ts`
+   - Mocker les processus enfants / HTTP ; vérifier spawn, communication, parsing.
+
+6. **Notifications — intégration** (`notifications.ts`)
+   - `createNotifier` avec `NotifierDeps` mockés : déclenchement selon `NotifyMode`
+     (`always`, `never`, `background`, `other-tab`, `same-tab`) et `NotifySources`.
+
+7. **Config cascade** (`config/templates/openhub-settings.json`)
+   - Tests de parsing/validation du template et de propagation vers
+     `~/.config/opencode/opencode.json`. _(Aucune fonction de parsing exportée
+     identifiée — à isoler côté code si la logique n'est pas déjà extraite.)_
+
+### Priorité — Intégration / E2E (Playwright Electron)
+
+8. **Injection d'overrides CSS/JS** dans les WebContentsView (`insertCSS` / `executeJavaScript`).
+9. **IPC main/renderer via contextBridge** (`preload.ts`) — surface minimale, pas de chemins disque.
+10. **Cycle de vie e2e :** lancement → sidebar → navigation Work/Code/Design.
+11. **Processus enfants :** spawn, communication, cleanup à la fermeture.
+12. **Settings :** ajout/modification/suppression de clés API (via Keychain).
+13. **Projets :** création, édition, exécution, chat.
+
+### Edge cases à couvrir
+
+- App qui ne démarre pas : **port 9999 / 4096 / 5173 occupé**, processus zombie.
+- **Keychain inaccessible** (keytar rejette) — vérifier dégradation propre.
+- **Réseau coupé** pendant une requête proxy (abort / timeout).
+- **Override JS ciblant un sélecteur disparu** — `npm run check:selectors` +
+  test que le `MutationObserver` ne crashe pas si la cible est absente.
+
+---
+
+## 5. Bugs détectés
+
+Aucun bug fonctionnel détecté dans le code testé : les 49 nouveaux cas passent
+sans modification du code source.
+
+**Point d'attention outillage (non bloquant pour les tests, bloquant pour le
+seuil) :** le provider de couverture `@vitest/coverage-v8` est absent alors que
+`vitest.config.ts` l'exige — le seuil de 80 % n'est donc actuellement **jamais
+vérifié en CI**. Voir l'encadré §1.
+
+---
+
+## 6. Commandes de vérification
+
+```bash
+npm test                                               # 139 cas passants
+npx vitest run electron/orchestrator-prompts.test.ts   # 44 cas
+npx vitest run electron/orchestrator-iterate.test.ts   # 5 cas
+npm i -D @vitest/coverage-v8 && npm test -- --coverage  # (à faire) couverture réelle
+```
