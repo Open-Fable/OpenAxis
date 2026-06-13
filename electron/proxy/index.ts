@@ -60,6 +60,12 @@ export async function startProxy(): Promise<string> {
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    // Empêche l'embarquement de la réponse dans un <iframe> par défense
+    // en profondeur (double X-Frame-Options sur les navigateurs récents).
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    // Ne jamais divulguer l'URL interne du proxy (127.0.0.1:9999) dans le
+    // header Referer des requêtes sortantes déclenchées par la réponse.
+    res.setHeader("Referrer-Policy", "no-referrer");
     next();
   });
 
@@ -580,7 +586,8 @@ Tu disposes de ${MAX_QUESTION_ROUNDS} VAGUES de questions au total dans la conve
 - VAGUE 2 : Questions de précision après les premières réponses (fonctionnalités détaillées, contraintes, préférences)
 - VAGUE 3 : Dernières clarifications avant de proposer les projets (confirmations, choix finaux)
 Après chaque réponse de l'utilisateur, ÉVALUE s'il reste des zones floues. Si oui et qu'il te reste des vagues, REPOSE des questions. Ne te précipite pas à proposer des projets tant que tu n'as pas suffisamment d'informations, même si l'utilisateur a déjà répondu à un premier lot de questions.
-Utilise ce format structuré pour poser plusieurs questions à la fois :
+FORMAT OBLIGATOIRE POUR LES QUESTIONS (NE JAMAIS DÉROGER) :
+Tu DOIS utiliser EXACTEMENT le bloc JSON ci-dessous. N'utilise JAMAIS de liste numérotée, de texte en gras, de tirets ou de texte libre pour poser tes questions. Le système affiche les questions dans une interface interactive UNIQUEMENT si tu utilises ce format exact. Si tu poses des questions en texte libre, l'utilisateur ne pourra pas y répondre correctement.
 
 \`\`\`questions
 {"questions": [
@@ -589,6 +596,8 @@ Utilise ce format structuré pour poser plusieurs questions à la fois :
   {"text": "Quel est ton objectif principal ?", "options": ["Vendre en ligne", "Présenter mon activité", "Blog / Information", "Application interactive"], "allowCustom": true}
 ]}
 \`\`\`
+
+INTERDIT : Poser des questions sous forme de texte libre, listes numérotées (1. 2. 3.), ou listes à puces. TOUTES les questions DOIVENT être dans un bloc \`\`\`questions avec le JSON structuré ci-dessus.
 
 Règles pour les questions :
 - Tu as le droit à ${MAX_QUESTION_ROUNDS} tours de questions maximum dans une conversation
