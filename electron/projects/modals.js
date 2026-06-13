@@ -492,6 +492,15 @@ function initModals() {
       closeModal("modalProject");
       showToast(editId ? "Agent mis à jour" : "Agent créé", "success");
       await loadProjects();
+    } catch (err) {
+      // Ne jamais avaler l'erreur : le modal reste ouvert et l'utilisateur est prévenu
+      showToast(
+        editId
+          ? "Échec de la mise à jour de l'agent."
+          : "Échec de la création de l'agent.",
+        "error",
+      );
+      console.error("saveProject failed", err);
     } finally {
       saveBtn.disabled = false;
     }
