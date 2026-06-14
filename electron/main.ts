@@ -8,11 +8,13 @@ import {
   WebContentsView,
   Menu,
 } from "electron";
+import type { IpcMainInvokeEvent, IpcMainEvent } from "electron";
 import path from "path";
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
+import { randomBytes } from "crypto";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { ProcessManager } from "./process-manager.js";
 import { startProxy, getActiveWorkspaceDir } from "./proxy/index.js";
 import { loadOverrides } from "./override-loader.js";
@@ -50,6 +52,7 @@ import {
 } from "./memory-store.js";
 import type { SlotName } from "./types.js";
 import { OrchestratorRunner } from "./orchestrator-runner.js";
+import { setProxyToken } from "./orchestrator-llm.js";
 import {
   createNotifier,
   defaultNotifySources,
@@ -298,14 +301,81 @@ function repositionViews(): void {
   }
 }
 
-ipcMain.on("config-visibility", (_e, open: boolean) => {
+// --- IPC sender hardening --------------------------------------------------
+// The Work/Code/Design slot views load REMOTE web apps yet share this preload,
+// so every IPC channel is reachable from an untrusted origin (an XSS in an
+// upstream app, a hostile page reached mid-navigation, etc.). Secret-bearing,
+// filesystem, exec, store and orchestration channels are therefore restricted to
+// the local file:// UI (sidebar/chat/projects/nav-popup). Only the small set the
+// slot views genuinely need stays open — each of those does its own argument
+// validation (resolveWithinHome, sender check, native picker, …).
+const SLOT_ALLOWED_CHANNELS = new Set<string>([
+  "switch-slot",
+  "show-slot-context-menu",
+  "show-nav-menu",
+  "nav-popup-select",
+  "config-visibility",
+  "get-slot-status",
+  "task-done",
+  "pick-project-path",
+  "openwork-desktop-invoke",
+  "run-graphify-update",
+  "od-shell:open-external",
+  "od-shell:open-path",
+  "od-pdf:print",
+  "od-updater:action",
+  "od-dialog:pick-and-import",
+  "od-dialog:pick-and-replace-working-dir",
+  "od-pet:set-visible",
+]);
+
+function senderIsTrusted(e: IpcMainInvokeEvent | IpcMainEvent, channel: string): boolean {
+  if (SLOT_ALLOWED_CHANNELS.has(channel)) return true;
+  const url = e.senderFrame?.url ?? "";
+  return url.startsWith("file://");
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC args are a serialization boundary
+type IpcArgs = any[];
+
+function ipcHandle(
+  channel: string,
+  listener: (e: IpcMainInvokeEvent, ...args: IpcArgs) => unknown,
+): void {
+  ipcMain.handle(channel, (e, ...args) => {
+    if (!senderIsTrusted(e, channel)) {
+      console.warn(
+        `[main] IPC '${channel}' refused from ${e.senderFrame?.url ?? "unknown"}`,
+      );
+      throw new Error("forbidden");
+    }
+    return listener(e, ...args);
+  });
+}
+
+function ipcOn(
+  channel: string,
+  listener: (e: IpcMainEvent, ...args: IpcArgs) => void,
+): void {
+  ipcMain.on(channel, (e, ...args) => {
+    if (!senderIsTrusted(e, channel)) {
+      console.warn(
+        `[main] IPC '${channel}' refused from ${e.senderFrame?.url ?? "unknown"}`,
+      );
+      return;
+    }
+    listener(e, ...args);
+  });
+}
+
+ipcOn("config-visibility", (_e, open: boolean) => {
   configOpen = open;
   repositionViews();
 });
 
 let navPopup: BrowserWindow | null = null;
 
-ipcMain.on("show-nav-menu", (_e, x: number, y: number) => {
+ipcOn("show-nav-menu", (_e, x: number, y: number) => {
   if (navPopup && !navPopup.isDestroyed()) {
     navPopup.close();
     navPopup = null;
@@ -360,7 +430,7 @@ ipcMain.on("show-nav-menu", (_e, x: number, y: number) => {
   });
 });
 
-ipcMain.on("nav-popup-select", (_e, slot: SlotName) => {
+ipcOn("nav-popup-select", (_e, slot: SlotName) => {
   if (navPopup && !navPopup.isDestroyed()) {
     navPopup.close();
     navPopup = null;
@@ -395,6 +465,14 @@ async function switchSlot(slot: SlotName): Promise<void> {
         }
         return { action: "deny" };
       });
+      // This view only ever renders the local chat.html — block any top-level
+      // navigation to remote/file/data URLs (defense against content-driven escapes).
+      view.webContents.on("will-navigate", (event, url) => {
+        if (!url.startsWith("file://")) {
+          event.preventDefault();
+          console.warn(`[main] Blocked navigation in chat view to: ${url}`);
+        }
+      });
       view.webContents.on("console-message", (_e, level, message, line, sourceId) => {
         console.warn(
           `[chat:console] [level:${level}] ${message} (at ${sourceId}:${line})`,
@@ -428,6 +506,14 @@ async function switchSlot(slot: SlotName): Promise<void> {
           shell.openExternal(url);
         }
         return { action: "deny" };
+      });
+      // This view only ever renders the local projects.html — block any top-level
+      // navigation to remote/file/data URLs.
+      view.webContents.on("will-navigate", (event, url) => {
+        if (!url.startsWith("file://")) {
+          event.preventDefault();
+          console.warn(`[main] Blocked navigation in projects view to: ${url}`);
+        }
       });
       view.webContents.on("console-message", (_e, level, message, line, sourceId) => {
         console.warn(
@@ -502,7 +588,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
   console.warn(`[main] ── switchSlot("${slot}") done ──\n`);
 }
 
-ipcMain.handle("switch-slot", (_e, slot: SlotName) => switchSlot(slot));
+ipcHandle("switch-slot", (_e, slot: SlotName) => switchSlot(slot));
 
 async function stopSlot(slot: SlotName): Promise<void> {
   const view = views.get(slot);
@@ -519,7 +605,7 @@ async function stopSlot(slot: SlotName): Promise<void> {
   }
 }
 
-ipcMain.on("show-slot-context-menu", (_e, slot: SlotName) => {
+ipcOn("show-slot-context-menu", (_e, slot: SlotName) => {
   const slotLabels: Record<string, string> = {
     work: "Work",
     code: "Code",
@@ -537,7 +623,7 @@ ipcMain.on("show-slot-context-menu", (_e, slot: SlotName) => {
   menu.popup({ window: mainWindow ?? undefined });
 });
 
-ipcMain.handle("export-pdf", async () => {
+ipcHandle("export-pdf", async () => {
   const view = views.get(activeSlot as Exclude<SlotName, "config">);
   if (!view) return;
 
@@ -552,185 +638,186 @@ ipcMain.handle("export-pdf", async () => {
   await fs.writeFile(filePath, pdf);
 });
 
-ipcMain.handle("get-slot-status", () => processManager?.getStatus() ?? {});
+ipcHandle("get-slot-status", () => processManager?.getStatus() ?? {});
 
 // OpenWork desktop bridge — polyfills window.__OPENWORK_ELECTRON__.invokeDesktop()
-ipcMain.handle(
-  "openwork-desktop-invoke",
-  async (_e, command: string, ...args: unknown[]) => {
-    switch (command) {
-      case "pickDirectory": {
-        const result = await dialog.showOpenDialog({
-          properties: ["openDirectory", "createDirectory"],
-        });
-        return result.canceled ? null : (result.filePaths[0] ?? null);
-      }
-      case "pickFile": {
-        const result = await dialog.showOpenDialog({
-          properties: ["openFile"],
-        });
-        return result.canceled ? null : (result.filePaths[0] ?? null);
-      }
-      // ── OpenWork boot ──────────────────────────────────────────────────────
-      // workspaceBootstrap: return a default local workspace so OpenWork skips
-      // the welcome/create-workspace screen and boots directly into the main UI.
-      // A pre-populated workspace also routes the boot through runtimeBootstrap
-      // (Electron path) which we handle with skipped=true → instant markReady().
-      case "workspaceBootstrap":
-        return {
-          workspaces: [
-            {
-              id: "openhub-default",
-              name: "OpenHub",
-              path: homedir(),
-              preset: "default",
-              workspaceType: "local",
-              displayName: "OpenHub",
-            },
-          ],
-          selectedId: "openhub-default",
-          activeId: "openhub-default",
-        };
-
-      // openworkServerRestart/Info: point to our running opencode serve
-      // isOpenworkServerReady() requires running=true + baseUrl + ownerToken
-      case "openworkServerRestart":
-      case "openworkServerInfo":
-        return {
-          running: true,
-          baseUrl: "http://127.0.0.1:9999",
-          ownerToken: "openhub-local",
-          clientToken: "openhub-local",
-          port: 9999,
-          remoteAccessEnabled: false,
-        };
-
-      // runtimeBootstrap (Electron path): skipped=true bypasses server check
-      case "runtimeBootstrap":
-        return {
-          ok: true,
-          skipped: true,
-          openworkServer: {
-            running: true,
-            baseUrl: "http://127.0.0.1:4096",
-            ownerToken: "openhub-local",
-            clientToken: "openhub-local",
-            port: 4096,
-            remoteAccessEnabled: false,
-          },
-          engine: { baseUrl: "http://127.0.0.1:4096" },
-        };
-
-      // ── OpenWork engine ────────────────────────────────────────────────────
-      // engineInfo / engineStart: report opencode serve as the running engine
-      case "engineInfo":
-      case "engineStart":
-        return {
-          running: true,
-          runtime: "direct",
-          baseUrl: "http://127.0.0.1:4096",
-          projectDir: (args[0] as string) || null,
-          hostname: "127.0.0.1",
-          port: 4096,
-          opencodeUsername: null,
-          opencodePassword: null,
-          opencodeBinPath: null,
-          opencodeBinSource: null,
-          pid: null,
-          lastStdout: null,
-          lastStderr: null,
-          execution: null,
-        };
-
-      // ── OpenWork workspace mutations ───────────────────────────────────────
-      case "workspaceCreate": {
-        const wsPath = (args[0] as string) ?? "";
-        return {
-          id: `openhub-${Date.now()}`,
-          name: wsPath.split("/").pop() || "workspace",
-          path: wsPath,
-          preset: "default",
-          workspaceType: "local",
-          displayName: wsPath.split("/").pop() || "workspace",
-        };
-      }
-      case "workspaceSetSelected":
-      case "workspaceSetRuntimeActive":
-      case "workspaceUpdateDisplayName":
-      case "workspaceForget":
-      case "workspaceAddAuthorizedRoot":
-      case "engineStop":
-      case "engineRestart":
-        return { ok: true };
-
-      // ── Electron update stubs (suppress "not in Electron desktop app" toast) ──
-      case "checkForUpdates":
-      case "getUpdateStatus":
-      case "installUpdate":
-      case "quitAndInstall":
-        return { available: false, checking: false, version: null };
-
-      case "__homeDir":
-        return homedir();
-      case "__joinPath": {
-        const segments = args as string[];
-        if (segments.some((s) => typeof s !== "string" || s.includes(".."))) {
-          return null;
-        }
-        return path.join(...segments);
-      }
-      case "__openPath": {
-        const target = args[0] as string;
-        if (typeof target !== "string" || target.includes("..")) return "";
-        const resolved = path.resolve(target);
-        if (!resolved.startsWith(homedir())) return "";
-        return shell.openPath(resolved);
-      }
-      case "__revealItemInDir": {
-        const itemPath = args[0] as string;
-        if (typeof itemPath !== "string" || itemPath.includes("..")) return null;
-        const resolvedItem = path.resolve(itemPath);
-        if (!resolvedItem.startsWith(homedir())) return null;
-        shell.showItemInFolder(resolvedItem);
-        return null;
-      }
-      default:
-        return null;
+ipcHandle("openwork-desktop-invoke", async (_e, command: string, ...args: unknown[]) => {
+  switch (command) {
+    case "pickDirectory": {
+      const result = await dialog.showOpenDialog({
+        properties: ["openDirectory", "createDirectory"],
+      });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
     }
-  },
-);
+    case "pickFile": {
+      const result = await dialog.showOpenDialog({
+        properties: ["openFile"],
+      });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
+    }
+    // ── OpenWork boot ──────────────────────────────────────────────────────
+    // workspaceBootstrap: return a default local workspace so OpenWork skips
+    // the welcome/create-workspace screen and boots directly into the main UI.
+    // A pre-populated workspace also routes the boot through runtimeBootstrap
+    // (Electron path) which we handle with skipped=true → instant markReady().
+    case "workspaceBootstrap":
+      return {
+        workspaces: [
+          {
+            id: "openhub-default",
+            name: "OpenHub",
+            path: homedir(),
+            preset: "default",
+            workspaceType: "local",
+            displayName: "OpenHub",
+          },
+        ],
+        selectedId: "openhub-default",
+        activeId: "openhub-default",
+      };
+
+    // openworkServerRestart/Info: point to our running opencode serve
+    // isOpenworkServerReady() requires running=true + baseUrl + ownerToken
+    case "openworkServerRestart":
+    case "openworkServerInfo":
+      return {
+        running: true,
+        baseUrl: "http://127.0.0.1:9999",
+        ownerToken: proxyToken,
+        clientToken: proxyToken,
+        port: 9999,
+        remoteAccessEnabled: false,
+      };
+
+    // runtimeBootstrap (Electron path): skipped=true bypasses server check
+    case "runtimeBootstrap":
+      return {
+        ok: true,
+        skipped: true,
+        openworkServer: {
+          running: true,
+          baseUrl: "http://127.0.0.1:4096",
+          ownerToken: proxyToken,
+          clientToken: proxyToken,
+          port: 4096,
+          remoteAccessEnabled: false,
+        },
+        engine: { baseUrl: "http://127.0.0.1:4096" },
+      };
+
+    // ── OpenWork engine ────────────────────────────────────────────────────
+    // engineInfo / engineStart: report opencode serve as the running engine
+    case "engineInfo":
+    case "engineStart":
+      return {
+        running: true,
+        runtime: "direct",
+        baseUrl: "http://127.0.0.1:4096",
+        projectDir: (args[0] as string) || null,
+        hostname: "127.0.0.1",
+        port: 4096,
+        opencodeUsername: null,
+        opencodePassword: null,
+        opencodeBinPath: null,
+        opencodeBinSource: null,
+        pid: null,
+        lastStdout: null,
+        lastStderr: null,
+        execution: null,
+      };
+
+    // ── OpenWork workspace mutations ───────────────────────────────────────
+    case "workspaceCreate": {
+      const wsPath = (args[0] as string) ?? "";
+      return {
+        id: `openhub-${Date.now()}`,
+        name: wsPath.split("/").pop() || "workspace",
+        path: wsPath,
+        preset: "default",
+        workspaceType: "local",
+        displayName: wsPath.split("/").pop() || "workspace",
+      };
+    }
+    case "workspaceSetSelected":
+    case "workspaceSetRuntimeActive":
+    case "workspaceUpdateDisplayName":
+    case "workspaceForget":
+    case "workspaceAddAuthorizedRoot":
+    case "engineStop":
+    case "engineRestart":
+      return { ok: true };
+
+    // ── Electron update stubs (suppress "not in Electron desktop app" toast) ──
+    case "checkForUpdates":
+    case "getUpdateStatus":
+    case "installUpdate":
+    case "quitAndInstall":
+      return { available: false, checking: false, version: null };
+
+    case "__homeDir":
+      return homedir();
+    case "__joinPath": {
+      const segments = args as string[];
+      // Block "..", and any absolute segment past the first — path.join does not
+      // reset on a later absolute segment, but an absolute first segment (e.g.
+      // the home dir) is the legitimate base for these joins.
+      if (
+        segments.some(
+          (s, i) =>
+            typeof s !== "string" || s.includes("..") || (i > 0 && path.isAbsolute(s)),
+        )
+      ) {
+        return null;
+      }
+      return path.join(...segments);
+    }
+    case "__openPath": {
+      const resolved = await resolveWithinHome(args[0]);
+      if (!resolved) return "";
+      return shell.openPath(resolved);
+    }
+    case "__revealItemInDir": {
+      const resolvedItem = await resolveWithinHome(args[0]);
+      if (!resolvedItem) return null;
+      shell.showItemInFolder(resolvedItem);
+      return null;
+    }
+    default:
+      return null;
+  }
+});
 
 // ── Project management ──────────────────────────────────────────────────────
-ipcMain.handle("reload-project-store", () => invalidateCache());
-ipcMain.handle("get-projects", () => getProjects());
-ipcMain.handle("get-active-project", () => getActiveProject());
-ipcMain.handle("set-active-project", (_e, id: string | null) => setActiveProject(id));
-ipcMain.handle("save-project", (_e, project: Parameters<typeof saveProject>[0]) =>
+ipcHandle("reload-project-store", () => invalidateCache());
+ipcHandle("get-projects", () => getProjects());
+ipcHandle("get-active-project", () => getActiveProject());
+ipcHandle("set-active-project", (_e, id: string | null) => setActiveProject(id));
+ipcHandle("save-project", (_e, project: Parameters<typeof saveProject>[0]) =>
   saveProject(project),
 );
-ipcMain.handle("delete-project", (_e, id: string) => deleteProject(id));
+ipcHandle("delete-project", (_e, id: string) => deleteProject(id));
 
 // ── Folder management ───────────────────────────────────────────────────────
-ipcMain.handle("get-folders", () => getFolders());
-ipcMain.handle("create-folder", (_e, name: string) => createFolder(name));
-ipcMain.handle("rename-folder", (_e, id: string, name: string) => renameFolder(id, name));
-ipcMain.handle("delete-folder", (_e, id: string) => deleteFolder(id));
+ipcHandle("get-folders", () => getFolders());
+ipcHandle("create-folder", (_e, name: string) => createFolder(name));
+ipcHandle("rename-folder", (_e, id: string, name: string) => renameFolder(id, name));
+ipcHandle("delete-folder", (_e, id: string) => deleteFolder(id));
 
-ipcMain.handle("pick-project-path", async () => {
+ipcHandle("pick-project-path", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openDirectory", "createDirectory"],
   });
   return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
-ipcMain.handle("get-workflows", () => getWorkflows());
-ipcMain.handle("save-workflow", (_e, workflow) => saveWorkflow(workflow));
-ipcMain.handle("delete-workflow", (_e, id: string) => deleteWorkflow(id));
+ipcHandle("get-workflows", () => getWorkflows());
+ipcHandle("save-workflow", (_e, workflow) => saveWorkflow(workflow));
+ipcHandle("delete-workflow", (_e, id: string) => deleteWorkflow(id));
 
-ipcMain.handle("get-orch-runs", (_e, workflowId?: string) => getOrchRuns(workflowId));
-ipcMain.handle("save-orch-run", (_e, run) => saveOrchRun(run));
-ipcMain.handle("delete-orch-run", (_e, id: string) => deleteOrchRun(id));
-ipcMain.handle("clear-orch-runs", (_e, workflowId?: string) => clearOrchRuns(workflowId));
+ipcHandle("get-orch-runs", (_e, workflowId?: string) => getOrchRuns(workflowId));
+ipcHandle("save-orch-run", (_e, run) => saveOrchRun(run));
+ipcHandle("delete-orch-run", (_e, id: string) => deleteOrchRun(id));
+ipcHandle("clear-orch-runs", (_e, workflowId?: string) => clearOrchRuns(workflowId));
 
 let runner: OrchestratorRunner | null = null;
 
@@ -800,7 +887,7 @@ function ensureRunner(): OrchestratorRunner {
   return runner;
 }
 
-ipcMain.handle(
+ipcHandle(
   "execute-orchestration",
   async (_e, id: string, task: string, workDir?: string, workflowName?: string) => {
     orchStatusBuffer.clear();
@@ -809,7 +896,7 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle(
+ipcHandle(
   "iterate-orchestration",
   async (_e, id: string, feedback: string, workflowId: string) => {
     if (!feedback?.trim()) throw new Error("Le feedback est vide.");
@@ -821,11 +908,11 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle("cancel-orchestration", () => {
+ipcHandle("cancel-orchestration", () => {
   runner?.cancel();
 });
 
-ipcMain.handle("get-orch-status-buffer", () => {
+ipcHandle("get-orch-status-buffer", () => {
   return {
     statuses: Object.fromEntries(orchStatusBuffer),
     activity: [...orchActivityLog],
@@ -834,14 +921,14 @@ ipcMain.handle("get-orch-status-buffer", () => {
 
 // ── Chat backup (file-system persistence for conversations) ─────────────────
 const CHAT_BACKUP_PATH = path.join(homedir(), ".config", "openhub", "chat-backup.json");
-ipcMain.handle("read-chat-backup", async () => {
+ipcHandle("read-chat-backup", async () => {
   try {
     return await fs.readFile(CHAT_BACKUP_PATH, "utf-8");
   } catch {
     return null;
   }
 });
-ipcMain.handle("write-chat-backup", async (_e, data: string) => {
+ipcHandle("write-chat-backup", async (_e, data: string) => {
   try {
     await fs.mkdir(path.dirname(CHAT_BACKUP_PATH), { recursive: true });
     await fs.writeFile(CHAT_BACKUP_PATH, data, "utf-8");
@@ -858,14 +945,14 @@ const ORCH_CONVS_PATH = path.join(
   "openhub",
   "orch-conversations.json",
 );
-ipcMain.handle("read-orch-conversations", async () => {
+ipcHandle("read-orch-conversations", async () => {
   try {
     return await fs.readFile(ORCH_CONVS_PATH, "utf-8");
   } catch {
     return null;
   }
 });
-ipcMain.handle("write-orch-conversations", async (_e, data: string) => {
+ipcHandle("write-orch-conversations", async (_e, data: string) => {
   try {
     await fs.mkdir(path.dirname(ORCH_CONVS_PATH), { recursive: true });
     await fs.writeFile(ORCH_CONVS_PATH, data, "utf-8");
@@ -876,23 +963,21 @@ ipcMain.handle("write-orch-conversations", async (_e, data: string) => {
 });
 
 // ── Memory management ───────────────────────────────────────────────────────
-ipcMain.handle("get-memory", () => getMemory());
-ipcMain.handle("set-memory-enabled", (_e, enabled: boolean) => setMemoryEnabled(enabled));
-ipcMain.handle("set-memory-auto-extract", (_e, enabled: boolean) =>
+ipcHandle("get-memory", () => getMemory());
+ipcHandle("set-memory-enabled", (_e, enabled: boolean) => setMemoryEnabled(enabled));
+ipcHandle("set-memory-auto-extract", (_e, enabled: boolean) =>
   setMemoryAutoExtract(enabled),
 );
-ipcMain.handle("set-memory-profile", (_e, profile: string) => setMemoryProfile(profile));
-ipcMain.handle("add-memory-fact", (_e, text: string, tags: string[]) =>
-  addFact(text, tags),
-);
-ipcMain.handle("remove-memory-fact", (_e, id: string) => removeFact(id));
-ipcMain.handle(
+ipcHandle("set-memory-profile", (_e, profile: string) => setMemoryProfile(profile));
+ipcHandle("add-memory-fact", (_e, text: string, tags: string[]) => addFact(text, tags));
+ipcHandle("remove-memory-fact", (_e, id: string) => removeFact(id));
+ipcHandle(
   "update-memory-fact",
   (_e, id: string, patch: { text?: string; tags?: string[] }) => updateFact(id, patch),
 );
 
 // ── Workspace Skills management ─────────────────────────────────────────────
-ipcMain.handle("get-skills", async () => {
+ipcHandle("get-skills", async () => {
   const workspaceDir = getActiveWorkspaceDir();
   const skillsDir = path.join(workspaceDir, ".openhub", "skills");
   try {
@@ -914,7 +999,7 @@ ipcMain.handle("get-skills", async () => {
   }
 });
 
-ipcMain.handle(
+ipcHandle(
   "save-skill",
   async (_e, skill: { filename?: string; title: string; content: string }) => {
     const workspaceDir = getActiveWorkspaceDir();
@@ -946,7 +1031,7 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle("delete-skill", async (_e, filename: string) => {
+ipcHandle("delete-skill", async (_e, filename: string) => {
   const workspaceDir = getActiveWorkspaceDir();
   const skillsDir = path.join(workspaceDir, ".openhub", "skills");
   const cleanFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, "");
@@ -962,18 +1047,36 @@ ipcMain.handle("delete-skill", async (_e, filename: string) => {
   }
 });
 
-ipcMain.handle("get-chat-config", () => ({
+ipcHandle("get-chat-config", () => ({
   proxyUrl: "http://127.0.0.1:9999",
   token: proxyToken,
 }));
 
-ipcMain.handle("export-html-to-pdf", async (_e, html: string) => {
-  const win = new BrowserWindow({
+// Offscreen window for rendering renderer-supplied HTML to PDF. It runs in an
+// isolated session whose network is fully blocked, so the embedded HTML cannot
+// fetch remote resources or exfiltrate any data it contains.
+function createLockedPdfWindow(): BrowserWindow {
+  const partition = `pdf-export-${randomBytes(6).toString("hex")}`;
+  const sess = session.fromPartition(partition);
+  sess.webRequest.onBeforeRequest((details, cb) => {
+    const allowed = details.url.startsWith("data:") || details.url.startsWith("about:");
+    cb({ cancel: !allowed });
+  });
+  return new BrowserWindow({
     show: false,
     width: 800,
     height: 600,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      partition,
+    },
   });
+}
+
+ipcHandle("export-html-to-pdf", async (_e, html: string) => {
+  const win = createLockedPdfWindow();
 
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
@@ -1049,7 +1152,7 @@ function cleanSearchQuery(query: string): string {
   return cleaned.trim() || query;
 }
 
-ipcMain.handle("web-search", async (_e, query: string) => {
+ipcHandle("web-search", async (_e, query: string) => {
   const { readSecret } = await import("./keychain.js");
   const braveSearchKey = await readSecret("openhub", "brave-search-key");
   if (braveSearchKey === null || braveSearchKey === "") {
@@ -1083,13 +1186,24 @@ ipcMain.handle("web-search", async (_e, query: string) => {
   return results;
 });
 
-ipcMain.handle("get-api-keys", async () => {
-  const { readAllApiKeys } = await import("./keychain.js");
-  return readAllApiKeys();
+ipcHandle("get-api-keys", async () => {
+  const { readAllApiKeys, maskSecret } = await import("./keychain.js");
+  const keys = await readAllApiKeys();
+  // Secrets are NEVER returned in clear to the renderer — only a masked preview.
+  // ollamaUrl is not a secret and must stay editable, so it is returned in full.
+  return {
+    anthropic: maskSecret(keys.anthropic),
+    openai: maskSecret(keys.openai),
+    openrouterKey: maskSecret(keys.openrouterKey),
+    googleAiKey: maskSecret(keys.googleAiKey),
+    githubToken: maskSecret(keys.githubToken),
+    braveSearchKey: maskSecret(keys.braveSearchKey),
+    ollamaUrl: keys.ollamaUrl,
+  };
 });
 
-ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
-  const { writeSecret } = await import("./keychain.js");
+ipcHandle("save-api-keys", async (_e, keys: Record<string, string>) => {
+  const { writeSecret, isMaskedValue, isSafeOllamaUrl } = await import("./keychain.js");
   const map: Record<string, string> = {
     anthropic: "anthropic-api-key",
     openai: "openai-api-key",
@@ -1101,7 +1215,15 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
     googleOauthClientSecret: "google-oauth-client-secret",
   };
   for (const [field, account] of Object.entries(map)) {
-    if (keys[field]) await writeSecret("openhub", account, keys[field]);
+    const value = keys[field];
+    if (!value) continue;
+    // Never overwrite a real secret with the masked preview echoed back by the UI.
+    if (isMaskedValue(value)) continue;
+    if (field === "ollamaUrl" && !isSafeOllamaUrl(value)) {
+      console.warn("[main] save-api-keys: ollama-url rejected (unsafe host)");
+      continue;
+    }
+    await writeSecret("openhub", account, value);
   }
   // Notify chat view to refresh its model list
   const chatView = views.get("chat");
@@ -1109,7 +1231,7 @@ ipcMain.handle("save-api-keys", async (_e, keys: Record<string, string>) => {
 });
 
 // ── Open Design Native Bridge Handlers ──────────────────────────────────────
-ipcMain.handle(
+ipcHandle(
   "od-dialog:pick-and-import",
   async (
     _event,
@@ -1176,7 +1298,7 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle(
+ipcHandle(
   "od-dialog:pick-and-replace-working-dir",
   async (_event, init: { projectId?: string } | null) => {
     try {
@@ -1234,7 +1356,7 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle("od-shell:open-external", async (_event, url: string) => {
+ipcHandle("od-shell:open-external", async (_event, url: string) => {
   if (
     typeof url !== "string" ||
     (!url.startsWith("http://") && !url.startsWith("https://"))
@@ -1249,7 +1371,7 @@ ipcMain.handle("od-shell:open-external", async (_event, url: string) => {
   }
 });
 
-ipcMain.handle("od-shell:open-path", async (_event, projectId: string) => {
+ipcHandle("od-shell:open-path", async (_event, projectId: string) => {
   if (typeof projectId !== "string" || projectId.length === 0) {
     return "open-path: project id is required";
   }
@@ -1265,20 +1387,19 @@ ipcMain.handle("od-shell:open-path", async (_event, projectId: string) => {
     if (baseDir === undefined || baseDir === null || baseDir === "") {
       return "open-path: no working directory configured for this project";
     }
-    const err = await shell.openPath(baseDir);
+    // The daemon response is external data — confine the path to the user's home
+    // before handing it to the OS shell (same guard as __openPath).
+    const resolved = await resolveWithinHome(baseDir);
+    if (!resolved) return "open-path: refused (outside home)";
+    const err = await shell.openPath(resolved);
     return err;
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
 });
 
-ipcMain.handle("od-pdf:print", async (_event, html: string) => {
-  const win = new BrowserWindow({
-    show: false,
-    width: 800,
-    height: 600,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
-  });
+ipcHandle("od-pdf:print", async (_event, html: string) => {
+  const win = createLockedPdfWindow();
 
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
@@ -1306,7 +1427,7 @@ ipcMain.handle("od-pdf:print", async (_event, html: string) => {
 const APPS_DIR = path.join(__dirname, "..", "..", "apps");
 const APP_NAMES = ["openwork", "opencode", "open-design"];
 
-ipcMain.handle("check-app-updates", async () => {
+ipcHandle("check-app-updates", async () => {
   const results: Record<
     string,
     {
@@ -1408,8 +1529,8 @@ async function getOpencodeBinaryVersion(): Promise<string | null> {
       // binary not at expected location, fallback to PATH
     }
 
-    // Use a safer execution method for version check
-    const out = await execPromise(`"${cmd}" --version`, { timeout: 5000 });
+    // Use a safer execution method for version check (no shell)
+    const out = await execFilePromise(cmd, ["--version"], { timeout: 5000 });
     const match = out.match(/(\d+\.\d+\.\d+)/);
     return match ? match[1] : null;
   } catch {
@@ -1417,7 +1538,7 @@ async function getOpencodeBinaryVersion(): Promise<string | null> {
   }
 }
 
-ipcMain.handle("run-app-update", async (_e, appName: string) => {
+ipcHandle("run-app-update", async (_e, appName: string) => {
   if (!APP_NAMES.includes(appName)) return { ok: false, error: "unknown app" };
   try {
     const dir = path.join(APPS_DIR, appName);
@@ -1426,15 +1547,24 @@ ipcMain.handle("run-app-update", async (_e, appName: string) => {
     const branch = (
       await execPromise(`git rev-parse --abbrev-ref HEAD`, { cwd: dir })
     ).trim();
+    // Reject any branch name containing shell metacharacters before it is ever
+    // interpolated into a command (defense against a maliciously-named ref).
+    const safeBranch = GIT_BRANCH_RE.test(branch) ? branch : "";
     await execPromise(`git remote prune origin 2>/dev/null; true`, { cwd: dir });
     await execPromise(
       `git fetch --tags origin +refs/tags/*:refs/tags/* 2>/dev/null; true`,
       { cwd: dir },
     );
-    await execPromise(
-      `git stash --quiet 2>/dev/null; git pull --rebase origin ${branch} 2>/dev/null; true`,
-      { cwd: dir },
-    );
+    await execPromise(`git stash --quiet 2>/dev/null; true`, { cwd: dir });
+    if (safeBranch) {
+      await execFilePromise("git", ["pull", "--rebase", "origin", safeBranch], {
+        cwd: dir,
+      }).catch(() => undefined);
+    } else {
+      await execFilePromise("git", ["pull", "--rebase"], { cwd: dir }).catch(
+        () => undefined,
+      );
+    }
     const lockFile = fs
       .access(path.join(dir, "pnpm-lock.yaml"))
       .then(() => "pnpm install")
@@ -1464,17 +1594,14 @@ ipcMain.handle("run-app-update", async (_e, appName: string) => {
 
       // If the binary version doesn't match the source version, update the binary
       const shouldUpdateBinary = versionAfter !== null && versionAfter !== binaryVersion;
-      if (shouldUpdateBinary) {
+      if (shouldUpdateBinary && versionAfter !== null) {
         console.warn(
           `[update] opencode version mismatch: binary=v${binaryVersion ?? "?"} source=v${versionAfter}, syncing binary...`,
         );
         try {
-          // Install the exact version that matches the source code
-          // We use a shorter timeout for this specific command to avoid hanging too long
-          await execPromise(
-            `curl -fsSL https://opencode.ai/install | VERSION=${versionAfter} bash`,
-            { cwd: dir },
-          );
+          // Install the exact version that matches the source code (no pipe-to-shell)
+          const installed = await installOpencodeBinary(versionAfter, dir);
+          if (!installed) throw new Error("installer refused or failed");
           console.warn(`[update] opencode binary synced to v${versionAfter} ✓`);
         } catch (binErr) {
           const msg = binErr instanceof Error ? binErr.message : String(binErr);
@@ -1593,8 +1720,8 @@ async function saveSettings(): Promise<void> {
   } catch {}
 }
 
-ipcMain.handle("get-nav-mode", () => navMode);
-ipcMain.handle("set-nav-mode", async (_e, mode: string) => {
+ipcHandle("get-nav-mode", () => navMode);
+ipcHandle("set-nav-mode", async (_e, mode: string) => {
   navMode = mode === "dropdown" ? "dropdown" : "topbar";
   headerHeight = navMode === "dropdown" ? HEADER_HEIGHT_DROPDOWN : HEADER_HEIGHT_TOPBAR;
   await saveSettings();
@@ -1602,13 +1729,13 @@ ipcMain.handle("set-nav-mode", async (_e, mode: string) => {
   mainWindow?.webContents.send("nav-mode-changed", navMode);
 });
 
-ipcMain.handle("get-auto-update", () => autoUpdateEnabled);
-ipcMain.handle("set-auto-update", async (_e, enabled: boolean) => {
+ipcHandle("get-auto-update", () => autoUpdateEnabled);
+ipcHandle("set-auto-update", async (_e, enabled: boolean) => {
   autoUpdateEnabled = enabled;
   await saveSettings();
 });
 
-ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
+ipcHandle("run-graphify-update", async (_e, dir?: string) => {
   try {
     let workspaceDir: string;
     if (dir && dir !== "") {
@@ -1627,10 +1754,18 @@ ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
       };
     }
 
-    // Check if graphify is installed
+    // Refuse to operate outside the user's home tree (cwd is handed to graphify).
+    if (!(await resolveWithinHome(workspaceDir))) {
+      return {
+        ok: false,
+        error: "Dossier de projet invalide (hors du répertoire utilisateur).",
+      };
+    }
+
+    // Check if graphify is installed (execFile — no shell)
     let hasGraphify = false;
     try {
-      await execPromise("which graphify");
+      await execFilePromise("which", ["graphify"]);
       hasGraphify = true;
     } catch {
       hasGraphify = false;
@@ -1650,8 +1785,7 @@ ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
 
       if (response === 0) {
         try {
-          // Utilise sudo si nécessaire ou tente une install standard
-          await execPromise("npm install -g graphify-ai");
+          await execFilePromise("npm", ["install", "-g", "graphify-ai"]);
         } catch {
           return {
             ok: false,
@@ -1664,68 +1798,68 @@ ipcMain.handle("run-graphify-update", async (_e, dir?: string) => {
       }
     }
 
-    // Run update in the actual project directory
+    // Run update in the actual project directory (execFile — no shell)
     console.warn(`[graphify] Running update in: ${workspaceDir}`);
-    await execPromise("graphify update .", { cwd: workspaceDir });
+    await execFilePromise("graphify", ["update", "."], { cwd: workspaceDir });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
 
-ipcMain.handle("get-web-search-enabled", () => webSearchEnabled);
-ipcMain.handle("set-web-search-enabled", async (_e, enabled: boolean) => {
+ipcHandle("get-web-search-enabled", () => webSearchEnabled);
+ipcHandle("set-web-search-enabled", async (_e, enabled: boolean) => {
   webSearchEnabled = enabled;
   await saveSettings();
 });
 
-ipcMain.handle("get-vision-proxy-enabled", () => visionProxyEnabled);
-ipcMain.handle("set-vision-proxy-enabled", async (_e, enabled: boolean) => {
+ipcHandle("get-vision-proxy-enabled", () => visionProxyEnabled);
+ipcHandle("set-vision-proxy-enabled", async (_e, enabled: boolean) => {
   visionProxyEnabled = enabled;
   await saveSettings();
 });
 
-ipcMain.handle("get-vision-model", () => visionModel);
-ipcMain.handle("set-vision-model", async (_e, model: string) => {
+ipcHandle("get-vision-model", () => visionModel);
+ipcHandle("set-vision-model", async (_e, model: string) => {
   visionModel = model;
   await saveSettings();
 });
 
-ipcMain.handle("get-vision-detail-level", () => visionDetailLevel);
-ipcMain.handle("set-vision-detail-level", async (_e, level: string) => {
+ipcHandle("get-vision-detail-level", () => visionDetailLevel);
+ipcHandle("set-vision-detail-level", async (_e, level: string) => {
   visionDetailLevel = level;
   await saveSettings();
 });
 
 // AI Intelligence Settings
-ipcMain.handle("get-ai-workflow-pro-model", () => aiWorkflowProModel);
-ipcMain.handle("set-ai-workflow-pro-model", async (_e, model: string) => {
+ipcHandle("get-ai-workflow-pro-model", () => aiWorkflowProModel);
+ipcHandle("set-ai-workflow-pro-model", async (_e, model: string) => {
   aiWorkflowProModel = model;
   await saveSettings();
 });
 
-ipcMain.handle("get-ai-workflow-flash-model", () => aiWorkflowFlashModel);
-ipcMain.handle("set-ai-workflow-flash-model", async (_e, model: string) => {
+ipcHandle("get-ai-workflow-flash-model", () => aiWorkflowFlashModel);
+ipcHandle("set-ai-workflow-flash-model", async (_e, model: string) => {
   aiWorkflowFlashModel = model;
   await saveSettings();
 });
 
-ipcMain.handle("get-ai-classifier-model", () => aiClassifierModel);
-ipcMain.handle("set-ai-classifier-model", async (_e, model: string) => {
+ipcHandle("get-ai-classifier-model", () => aiClassifierModel);
+ipcHandle("set-ai-classifier-model", async (_e, model: string) => {
   aiClassifierModel = model;
   await saveSettings();
 });
 
 // Notifications de fin de tâche
-ipcMain.handle("get-notify-mode", () => notifyMode);
-ipcMain.handle("set-notify-mode", async (_e, mode: unknown) => {
+ipcHandle("get-notify-mode", () => notifyMode);
+ipcHandle("set-notify-mode", async (_e, mode: unknown) => {
   if (!isNotifyMode(mode)) return;
   notifyMode = mode;
   await saveSettings();
 });
 
-ipcMain.handle("get-notify-sources", () => ({ ...notifySources }));
-ipcMain.handle("set-notify-sources", async (_e, sources: unknown) => {
+ipcHandle("get-notify-sources", () => ({ ...notifySources }));
+ipcHandle("set-notify-sources", async (_e, sources: unknown) => {
   notifySources = parseNotifySources(sources, notifySources);
   await saveSettings();
 });
@@ -1737,7 +1871,7 @@ const TASK_DONE_SENDER_SLOT: Record<string, SlotName> = {
   work: "work",
   design: "design",
 };
-ipcMain.on("task-done", (e, source: unknown, body?: unknown) => {
+ipcOn("task-done", (e, source: unknown, body?: unknown) => {
   if (!isNotifySource(source)) return;
   const expectedView = views.get(TASK_DONE_SENDER_SLOT[source]);
   if (!expectedView || e.sender !== expectedView.webContents) return;
@@ -1760,7 +1894,85 @@ function execPromise(
   });
 }
 
-ipcMain.handle("od-updater:action", () => {
+// Runs a binary with an explicit argument array and NO shell — values can never be
+// interpreted as shell metacharacters. Use this whenever a dynamic value (path,
+// version, branch) would otherwise be interpolated into a command string.
+function execFilePromise(
+  file: string,
+  args: readonly string[],
+  opts: { cwd?: string; timeout?: number; env?: NodeJS.ProcessEnv } = {},
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      file,
+      args as string[],
+      { ...opts, timeout: opts.timeout ?? 120000 },
+      (err, stdout, stderr) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
+      },
+    );
+  });
+}
+
+const SEMVER_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+const GIT_BRANCH_RE = /^[A-Za-z0-9._/-]+$/;
+
+// Resolves `target` and confirms it stays inside the user's home directory using a
+// path-segment check (NOT a string prefix, which would accept siblings like
+// `/Users/bob-evil` for home `/Users/bob`). When the path exists, its realpath is
+// re-checked so a symlink cannot escape the home boundary. Returns the safe
+// canonical path, or null if it escapes.
+async function resolveWithinHome(target: unknown): Promise<string | null> {
+  if (typeof target !== "string" || target === "") return null;
+  const home = path.resolve(homedir());
+  const isInside = (p: string): boolean => {
+    const rel = path.relative(home, p);
+    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+  };
+  const resolved = path.resolve(target);
+  if (!isInside(resolved)) return null;
+  try {
+    const real = await fs.realpath(resolved);
+    if (!isInside(real)) return null;
+    return real;
+  } catch {
+    // Path does not exist yet — the lexical containment check above already passed.
+    return resolved;
+  }
+}
+
+const OPENCODE_INSTALL_URL = "https://opencode.ai/install";
+
+// Installs a specific opencode binary version WITHOUT piping a remote script into a
+// shell. The installer is downloaded to a temp file over HTTPS, then executed with
+// the (semver-validated) version passed via an environment variable — never
+// interpolated into a command string. Returns true on success.
+async function installOpencodeBinary(version: string, cwd: string): Promise<boolean> {
+  if (!SEMVER_RE.test(version)) {
+    console.warn(`[update] refusing to install non-semver opencode version: ${version}`);
+    return false;
+  }
+  const scriptPath = path.join(
+    tmpdir(),
+    `opencode-install-${randomBytes(8).toString("hex")}.sh`,
+  );
+  try {
+    const resp = await fetch(OPENCODE_INSTALL_URL);
+    if (!resp.ok) throw new Error(`download failed (${resp.status})`);
+    const script = await resp.text();
+    await fs.writeFile(scriptPath, script, { mode: 0o700 });
+    await execFilePromise("bash", [scriptPath], {
+      cwd,
+      env: { ...process.env, VERSION: version },
+    });
+    return true;
+  } finally {
+    await fs.rm(scriptPath, { force: true }).catch(() => undefined);
+  }
+}
+
+ipcHandle("od-updater:action", () => {
   return { state: "unsupported" };
 });
 
@@ -1780,36 +1992,55 @@ async function ensureBinarySynced(): Promise<void> {
     console.warn(
       `[main] opencode version mismatch: binary=v${binaryVersion ?? "?"} source=v${sourceVersion}. Syncing...`,
     );
-    await execPromise(
-      `curl -fsSL https://opencode.ai/install | VERSION=${sourceVersion} bash`,
-      { cwd: opencodeDir },
-    );
-    console.warn(`[main] opencode binary synced to v${sourceVersion} ✓`);
+    const synced = await installOpencodeBinary(sourceVersion, opencodeDir);
+    if (synced) console.warn(`[main] opencode binary synced to v${sourceVersion} ✓`);
   } catch (err) {
     console.warn(`[main] failed to sync opencode binary at startup (non-fatal):`, err);
   }
 }
 
 // Web UIs loaded in the WebContentsViews (work/code/design/chat/projects) could
-// request OS-sensitive capabilities. On macOS, granting camera/microphone/
-// geolocation surfaces a TCC prompt under OpenHub's identity. Deny those by
-// default; the apps never need them inside the shell. Non-sensitive permissions
-// (notifications, clipboard, fullscreen) keep their existing behaviour.
-const DENIED_PERMISSIONS = new Set([
-  "media", // camera + microphone
-  "geolocation",
-  "midi",
-  "midiSysex",
-  "hid",
-  "serial",
-  "usb",
-  "pointerLock",
+// request OS-sensitive capabilities. Use an ALLOWLIST: only the few permissions
+// the apps actually need are granted; everything else (camera/mic, geolocation,
+// hid/serial/usb, clipboard-read, window management, idle detection, plus any
+// future Electron permission type) is denied by default.
+const ALLOWED_PERMISSIONS = new Set([
+  "notifications",
+  "fullscreen",
+  "clipboard-sanitized-write",
 ]);
+
+// Defense-in-depth navigation guard applied to EVERY web contents the app ever
+// creates (main window, splash, nav popup, slot/chat/projects views, and any
+// future child). Per-view handlers exist too, but this closes the gap for
+// windows that lack one and catches webContents created later.
+function applyNavigationHardening(): void {
+  app.on("web-contents-created", (_event, contents) => {
+    contents.setWindowOpenHandler(({ url }) => {
+      if (/^https?:\/\//i.test(url)) {
+        void shell.openExternal(url);
+      }
+      return { action: "deny" };
+    });
+    const blockOffFile = (event: { preventDefault: () => void }, url: string): void => {
+      if (
+        !url.startsWith("file://") &&
+        !url.startsWith("http://") &&
+        !url.startsWith("https://")
+      ) {
+        event.preventDefault();
+        console.warn(`[main] Blocked navigation to non-web scheme: ${url}`);
+      }
+    };
+    contents.on("will-navigate", (event, url) => blockOffFile(event, url));
+    contents.on("will-redirect", (event, url) => blockOffFile(event, url));
+  });
+}
 
 function applyPermissionHardening(): void {
   for (const sess of [session.defaultSession, session.fromPartition("persist:chat")]) {
     sess.setPermissionRequestHandler((_wc, permission, callback) => {
-      if (DENIED_PERMISSIONS.has(permission)) {
+      if (!ALLOWED_PERMISSIONS.has(permission)) {
         console.warn(`[main] Denied permission request: ${permission}`);
         callback(false);
         return;
@@ -1817,12 +2048,13 @@ function applyPermissionHardening(): void {
       callback(true);
     });
     sess.setPermissionCheckHandler((_wc, permission) => {
-      return !DENIED_PERMISSIONS.has(permission);
+      return ALLOWED_PERMISSIONS.has(permission);
     });
   }
 }
 
 app.whenReady().then(async () => {
+  applyNavigationHardening();
   splashWindow = createSplash();
   splashShownAt = Date.now();
 
@@ -1831,6 +2063,7 @@ app.whenReady().then(async () => {
   await loadSettings();
   registerOllamaHandlers();
   proxyToken = await startProxy();
+  setProxyToken(proxyToken);
 
   const [anthropicKey, openaiKey, openrouterKey, googleAiKey] = await Promise.all([
     readSecret("openhub", "anthropic-api-key"),
