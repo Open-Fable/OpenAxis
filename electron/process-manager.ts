@@ -310,8 +310,18 @@ exec "\$REAL_PATH" "\${args[@]}"
     });
     this.pipeOutput("design-web", webProc, "design");
 
-    console.warn(`[design] waiting for web frontend on localhost:${webPort}...`);
-    await this.waitForHealth(`http://localhost:${webPort}`);
+    console.warn(
+      `[design] waiting for web frontend (:${webPort}) AND daemon API (:7456)...`,
+    );
+    // Gate on BOTH: the Design tab loads the web frontend, but the orchestrator's
+    // design backend talks to the daemon API on :7456. The daemon is spawned in
+    // parallel and can be slower than Next.js — without this wait, a cold start
+    // makes the design node's isAvailable() probe fail and silently fall back to
+    // plain LLM HTML instead of the iterated Open Design mockups.
+    await Promise.all([
+      this.waitForHealth(`http://localhost:${webPort}`),
+      this.waitForHealth(`http://127.0.0.1:7456/api/health`),
+    ]);
     this.running.set("design", {
       processes: [daemonProc, webProc],
       port: webPort,
