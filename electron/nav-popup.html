@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';"
     />
+    <link rel="stylesheet" href="shared/oh-tokens.css" />
     <style>
       *, *::before, *::after {
         box-sizing: border-box;
@@ -42,6 +43,14 @@
         }
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+
       html, body {
         width: 100%;
         height: 100%;
@@ -56,6 +65,7 @@
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
+        box-shadow: var(--oh-shadow-sm);
         padding: 4px;
         overflow: hidden;
       }
@@ -74,7 +84,7 @@
         font-size: 13px;
         font-weight: 500;
         font-family: var(--font);
-        transition: background 150ms ease, color 150ms ease;
+        transition: background var(--oh-duration-150) var(--oh-ease-default), color var(--oh-duration-150) var(--oh-ease-default);
       }
 
       .item:hover {
@@ -86,6 +96,11 @@
         background: var(--active-bg);
         color: var(--accent);
         font-weight: 600;
+      }
+
+      .item:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
       }
 
       .item .icon {
@@ -146,18 +161,6 @@
         <span class="shortcut">&#8984;5</span>
       </button>
     </div>
-    <script>
-      var params = new URLSearchParams(window.location.search);
-      var active = params.get("active") || "chat";
-
-      document.querySelectorAll(".item").forEach(function(btn) {
-        if (btn.dataset.slot === active) {
-          btn.classList.add("active");
-        }
-        btn.addEventListener("click", function() {
-          window.openhub.navPopupSelect(btn.dataset.slot);
-        });
-      });
-    </script>
+    <script src="nav-popup.js"></script>
   </body>
 </html>
