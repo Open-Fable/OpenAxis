@@ -2272,6 +2272,14 @@ function resolveRoute(
       provider: "openai",
     };
   }
+  // A provider/model id (e.g. "deepseek/deepseek-chat") needs OpenRouter. Without
+  // a key it would silently fall through to local Ollama with an id Ollama can't
+  // serve → opaque 404 on every call. Fail explicitly instead.
+  if (model.includes("/")) {
+    throw new Error(
+      `Le modèle "${model}" (format fournisseur/modèle) nécessite une clé OpenRouter. Configure une clé OpenRouter, ou choisis un modèle direct (claude-*, gpt-*, google/*) ou un modèle Ollama local.`,
+    );
+  }
   if (model.startsWith("claude-")) {
     return {
       targetUrl: "https://api.anthropic.com/v1/messages",
