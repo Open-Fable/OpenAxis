@@ -7,6 +7,12 @@ export default tseslint.config(
       "dist/",
       "apps/",
       "node_modules/",
+      "cqui/",
+      "ghj/",
+      "pied/",
+      "sport-screen/",
+      "sport/",
+      "teste/",
       "electron/projects/",
       // Browser-context view scripts externalized from inline <script> (CSP: script-src 'self').
       // Plain JS run in the renderer, same category as electron/projects/*.js.
