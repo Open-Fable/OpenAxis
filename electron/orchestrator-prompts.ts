@@ -25,6 +25,7 @@ export function buildDependencyContext(
 
   const blocks: string[] = [];
   let hasAuthoritativeSource = false;
+  let hasWebArtifacts = false;
   for (const depId of deps) {
     const depProject = allProjects.find((p) => p.id === depId);
     const result = executionResults.get(depId);
@@ -35,6 +36,16 @@ export function buildDependencyContext(
       depProject.type === "recherche"
     ) {
       hasAuthoritativeSource = true;
+    }
+    // Web artifacts = the design backend (always produces HTML/CSS mockups) OR a
+    // dependency whose output actually contains an .html/.css file. Only then does
+    // the mockup-specific fidelity mandate apply — otherwise it pollutes non-web
+    // pipelines (a code library depending on a research spec, a data report, …).
+    if (
+      depProject.type === "design" ||
+      (result && /filepath:\s*[^\n]*\.(html?|css)\b/i.test(result))
+    ) {
+      hasWebArtifacts = true;
     }
 
     const maxLen = depProject.type === "design" ? 60_000 : 24_000;
@@ -48,9 +59,14 @@ export function buildDependencyContext(
   if (blocks.length === 0) return "";
 
   const reproduces = node.type === "code" || node.type === "work";
-  const fidelityMandate =
-    hasAuthoritativeSource && reproduces
-      ? `\n\n⚠️ MANDAT DE FIDÉLITÉ — NON NÉGOCIABLE :
+  // Neutral mandate for non-web pipelines: reuse the upstream contracts/data/
+  // decisions faithfully, without any mockup/page/CSS vocabulary.
+  const neutralMandate = `\n\n⚠️ MANDAT DE FIDÉLITÉ — NON NÉGOCIABLE :
+Les résultats des agents ci-dessus font AUTORITÉ. Tu dois les RÉUTILISER FIDÈLEMENT — pas t'en "inspirer", pas réinventer.
+- Reprends EXACTEMENT les décisions, contrats, schémas, noms, structures et données déjà produits (ex: schéma de données → couche d'accès ; spécification → implémentation ; contenu → mise en forme).
+- N'invente AUCUN nouveau nom/identité ni nouvelle structure si une source en définit déjà ; ne contredis pas les données amont.
+- Si les sources se CONTREDISENT, choisis-en UNE seule, applique-la partout, signale la contradiction en commentaire — ne crée JAMAIS une troisième version.`;
+  const webMandate = `\n\n⚠️ MANDAT DE FIDÉLITÉ — NON NÉGOCIABLE :
 Les résultats ci-dessus (maquettes, design system, charte, contenu) font AUTORITÉ. Tu dois les REPRODUIRE À L'IDENTIQUE — pas t'en "inspirer", pas redessiner.
 - COUVERTURE COMPLÈTE — CODE TOUTES LES PAGES : il doit exister une page servie pour CHAQUE fichier mockups/*.html (sauf components.html qui est une galerie de démo). Si la maquette contient 15 pages, le site servi doit en contenir 15. Ne code PAS qu'un sous-ensemble (index/catalog/product) : about_us, contact, cart, checkout, confirmation, product_detail, admin… doivent TOUTES exister.
 - PARS DES FICHIERS MAQUETTE, NE LES RÉÉCRIS PAS : pour chaque page, prends le mockups/<page>.html existant comme base et copie-le tel quel dans le dossier servi. N'écris pas un nouveau HTML depuis zéro.
@@ -64,8 +80,14 @@ Les résultats ci-dessus (maquettes, design system, charte, contenu) font AUTORI
 - IMAGES : garde EXACTEMENT les mêmes balises <img> / src que la maquette (mêmes URLs ou mêmes chemins). Ne supprime pas d'images, n'en change pas les chemins. N'utilise JAMAIS de placeholder SVG gris (data:image/svg+xml avec un rectangle + texte) à la place d'une vraie image de la maquette.
 - Ton rôle = rendre la maquette FONCTIONNELLE (JS, panier, navigation) PAR-DESSUS, sans toucher au rendu visuel.
 - Si les sources se CONTREDISENT (ex: deux noms d'artiste différents), choisis-en UNE seule, applique-la partout, et signale la contradiction en commentaire — ne crée JAMAIS une troisième version.
-INTERDIT : repartir d'une page blanche, réécrire le HTML, renommer des classes CSS, re-découper/renommer le CSS, changer la palette, renommer l'identité, supprimer des images.`
-      : "";
+INTERDIT : repartir d'une page blanche, réécrire le HTML, renommer des classes CSS, re-découper/renommer le CSS, changer la palette, renommer l'identité, supprimer des images.`;
+  const fidelityMandate = !reproduces
+    ? ""
+    : hasWebArtifacts
+      ? webMandate
+      : hasAuthoritativeSource
+        ? neutralMandate
+        : "";
 
   return `[RÉSULTATS DES AGENTS PRÉCÉDENTS]\nLes agents suivants ont déjà terminé leur travail. Utilise leurs résultats comme base.\n\n${blocks.join("\n\n")}${fidelityMandate}`;
 }
@@ -93,9 +115,16 @@ const QUALITY_RULES: Record<string, string> = {
 - VOLUME : si la tâche demande N fichiers, produis-les TOUS intégralement
 - Chaque composant doit être branché, importé et utilisable sans modification
 
-SI TU PRODUIS DES PAGES HTML :
+SI TU PRODUIS DES PAGES HTML (livrable web) :
 - SEO OBLIGATOIRE par page : <title> unique ≤60 chars, <meta name="description"> 120-160 chars, Open Graph complet (og:title, og:description, og:image), JSON-LD schema.org adapté, attribut lang sur <html>, attributs alt sur toutes les images
 - sitemap.xml et robots.txt si le site a plusieurs pages
+
+SI TU PRODUIS UNE LIBRAIRIE / CLI / API / DES DONNÉES (PAS un site web) — IGNORE les règles HTML/CSS/SEO ci-dessus :
+- LIBRAIRIE : API publique claire et documentée, tests unitaires réels (qui vérifient un comportement, pas des stubs vides), README avec exemples d'usage, fichier de packaging (package.json / pyproject.toml…).
+- CLI : un point d'entrée exécutable, parsing d'arguments, messages d'aide (--help), codes de sortie, exemples dans le README.
+- API : endpoints implémentés ET fonctionnels (pas juste décrits), validation des entrées, gestion d'erreurs, exemples de requêtes/réponses.
+- DONNÉES : fichiers .json/.csv VALIDES (JSON qui parse, colonnes CSV cohérentes), schéma documenté, script de génération reproductible si pertinent.
+- Le frontend/consommateur doit RÉELLEMENT utiliser ce que tu produis (importer le module, lire les données) — pas de code mort jamais référencé.
 
 SI DES MAQUETTES OU UN DESIGN SYSTEM EXISTENT DÉJÀ (dépendances design/work OU fichiers du workspace) :
 - LIS d'abord les fichiers de design existants (tokens.css, design_system/*, mockups/*.html, mockups/*.css, content/*.md) AVANT d'écrire la moindre ligne. Ils font AUTORITÉ.
@@ -200,10 +229,10 @@ function getQualityRules(type: string | undefined): string {
 
 const TYPE_ROLE_HINTS: Record<string, string> = {
   recherche: "Investigation et synthèse de données",
-  work: "OpenWork — design system, charte graphique, couleurs, contenu, intégration HTML/CSS",
+  work: "OpenWork — contenu/rédaction, données structurées, et (pour un site) design system, charte, intégration HTML/CSS",
   design:
-    "Open Design — maquettes visuelles DÉTAILLÉES et COMPLÈTES (HTML/CSS production-ready, à partir du design system et du contenu déjà produits). Rôle CRITIQUE : l'agent code reproduira fidèlement ces maquettes.",
-  code: "OpenCode — développement et codage (principalement coder le site depuis les maquettes)",
+    "Open Design — maquettes visuelles web (HTML/CSS) DÉTAILLÉES, UNIQUEMENT si le livrable a une interface. L'agent code les reproduira fidèlement.",
+  code: "OpenCode — développement du livrable fonctionnel (app, librairie, API, CLI, scripts, données) ; reproduit les maquettes si elles existent",
   verifier: "Tests et assurance qualité",
 };
 
@@ -783,20 +812,20 @@ export function buildIterativePlanningSystemPrompt(orchestrator: Project): strin
 
 ${base ? `INSTRUCTIONS PERSONNALISÉES :\n${base}\n` : ""}RÔLE DE CHAQUE TYPE D'AGENT (CRITIQUE — respecte cette répartition) :
 - "recherche" → Investigation, collecte de données, état de l'art, veille. Produit des documents de synthèse, plans, recommandations.
-- "work" → OpenWork : rédaction de contenu, design system (couleurs, typographies, espacements), charte graphique, identité visuelle, intégration HTML/CSS, gestion des assets. C'est lui qui définit les couleurs, pas le designer.
-- "design" → Open Design : création de MAQUETTES visuelles uniquement. Il ne choisit PAS les couleurs ni le design system — il les REÇOIT des agents "work" ou "recherche" et crée des maquettes à partir de ces données. Il intervient APRÈS que l'identité visuelle est définie.
-- "code" → OpenCode : développement et codage UNIQUEMENT. Son rôle principal est de coder le site/application à partir des maquettes. Il peut aussi structurer les données ou créer des APIs, mais sa tâche finale est toujours du code fonctionnel.
+- "work" → OpenWork : production de CONTENU et d'assets — rédaction (articles, documents, ebook, marketing), données structurées (.md/.json/.csv), et pour un site : design system (couleurs, typo, espacements), charte graphique, intégration HTML/CSS. Pour un livrable visuel, c'est lui qui définit les couleurs, pas le designer.
+- "design" → Open Design : création de MAQUETTES visuelles web (HTML/CSS) UNIQUEMENT, pertinent SEULEMENT si le livrable a une interface. Il ne choisit PAS les couleurs ni le design system — il les REÇOIT des agents "work"/"recherche". N'assigne un agent "design" QUE pour un site/app web.
+- "code" → OpenCode : développement et codage. Produit le livrable fonctionnel : application, librairie, API, CLI, scripts, ou structuration de données. S'il existe des maquettes, il les reproduit fidèlement ; sinon il code à partir de la spécification, des données ou du contenu fournis.
 - "verifier" → Tests et assurance qualité. Vérifie les livrables des autres agents.
 
-ERREURS FRÉQUENTES À ÉVITER :
-- NE PAS donner les couleurs/la charte graphique à un agent "design" → c'est le rôle de "work"
+ÉTABLIR LES DÉPENDANCES SELON LES LIVRABLES RÉELS (pas un pipeline figé) :
+- Crée les agents et les dépendances dont le LIVRABLE a réellement besoin. N'insère PAS d'agent "design"/maquette ni de dépendance vers lui si le livrable n'a pas d'interface visuelle (ex: librairie de code, API, rapport, ebook, données, CV).
 - NE PAS donner la rédaction de contenu à un agent "code" → c'est le rôle de "work"
 - NE PAS donner le codage final à un agent "work" → c'est le rôle de "code"
-- L'agent "design" doit TOUJOURS dépendre des agents qui définissent l'identité visuelle et le contenu
-- L'agent "code" doit TOUJOURS dépendre de l'agent "design" (il code la maquette)
+- Si un agent "design" produit des maquettes, alors l'agent "code" qui les implémente doit en dépendre ; sinon, fais dépendre "code" de ce qui le nourrit réellement (spécification, données, schéma, contenu).
+- Un agent dépend de ceux qui produisent ce dont il a besoin en entrée — déduis-le du livrable, ne l'impose pas par défaut.
 
-IMPORTANCE DE L'AGENT DESIGN :
-L'agent "design" produit les maquettes HTML/CSS qui servent de RÉFÉRENCE VISUELLE pour l'agent "code". C'est un rôle CRITIQUE.
+SI LA TÂCHE EST UN SITE/APP WEB — IMPORTANCE DE L'AGENT DESIGN (exemple de pipeline web) :
+L'agent "design" produit les maquettes HTML/CSS qui servent de RÉFÉRENCE VISUELLE pour l'agent "code". Pour un site, c'est un rôle CRITIQUE.
 - Donne-lui des instructions TRÈS DÉTAILLÉES : pages à créer, composants à inclure, style attendu, contenu à intégrer
 - Demande EXPLICITEMENT la complétude : tous les états (hover, focus, erreur, vide, loading), responsive (mobile/tablette/desktop), composants de navigation
 - L'agent design itère automatiquement pour améliorer ses maquettes — donne-lui un cahier des charges riche pour qu'il ait matière à travailler
@@ -829,11 +858,13 @@ Chaque tâche assignée doit avoir des critères de réussite MESURABLES :
 - BON : "10 pages HTML", "≥ 500 mots par article", "couverture tests > 80%", "3 fichiers CSS"
 Les termes vagues SEULS ("complet", "détaillé", "professionnel") sont INSUFFISANTS — ajoute TOUJOURS un seuil concret.
 
-SI LA TÂCHE PRODUIT UN SITE/APP WEB — COUVERTURE OBLIGATOIRE :
-- SEO : assigne des livrables SEO explicites dans expected_files (sitemap.xml, robots.txt, JSON-LD) + exige title/meta/OG dans chaque page
-- SÉCURITÉ : si le code gère des données utilisateur, l'agent code doit corriger les failles dans le code livré (pas juste un rapport)
-- BACKEND : si persistance, API ou auth sont requis → assigne un agent code dédié avec expected_files backend
-- ACCESSIBILITÉ : exige WCAG AA (contraste, alt, aria, focus visible) dans les critères de chaque agent UI
+COUVERTURE OBLIGATOIRE SELON LE DOMAINE DU LIVRABLE (applique le bloc pertinent) :
+- SI SITE/APP WEB → SEO (sitemap.xml, robots.txt, JSON-LD, title/meta/OG par page) ; SÉCURITÉ (corriger les failles dans le code livré si données utilisateur) ; BACKEND dédié si persistance/API/auth ; ACCESSIBILITÉ WCAG AA (contraste, alt, aria, focus).
+- SI LIBRAIRIE / CLI / API (sans front) → dans expected_files : le code source COMPLET, des TESTS unitaires réels, un README avec exemples d'usage, et (CLI) un point d'entrée exécutable / (API) une spec des endpoints. Pas de SEO/maquette.
+- SI DOCUMENT LONG (ebook, business plan, plan de cours, wiki, CV) → table des matières/structure, N sections/chapitres explicites, longueur minimale par section, sources si pertinent (+ pour un cours : exercices ET corrigés).
+- SI DONNÉES / ANALYSE → fichiers de données (.csv/.json) VALIDES, un script reproductible, des graphiques/visualisations, et une interprétation écrite des résultats.
+- SI PRÉSENTATION / SLIDES → N slides explicites avec titres + contenu réel (pas de slides vides) et, si utile, des notes de présentateur.
+- SI CONTENU MARKETING (emails, posts, pages) → cohérence cross-canal (même offre/ton/CTA partout), nombre de pièces explicite par canal.
 
 PROFONDEUR REQUISE :
 - L'objectif d'un système multi-agents est de produire un résultat SUPÉRIEUR à ce qu'un seul agent ferait
