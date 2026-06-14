@@ -800,7 +800,7 @@ select:focus-visible {
   background: none;
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   cursor: pointer;
   opacity: 0;
   transition:
@@ -813,10 +813,10 @@ select:focus-visible {
 }
 .console-copy-btn:hover {
   color: var(--text-primary);
-  background: var(--bg-hover);
+  background: var(--bg-elevated);
 }
 .console-copy-btn.copied {
-  color: var(--accent);
+  color: var(--accent-primary);
   opacity: 1;
 }
 .detail-accordion-chevron {
@@ -3437,7 +3437,7 @@ select:focus-visible {
   transition: border-color var(--duration-150, 0.15s) ease;
 }
 .canvas-iterate textarea:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-primary);
 }
 .canvas-iterate textarea::placeholder {
   color: var(--text-muted);
@@ -3452,8 +3452,8 @@ select:focus-visible {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
   border-radius: var(--radius-sm);
   padding: 1px 5px;
   margin-right: 4px;
