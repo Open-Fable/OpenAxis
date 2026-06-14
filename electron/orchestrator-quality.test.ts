@@ -15,6 +15,7 @@ import {
   buildQualityGateUserPrompt,
   findBrokenAssetRefs,
   buildBrokenAssetsReport,
+  findInvalidJsonFiles,
   MIN_RESULT_CHARS,
   MIN_FILE_BYTES,
 } from "./orchestrator-quality.js";
@@ -148,6 +149,35 @@ describe("checkExpectedFiles", () => {
     await realFs.writeFile(path.join(tmpDir, "sub/file.css"), "a".repeat(150));
     const result = await checkExpectedFiles(tmpDir, ["sub/file.css"]);
     expect(result.present).toEqual(["sub/file.css"]);
+  });
+});
+
+describe("findInvalidJsonFiles", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "json-"));
+  });
+
+  it("flags a *.json file that does not parse", async () => {
+    await realFs.writeFile(path.join(tmpDir, "data.json"), "{ bad json, ");
+    const problems = await findInvalidJsonFiles(tmpDir);
+    expect(problems.map((p) => p.sourceFile)).toContain("data.json");
+  });
+
+  it("passes valid JSON and ignores non-json + *.artifact.json", async () => {
+    await realFs.writeFile(path.join(tmpDir, "ok.json"), '{"a":1,"b":[2,3]}');
+    await realFs.writeFile(path.join(tmpDir, "note.md"), "{ not json but md");
+    await realFs.writeFile(path.join(tmpDir, "x.artifact.json"), "{ broken artifact");
+    const problems = await findInvalidJsonFiles(tmpDir);
+    expect(problems).toEqual([]);
+  });
+
+  it("skips the design backend scratch dir", async () => {
+    await realFs.mkdir(path.join(tmpDir, "design"), { recursive: true });
+    await realFs.writeFile(path.join(tmpDir, "design/broken.json"), "{ nope");
+    const problems = await findInvalidJsonFiles(tmpDir);
+    expect(problems).toEqual([]);
   });
 });
 

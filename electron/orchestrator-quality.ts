@@ -429,6 +429,72 @@ export function buildBrokenAssetsReport(broken: readonly BrokenAssetRef[]): stri
 }
 
 /**
+ * Format-agnostic deterministic validator: every *.json the run produced must
+ * actually parse. This is the first non-web hard quality signal (data analysis,
+ * business plan, API fixtures, config files all ship JSON). Skips the design
+ * backend's *.artifact.json internals. Returns {sourceFile, problem} entries.
+ */
+export async function findInvalidJsonFiles(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const MAX_FILES = 200;
+  const problems: ServedSiteProblem[] = [];
+  let scanned = 0;
+
+  async function walk(dir: string, depth: number): Promise<void> {
+    if (depth > 5 || scanned >= MAX_FILES || problems.length >= 50) return;
+    let entries: import("fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (
+        entry.name.startsWith(".") ||
+        entry.name === "node_modules" ||
+        entry.name === "design"
+      ) {
+        continue;
+      }
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full, depth + 1);
+        continue;
+      }
+      if (
+        !entry.isFile() ||
+        !/\.json$/i.test(entry.name) ||
+        /\.artifact\.json$/i.test(entry.name)
+      ) {
+        continue;
+      }
+      scanned++;
+      let content: string;
+      try {
+        content = await fs.readFile(full, "utf-8");
+      } catch {
+        continue;
+      }
+      if (!content.trim()) continue;
+      try {
+        JSON.parse(content);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        problems.push({
+          sourceFile: path.relative(workspaceDir, full),
+          problem: `JSON invalide — ne parse pas (${msg.slice(0, 80)})`,
+        });
+        if (problems.length >= 50) return;
+      }
+    }
+  }
+
+  await walk(path.resolve(workspaceDir), 0);
+  return problems;
+}
+
+/**
  * Compares mockup pages (mockups/*.html) against the actually-coded/served pages
  * (*.html anywhere outside mockups/ and the design backend's nested re-export).
  * Returns mockup page basenames with no coded counterpart — i.e. designs that
