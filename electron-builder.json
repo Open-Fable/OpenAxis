@@ -4,11 +4,11 @@
   "files": [
     "dist/**/*",
     "electron/overrides/**/*",
-    "electron/settings/**/*",
     "electron/sidebar.html",
     "electron/splash.html",
     "electron/chat.html",
-    "electron/orchestrator.html"
+    "electron/projects.html",
+    "electron/nav-popup.html"
   ],
   "extraMetadata": {
     "main": "dist/electron/main.js"
@@ -16,7 +16,11 @@
   "mac": {
     "category": "public.app-category.developer-tools",
     "icon": "build/icon.icns",
-    "target": ["dmg"]
+    "target": ["dmg"],
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist"
   },
   "directories": {
     "output": "release"
