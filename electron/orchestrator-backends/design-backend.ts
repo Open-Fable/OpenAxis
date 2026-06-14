@@ -268,7 +268,7 @@ export class DesignBackend implements ExecutionBackend {
       `${tag} ✓ DONE in ${totalElapsed}s — ${exportedFiles.length} artifacts, ${MAX_DESIGN_ITERATIONS} max iterations`,
     );
 
-    return { resultText, backend: "open-design" };
+    return { resultText, backend: "open-design", filesWritten: exportedFiles.length };
   }
 
   private buildResultText(

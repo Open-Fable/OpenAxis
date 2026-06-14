@@ -367,6 +367,14 @@ export class OrchestratorRunner {
       // Resolve a fallback model: orchestrator's model first, then first agent with a model
       this.fallbackModel =
         orchestrator.model || linkedProjects.find((p) => p.model)?.model || undefined;
+      // Fail fast: with no model anywhere, getModel would fall back to a paid/likely
+      // unreachable default and every node (planning, exec, verif) would fail with an
+      // opaque proxy error. Surface a clear, actionable message before any LLM call.
+      if (!this.fallbackModel && !linkedProjects.some((p) => p.model)) {
+        throw new Error(
+          "Aucun modèle utilisable configuré — sélectionne un modèle sur l'orchestrateur ou sur au moins un agent (ou configure une clé OpenRouter).",
+        );
+      }
       console.warn(`[orchestrator] Fallback model: ${this.fallbackModel ?? "DEFAULT"}`);
 
       // Resolve fallback reasoning effort from the orchestrator
