@@ -11,11 +11,13 @@ export function setProxyToken(token: string): void {
   proxyToken = token;
 }
 
-function proxyHeaders(): Record<string, string> {
-  return {
+function proxyHeaders(projectId?: string): Record<string, string> {
+  const h: Record<string, string> = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${proxyToken}`,
   };
+  if (projectId) h["X-OpenHub-Project-Id"] = projectId;
+  return h;
 }
 
 export interface ToolCall {
@@ -80,7 +82,7 @@ export async function callLLM(
 
   const response = await fetch(PROXY_URL, {
     method: "POST",
-    headers: proxyHeaders(),
+    headers: proxyHeaders(node.id),
     body: JSON.stringify(body),
     signal: signal ?? undefined,
   });
@@ -123,7 +125,7 @@ export async function callLLMWithTools(
 
   const response = await fetch(PROXY_URL, {
     method: "POST",
-    headers: proxyHeaders(),
+    headers: proxyHeaders(node.id),
     body: JSON.stringify(body),
     signal: signal ?? undefined,
   });
@@ -216,7 +218,7 @@ export async function callLLMStreaming(
 
   const response = await fetch(PROXY_URL, {
     method: "POST",
-    headers: proxyHeaders(),
+    headers: proxyHeaders(node.id),
     body: JSON.stringify(body),
     signal: timeoutSignal,
   });

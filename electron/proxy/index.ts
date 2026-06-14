@@ -5,7 +5,7 @@ import { homedir, platform, arch } from "os";
 import { promises as fs } from "fs";
 import path from "path";
 import { readAllApiKeys, isSafeOllamaUrl } from "../keychain.js";
-import { getActiveProject } from "../project-store.js";
+import { getActiveProject, getProjectById } from "../project-store.js";
 import { buildMemoryBlock } from "../memory-store.js";
 import {
   getCacheMetrics,
@@ -1278,7 +1278,15 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         }
 
         // ── 2. Préparation des blocs de contexte gelés ──
-        const project = await getActiveProject();
+        // Per-request routing: orchestrator nodes send X-OpenHub-Project-Id so
+        // the proxy resolves the right project without global mutable state.
+        // Fallback to getActiveProject() for the interactive chat UI.
+        const headerProjectId = req.headers["x-openhub-project-id"];
+        const hasExplicitId =
+          typeof headerProjectId === "string" && headerProjectId.length > 0;
+        const project = hasExplicitId
+          ? await getProjectById(headerProjectId)
+          : await getActiveProject();
         const projInstructions = project?.instructions || "";
 
         // Extraire le message utilisateur pour la détection intelligente de mots-clés
