@@ -36,6 +36,18 @@
 }
 
 /* ═══════════════════════════════════════════
+   RADIUS → échelle OpenHub (resserre 2-10px natif vers 4-12px)
+   Variables natives OpenCode — méthode robuste (cf. 07 D.1)
+   ═══════════════════════════════════════════ */
+:root {
+  --radius-xs: 4px !important;
+  --radius-sm: 6px !important;
+  --radius-md: 8px !important;
+  --radius-lg: 8px !important;
+  --radius-xl: 12px !important;
+}
+
+/* ═══════════════════════════════════════════
    MODE CLAIR
    ═══════════════════════════════════════════ */
 :root {
