@@ -19,7 +19,13 @@ vi.mock("keytar", () => {
   };
 });
 
-import { readSecret, writeSecret, deleteSecret, readAllApiKeys } from "./keychain.js";
+import {
+  readSecret,
+  writeSecret,
+  deleteSecret,
+  readAllApiKeys,
+  isSafeOllamaUrl,
+} from "./keychain.js";
 import keytar from "keytar";
 
 describe("keychain", () => {
@@ -83,6 +89,41 @@ describe("keychain", () => {
       expect(result.anthropic).toBe("sk-ant-xxx");
       expect(result.ollamaUrl).toBe("http://custom:11434");
       expect(result.openai).toBeNull();
+    });
+  });
+
+  describe("isSafeOllamaUrl", () => {
+    it("allows loopback and ordinary LAN/DNS hosts", () => {
+      expect(isSafeOllamaUrl("http://127.0.0.1:11434")).toBe(true);
+      expect(isSafeOllamaUrl("http://localhost:11434")).toBe(true);
+      expect(isSafeOllamaUrl("http://192.168.1.50:11434")).toBe(true);
+      expect(isSafeOllamaUrl("http://my-gpu.lan:11434")).toBe(true);
+      expect(isSafeOllamaUrl("https://[::1]:11434")).toBe(true);
+    });
+
+    it("rejects non-http(s) schemes and malformed URLs", () => {
+      expect(isSafeOllamaUrl("file:///etc/passwd")).toBe(false);
+      expect(isSafeOllamaUrl("ftp://host")).toBe(false);
+      expect(isSafeOllamaUrl("not a url")).toBe(false);
+      expect(isSafeOllamaUrl("")).toBe(false);
+    });
+
+    it("blocks cloud-metadata and link-local addresses", () => {
+      expect(isSafeOllamaUrl("http://169.254.169.254/latest/meta-data/")).toBe(false);
+      expect(isSafeOllamaUrl("http://169.254.0.1")).toBe(false);
+      expect(isSafeOllamaUrl("http://metadata.google.internal")).toBe(false);
+      expect(isSafeOllamaUrl("http://metadata")).toBe(false);
+    });
+
+    it("blocks 0.0.0.0, unspecified IPv6 and IPv4-mapped link-local", () => {
+      expect(isSafeOllamaUrl("http://0.0.0.0:11434")).toBe(false);
+      expect(isSafeOllamaUrl("http://[::]:11434")).toBe(false);
+      expect(isSafeOllamaUrl("http://[::ffff:169.254.169.254]")).toBe(false);
+    });
+
+    it("blocks numeric-encoded IP hosts that bypass string checks", () => {
+      expect(isSafeOllamaUrl("http://2852039166")).toBe(false); // decimal 169.254.169.254
+      expect(isSafeOllamaUrl("http://0xA9FEA9FE")).toBe(false); // hex
     });
   });
 });
