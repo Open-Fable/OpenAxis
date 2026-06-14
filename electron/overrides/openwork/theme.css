@@ -50,3 +50,35 @@
   --ring: #0d9488 !important;
   --sidebar-primary: #0d9488 !important;
 }
+
+/*
+ * Radius → échelle OpenHub. Redéfinit les variables natives (--radius recale
+ * l'échelle @theme inline dérivée). Méthode robuste (cf. 07 D.1).
+ */
+:root {
+  --dls-radius: 8px !important;
+  --dls-radius-lg: 12px !important;
+  --radius: 0.5rem !important;
+}
+
+/*
+ * Typographie → SF Pro (remplace IBM Plex Sans natif). Zones mono exclues.
+ */
+html,
+body {
+  font-family:
+    "SF Pro Text",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+code,
+pre,
+kbd,
+samp,
+[class*="mono"] {
+  font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace !important;
+}
