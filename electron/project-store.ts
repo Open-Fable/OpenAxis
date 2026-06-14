@@ -257,6 +257,11 @@ export async function getActiveProject(): Promise<Project | null> {
   return data.projects.find((p) => p.id === data.activeProjectId) ?? null;
 }
 
+export async function getProjectById(id: string): Promise<Project | null> {
+  const data = await load();
+  return data.projects.find((p) => p.id === id) ?? null;
+}
+
 export async function saveProject(
   project: Partial<Omit<Project, "createdAt" | "updatedAt">> & {
     name: string;
