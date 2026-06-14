@@ -1,4 +1,4 @@
-import { spawn, ChildProcess, execSync } from "child_process";
+import { spawn, ChildProcess, execFileSync } from "child_process";
 import { randomBytes } from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -29,13 +29,12 @@ export class ProcessManager {
   private readonly starting = new Map<string, Promise<number | null>>();
   private readonly proxyToken: string;
   private readonly apiKeys: ApiKeys;
-  // Generated per session, never logged
-  private readonly opencodePassword = randomBytes(24).toString("hex");
   private readonly shimDir: string;
 
-  getOpencodePassword(): string {
-    return this.opencodePassword;
-  }
+  // NOTE: `opencode serve` is bound to 127.0.0.1 only (see startOpenCode). A
+  // per-session OPENCODE_SERVER_PASSWORD is intentionally NOT set: the upstream
+  // OpenWork client connects to opencode directly and we cannot inject the password
+  // into it, so loopback binding is the enforced boundary for this surface.
 
   constructor(proxyToken: string, apiKeys: ApiKeys = {}) {
     this.proxyToken = proxyToken;
@@ -47,7 +46,9 @@ export class ProcessManager {
       `openhub-shims-${randomBytes(8).toString("hex")}`,
     );
     try {
-      fs.mkdirSync(this.shimDir, { recursive: true });
+      // Owner-only: the shim dir lives in a shared /tmp; 0700 keeps other local
+      // accounts from reading or planting files in it.
+      fs.mkdirSync(this.shimDir, { recursive: true, mode: 0o700 });
       const shimContent = `#!/bin/bash
 # Find the next opencode in PATH (excluding this shim)
 SHIM_DIR="\$(dirname "\$0")"
@@ -74,8 +75,8 @@ exec "\$REAL_PATH" "\${args[@]}"
 `;
       fs.writeFileSync(path.join(this.shimDir, "opencode"), shimContent, "utf8");
       fs.writeFileSync(path.join(this.shimDir, "opencode-cli"), shimContent, "utf8");
-      fs.chmodSync(path.join(this.shimDir, "opencode"), 0o755);
-      fs.chmodSync(path.join(this.shimDir, "opencode-cli"), 0o755);
+      fs.chmodSync(path.join(this.shimDir, "opencode"), 0o700);
+      fs.chmodSync(path.join(this.shimDir, "opencode-cli"), 0o700);
       console.warn(`[shims] opencode wrapper created at ${this.shimDir}`);
     } catch (err) {
       console.error("[shims] failed to create opencode shims:", err);
@@ -186,8 +187,11 @@ exec "\$REAL_PATH" "\${args[@]}"
   }
 
   private killPort(port: number): void {
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) return;
     try {
-      const pids = execSync(`lsof -ti:${port} 2>/dev/null || true`, { stdio: "pipe" })
+      // execFile (no shell) so the port can never be interpreted as a command.
+      // lsof exits non-zero when nothing holds the port — caught below.
+      const pids = execFileSync("lsof", ["-ti", `:${port}`], { stdio: "pipe" })
         .toString()
         .trim()
         .split("\n")
@@ -340,12 +344,32 @@ exec "\$REAL_PATH" "\${args[@]}"
     throw new Error(`${url} did not become healthy within ${HEALTH_TIMEOUT_MS}ms`);
   }
 
+  // Strips secrets a child might echo to its stdout/stderr before we log them:
+  // the per-session proxy token (injected via env) plus common provider key shapes.
+  private redactSecrets(text: string): string {
+    let out = text;
+    // Literal redaction of every secret we injected into the child env (the
+    // per-session proxy token and the Google key).
+    const literals = [this.proxyToken, this.apiKeys?.googleAiKey];
+    for (const secret of literals) {
+      if (typeof secret === "string" && secret.length >= 8) {
+        out = out.split(secret).join("[REDACTED]");
+      }
+    }
+    return out
+      .replace(
+        /\b(sk-ant|sk-proj|sk-or|sk|ghp|gho|ghs|github_pat|xoxb|AIza|GOCSPX)[-_][A-Za-z0-9_-]{6,}/g,
+        "[REDACTED]",
+      )
+      .replace(/Bearer\s+[A-Za-z0-9._-]{8,}/g, "Bearer [REDACTED]");
+  }
+
   private pipeOutput(label: string, proc: ChildProcess, runningKey?: string): void {
     proc.stdout?.on("data", (d: Buffer) =>
-      console.warn(`[${label}] ${d.toString().trim()}`),
+      console.warn(`[${label}] ${this.redactSecrets(d.toString().trim())}`),
     );
     proc.stderr?.on("data", (d: Buffer) =>
-      console.error(`[${label}] ${d.toString().trim()}`),
+      console.error(`[${label}] ${this.redactSecrets(d.toString().trim())}`),
     );
     proc.on("exit", (code) => {
       console.warn(`[${label}] exited with code ${code}`);
