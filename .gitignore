@@ -58,6 +58,26 @@ check_keys.js
 test_syntax.py
 SECURITY_AND_BUGS_REPORT.md
 
+# Recovery-script OUTPUT files — these contain dumped user chat history and must
+# never be committed (the scripts above are ignored, but their outputs were not).
+recovered_*.json
+recovered_chats_*.json
+recovered_history.json
+salvaged_*.json
+salvaged_history.json
+salvaged_messages.json
+salvaged_regex.json
+test_script_*.js
+
+# Unrelated scratch workspaces / screenshots / external projects accidentally
+# placed at the repo root — keep them out of OpenHub.
+fi/
+oui/
+pokjh/
+interface/
+interface-chat/
+Portfolio_d_Art/
+
 # Graphify output (regenerated on demand, user-specific)
 graphify-out/
 
@@ -73,3 +93,9 @@ fichier-de-la-marque/
 .claude/
 .codex/
 .agents/
+
+# Internal security/audit reports and scratch dirs — working docs, never distribute
+SECURITY_AUDIT_*.md
+avertissement/
+manga/
+screen/
