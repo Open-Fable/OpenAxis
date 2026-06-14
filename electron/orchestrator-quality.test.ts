@@ -21,6 +21,7 @@ import {
   findCsvColumnProblems,
   findPlaceholderDeliverables,
   findUnreferencedModules,
+  findModuleGraphProblems,
   deriveFloorChecks,
   PROSE_FLOOR_WORDS,
   findConsolidationShrinkage,
@@ -352,6 +353,135 @@ describe("findUnreferencedModules", () => {
     expect(files).not.toContain("index.ts");
     expect(files).not.toContain("util.ts");
     expect(files).not.toContain("foo.test.ts");
+  });
+});
+
+describe("findModuleGraphProblems", () => {
+  let tmpDir: string;
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "graph-"));
+  });
+
+  it("flags a Python import of a symbol the target module doesn't define", async () => {
+    await realFs.mkdir(path.join(tmpDir, "src"), { recursive: true });
+    await realFs.writeFile(
+      path.join(tmpDir, "src/sorter.py"),
+      "class DataSorter:\n    @staticmethod\n    def sort(data):\n        return data\n",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "src/main.py"),
+      "from sorter import sort_data\nprint(sort_data)\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    const hit = out.find((p) => p.sourceFile.endsWith("main.py"));
+    expect(hit).toBeTruthy();
+    expect(hit?.problem).toContain("sort_data");
+  });
+
+  it("does not flag a Python import that resolves correctly (incl. re-exports)", async () => {
+    await realFs.mkdir(path.join(tmpDir, "src"), { recursive: true });
+    await realFs.writeFile(
+      path.join(tmpDir, "src/error_handler.py"),
+      "class ErrorTracker:\n    pass\n",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "src/main.py"),
+      "from error_handler import ErrorTracker\nx = ErrorTracker()\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    expect(out.find((p) => p.sourceFile.endsWith("main.py"))).toBeFalsy();
+  });
+
+  it("flags a TS named import the target module doesn't export", async () => {
+    await realFs.writeFile(
+      path.join(tmpDir, "sorter.ts"),
+      "export class DataSorter {}\n",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "index.ts"),
+      "import { sortData } from './sorter';\nconsole.log(sortData);\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    const hit = out.find((p) => p.sourceFile === "index.ts");
+    expect(hit?.problem).toContain("sortData");
+  });
+
+  it("resolves correct TS named imports without flagging", async () => {
+    await realFs.writeFile(
+      path.join(tmpDir, "engine.ts"),
+      "export function validateEmail() {}\nexport const VERSION = '1';\n",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "index.ts"),
+      "import { validateEmail, VERSION } from './engine';\nvalidateEmail();\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    expect(out.find((p) => p.sourceFile === "index.ts")).toBeFalsy();
+  });
+
+  it("does not flag imports from external packages or wildcard re-exports", async () => {
+    await realFs.writeFile(path.join(tmpDir, "barrel.ts"), "export * from './impl';\n");
+    await realFs.writeFile(path.join(tmpDir, "impl.ts"), "export const x = 1;\n");
+    await realFs.writeFile(
+      path.join(tmpDir, "index.ts"),
+      "import { useState } from 'react';\nimport { anything } from './barrel';\nconsole.log(useState, anything);\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    expect(out.find((p) => p.sourceFile === "index.ts")).toBeFalsy();
+  });
+
+  it("flags an orphan exporting module that no file imports", async () => {
+    await realFs.writeFile(
+      path.join(tmpDir, "types.ts"),
+      "export interface T { a: number }\n",
+    );
+    await realFs.writeFile(path.join(tmpDir, "engine.ts"), "export function f() {}\n");
+    await realFs.writeFile(path.join(tmpDir, "index.ts"), "export * from './engine';\n");
+    const out = await findModuleGraphProblems(tmpDir);
+    const orphans = out.filter((p) => p.problem.includes("jamais importé"));
+    expect(orphans.map((p) => p.sourceFile)).toContain("types.ts");
+    expect(orphans.map((p) => p.sourceFile)).not.toContain("engine.ts");
+  });
+
+  it("never flags a Python test file as an orphan", async () => {
+    await realFs.mkdir(path.join(tmpDir, "src"), { recursive: true });
+    await realFs.mkdir(path.join(tmpDir, "tests"), { recursive: true });
+    await realFs.writeFile(path.join(tmpDir, "src/a.py"), "def a():\n    return 1\n");
+    await realFs.writeFile(path.join(tmpDir, "src/b.py"), "def b():\n    return 2\n");
+    await realFs.writeFile(
+      path.join(tmpDir, "tests/test_unit.py"),
+      "from a import a\nfrom b import b\n\ndef test_it():\n    assert a() == 1\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    expect(out.find((p) => p.sourceFile.includes("test_unit.py"))).toBeFalsy();
+  });
+
+  it("dedupes the same broken import reported twice (e.g. dual try/except import)", async () => {
+    await realFs.mkdir(path.join(tmpDir, "src"), { recursive: true });
+    await realFs.writeFile(
+      path.join(tmpDir, "src/sorter.py"),
+      "class DataSorter:\n    pass\n",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "src/main.py"),
+      "try:\n    from sorter import sort_data\nexcept ImportError:\n    from src.sorter import sort_data\n",
+    );
+    const out = await findModuleGraphProblems(tmpDir);
+    const hits = out.filter(
+      (p) => p.sourceFile.endsWith("main.py") && p.problem.includes("sort_data"),
+    );
+    expect(hits).toHaveLength(1);
+  });
+
+  it("returns nothing for a coherent single-purpose project", async () => {
+    await realFs.writeFile(path.join(tmpDir, "a.ts"), "export const a = 1;\n");
+    await realFs.writeFile(
+      path.join(tmpDir, "b.ts"),
+      "import { a } from './a';\nexport const b = a + 1;\n",
+    );
+    await realFs.writeFile(path.join(tmpDir, "index.ts"), "export * from './b';\n");
+    const out = await findModuleGraphProblems(tmpDir);
+    expect(out).toEqual([]);
   });
 });
 
