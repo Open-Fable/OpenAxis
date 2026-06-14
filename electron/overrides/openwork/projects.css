@@ -51,7 +51,7 @@
 #oh-project-modal {
   background: var(--bg-panel, #141414);
   border: 1px solid var(--border-default, #2a2a2a);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 12px);
   width: 480px;
   max-width: calc(100% - 32px);
   max-height: 85vh;
@@ -91,7 +91,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm, 4px);
   background: transparent;
   color: var(--text-muted, #666666);
   font-size: 22px;

@@ -6,6 +6,10 @@
   const hub = window.openhub;
   if (!hub) return;
 
+  let selectMode = false;
+  const selectedIds = new Set();
+  let cachedProjects = [];
+
   function escapeHtml(str) {
     if (!str) return "";
     const div = document.createElement("div");
@@ -19,9 +23,15 @@
   overlay.innerHTML = `
         <header class="oh-hub-header">
             <div class="oh-hub-title">Projets</div>
-            <div style="display: flex; gap: 12px;">
+            <div id="oh-hub-default-actions" style="display: flex; gap: 12px;">
+                <button class="oh-btn-ghost" id="oh-select-mode-btn">Sélectionner</button>
                 <button class="oh-btn-primary" id="oh-new-project">Nouveau projet</button>
                 <button class="oh-btn-ghost" id="oh-close-hub">Fermer</button>
+            </div>
+            <div id="oh-hub-select-actions" style="display: none; gap: 12px; align-items: center;">
+                <span id="oh-select-count" style="font-size:13px; color: var(--text-muted);">0 sélectionné</span>
+                <button class="oh-btn-ghost" id="oh-cancel-select">Annuler</button>
+                <button class="oh-btn oh-btn-danger" id="oh-delete-selected-btn">Supprimer (0)</button>
             </div>
         </header>
         <div class="oh-hub-grid" id="oh-hub-grid"></div>
@@ -70,9 +80,70 @@
   document.body.appendChild(overlay);
   document.body.appendChild(detailView);
 
+  // ── Select Mode Helpers ──
+  function enterSelectMode() {
+    selectMode = true;
+    selectedIds.clear();
+    document.getElementById("oh-hub-default-actions").style.display = "none";
+    document.getElementById("oh-hub-select-actions").style.display = "flex";
+    renderGrid();
+  }
+
+  function exitSelectMode() {
+    selectMode = false;
+    selectedIds.clear();
+    document.getElementById("oh-hub-default-actions").style.display = "flex";
+    document.getElementById("oh-hub-select-actions").style.display = "none";
+    renderGrid();
+  }
+
+  function toggleCardSelect(id) {
+    if (selectedIds.has(id)) {
+      selectedIds.delete(id);
+    } else {
+      selectedIds.add(id);
+    }
+    const card = document.getElementById("oh-card-" + id);
+    if (card) card.classList.toggle("oh-card-selected", selectedIds.has(id));
+    const n = selectedIds.size;
+    const countEl = document.getElementById("oh-select-count");
+    const deleteBtn = document.getElementById("oh-delete-selected-btn");
+    if (countEl) countEl.textContent = n + " sélectionné" + (n > 1 ? "s" : "");
+    if (deleteBtn) deleteBtn.textContent = "Supprimer (" + n + ")";
+  }
+
   // ── Event Delegation ──
   document.addEventListener("click", async (e) => {
     const target = e.target;
+
+    // Enter select mode
+    if (target.id === "oh-select-mode-btn" || target.closest("#oh-select-mode-btn")) {
+      enterSelectMode();
+    }
+
+    // Cancel select mode
+    if (target.id === "oh-cancel-select" || target.closest("#oh-cancel-select")) {
+      exitSelectMode();
+    }
+
+    // Delete selected
+    if (
+      target.id === "oh-delete-selected-btn" ||
+      target.closest("#oh-delete-selected-btn")
+    ) {
+      const n = selectedIds.size;
+      if (n === 0) return;
+      if (
+        !confirm("Supprimer " + n + " projet" + (n > 1 ? "s" : "") + " définitivement ?")
+      )
+        return;
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await hub.deleteProject(id);
+      }
+      exitSelectMode();
+      showHub();
+    }
 
     // Back to hub
     if (target.id === "oh-back-to-hub" || target.closest("#oh-back-to-hub")) {
@@ -134,46 +205,61 @@
   });
 
   // ── Logic ──
-  async function showHub() {
-    const projects = await hub.getProjects();
+  function renderGrid() {
     const grid = document.getElementById("oh-hub-grid");
+    if (!grid) return;
     grid.innerHTML = "";
 
-    if (!projects || projects.length === 0) {
+    if (!cachedProjects || cachedProjects.length === 0) {
       grid.innerHTML =
         '<div style="grid-column:1/-1; text-align:center; padding:48px; color:#666666;">Aucun projet trouvé.</div>';
-    } else {
-      projects.forEach((p) => {
-        const card = document.createElement("div");
-        card.className = "oh-project-card";
-
-        const isOrchestrator = p.name.includes("(g") || p.name.includes("Orchestra");
-        const icon = isOrchestrator
-          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 9 6 9-6"/><path d="M3 10v6l9 6 9-6v-6"/><path d="m3 10 9 6 9-6"/></svg>'
-          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>';
-        const type = isOrchestrator ? "orchestrator" : "code";
-        const date = new Date(p.updatedAt || Date.now()).toLocaleDateString("fr-FR");
-
-        card.innerHTML = `
-                    <div class="oh-project-card-top">
-                        <div class="oh-project-card-icon-wrap" data-type="${type}">
-                            ${icon}
-                        </div>
-                        <div class="oh-project-card-name">${escapeHtml(p.name)}</div>
-                    </div>
-                    <div class="oh-project-card-meta">
-                        <div class="oh-project-meta-row">Type: ${type}</div>
-                        <div class="oh-project-meta-row">Dernière modif: ${date}</div>
-                    </div>
-                `;
-        card.onclick = (e) => {
-          e.stopPropagation();
-          showDetail(p);
-        };
-        grid.appendChild(card);
-      });
+      return;
     }
 
+    cachedProjects.forEach((p) => {
+      const card = document.createElement("div");
+      card.className =
+        "oh-project-card" + (selectedIds.has(p.id) ? " oh-card-selected" : "");
+      card.id = "oh-card-" + p.id;
+
+      const isOrchestrator = p.name.includes("(g") || p.name.includes("Orchestra");
+      const icon = isOrchestrator
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 9 6 9-6"/><path d="M3 10v6l9 6 9-6v-6"/><path d="m3 10 9 6 9-6"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>';
+      const type = isOrchestrator ? "orchestrator" : "code";
+      const date = new Date(p.updatedAt || Date.now()).toLocaleDateString("fr-FR");
+
+      const checkboxHtml = selectMode
+        ? `<div class="oh-card-checkbox" aria-hidden="true">${selectedIds.has(p.id) ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>' : ""}</div>`
+        : "";
+
+      card.innerHTML = `
+        ${checkboxHtml}
+        <div class="oh-project-card-top">
+            <div class="oh-project-card-icon-wrap" data-type="${type}">${icon}</div>
+            <div class="oh-project-card-name">${escapeHtml(p.name)}</div>
+        </div>
+        <div class="oh-project-card-meta">
+            <div class="oh-project-meta-row">Type: ${type}</div>
+            <div class="oh-project-meta-row">Dernière modif: ${date}</div>
+        </div>
+      `;
+
+      card.onclick = (e) => {
+        e.stopPropagation();
+        if (selectMode) {
+          toggleCardSelect(p.id);
+        } else {
+          showDetail(p);
+        }
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  async function showHub() {
+    cachedProjects = await hub.getProjects();
+    renderGrid();
     overlay.classList.add("oh-visible");
   }
 

@@ -6,6 +6,18 @@
   "use strict";
   if (window.__OPENWORK_ELECTRON__) return;
 
+  // Opens a URL in a new tab only if it uses a safe scheme (http/https), always with
+  // noopener,noreferrer. Blocks javascript:/data: URLs and reverse-tabnabbing.
+  function openSafe(url) {
+    try {
+      var parsed = new URL(url || "about:blank", window.location.href);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+      window.open(parsed.href, "_blank", "noopener,noreferrer");
+    } catch {
+      /* invalid URL — do nothing */
+    }
+  }
+
   window.__OPENWORK_ELECTRON__ = {
     invokeDesktop: function (command) {
       var args = Array.prototype.slice.call(arguments, 1);
@@ -32,7 +44,7 @@
     },
     shell: {
       openExternal: function (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
+        openSafe(url);
         return Promise.resolve();
       },
       relaunch: function () {
@@ -52,10 +64,10 @@
     },
     browser: {
       createTab: function (url) {
-        window.open(url || "about:blank", "_blank");
+        openSafe(url);
       },
       openUrl: function (url) {
-        window.open(url, "_blank");
+        openSafe(url);
       },
     },
     updater: {

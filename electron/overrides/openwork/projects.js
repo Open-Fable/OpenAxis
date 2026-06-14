@@ -6,6 +6,14 @@
 
   var hub = window.openhub;
 
+  // Escapes untrusted project fields (name/path/instructions are LLM/user-controlled
+  // and persisted) before they are interpolated into HTML — prevents stored XSS.
+  function escapeHtml(text) {
+    var div = document.createElement("div");
+    div.textContent = text == null ? "" : String(text);
+    return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function getFolderIcon() {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>';
   }
@@ -45,7 +53,7 @@
       </div>
       <div class="oh-modal-field">
         <label>Nom du projet</label>
-        <input type="text" id="oh-modal-name-input" placeholder="Ex: Assistant Marketing" value="${editing ? editing.name : ""}">
+        <input type="text" id="oh-modal-name-input" placeholder="Ex: Assistant Marketing" value="${editing ? escapeHtml(editing.name) : ""}">
       </div>
       <div class="oh-modal-field">
         <label>Couleur</label>
@@ -54,13 +62,13 @@
       <div class="oh-modal-field">
         <label>Dossier lié</label>
         <div style="display: flex; gap: 8px;">
-          <input type="text" id="oh-modal-path-input" placeholder="Aucun dossier lié" value="${editing ? editing.path || "" : ""}" readonly style="flex: 1; cursor: default; opacity: 0.8;">
+          <input type="text" id="oh-modal-path-input" placeholder="Aucun dossier lié" value="${editing ? escapeHtml(editing.path || "") : ""}" readonly style="flex: 1; cursor: default; opacity: 0.8;">
           <button class="oh-btn oh-btn-ghost" id="oh-modal-pick-path" style="border: 1px solid var(--border-default); white-space: nowrap; background: var(--bg-surface, #1e1e1e); color: var(--text-primary, #ececec); font-weight: 500;">Choisir...</button>
         </div>
       </div>
       <div class="oh-modal-field oh-modal-field-grow">
         <label>Instructions</label>
-        <textarea id="oh-modal-instr-input" placeholder="Instructions pour l'IA...">${editing ? editing.instructions : ""}</textarea>
+        <textarea id="oh-modal-instr-input" placeholder="Instructions pour l'IA...">${editing ? escapeHtml(editing.instructions) : ""}</textarea>
       </div>
       <div class="oh-modal-footer">
         <div style="flex:1"></div>

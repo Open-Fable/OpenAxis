@@ -62,9 +62,10 @@
 
 /* Project Card */
 .oh-project-card {
+  position: relative;
   background: var(--bg-surface, #1e1e1e);
   border: 1px solid var(--border-default, #2a2a2a);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 12px);
   padding: 16px 20px;
   cursor: pointer;
   display: flex;
@@ -77,6 +78,35 @@
   border-color: var(--accent-primary, #14b8a6);
   background: var(--bg-elevated, #282828);
   box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.4));
+}
+
+.oh-project-card.oh-card-selected {
+  border-color: var(--accent-primary, #14b8a6);
+  background: var(--accent-subtle, rgba(20, 184, 166, 0.1));
+}
+
+.oh-card-checkbox {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border-default, #2a2a2a);
+  background: var(--bg-surface, #1e1e1e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary, #14b8a6);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.oh-card-selected .oh-card-checkbox {
+  border-color: var(--accent-primary, #14b8a6);
+  background: var(--accent-primary, #14b8a6);
+  color: #fff;
 }
 
 .oh-project-card-top {
@@ -174,7 +204,7 @@
 .oh-panel {
   background: var(--bg-surface, #1e1e1e);
   border: 1px solid var(--border-default, #2a2a2a);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 12px);
   padding: 24px;
 }
 
