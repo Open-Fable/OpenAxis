@@ -12,7 +12,8 @@ OpenHub is a local macOS desktop app. It runs entirely on your machine — no cl
 | **LLM proxy**          | Binds to `127.0.0.1:9999` only — not accessible from other machines. Requires a per-session Bearer token       |
 | **WebViews**           | `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false` — upstream apps cannot access Node.js APIs |
 | **Injected overrides** | CSS/JS only — no secrets are ever inlined in override files                                                    |
-| **opencode server**    | `OPENCODE_SERVER_PASSWORD` generated per session, never logged                                                 |
+| **LLM proxy token**    | Per-session token (`randomBytes(32)`), required on every route; no static/shared token; constant-time compared |
+| **opencode server**    | Bound to `127.0.0.1` only — not reachable from other machines                                                  |
 
 ### Out of scope
 
