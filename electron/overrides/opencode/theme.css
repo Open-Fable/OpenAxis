@@ -197,11 +197,11 @@
   }
 }
 
-/* Inputs — rondeur standard 8px + focus teal */
+/* Inputs */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
-  border-radius: 8px !important;
+  border-radius: var(--radius-md, 8px) !important;
 }
 input:focus,
 textarea:focus,

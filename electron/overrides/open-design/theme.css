@@ -121,7 +121,7 @@ body {
 /* Boutons */
 button,
 [role="button"] {
-  border-radius: 8px !important;
+  border-radius: var(--radius-md, 8px) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -142,7 +142,7 @@ select {
   background: var(--bg-subtle) !important;
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
+  border-radius: var(--radius-sm, 4px) !important;
   padding: 0 12px !important;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif !important;
   font-size: 14px !important;
@@ -180,7 +180,7 @@ select:disabled,
 [role="card"] {
   background: var(--bg-subtle) !important;
   border: 1px solid var(--border-soft) !important;
-  border-radius: 8px !important;
+  border-radius: var(--radius-md, 8px) !important;
   box-shadow: var(--oh-shadow-xs) !important;
 }
 
@@ -188,7 +188,7 @@ select:disabled,
 [role="dialog"] {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-lg, 12px) !important;
   box-shadow: var(--oh-shadow-md) !important;
 }
 [role="dialog"] h2 {
@@ -218,7 +218,7 @@ select:disabled,
 [role="menu"] {
   background: var(--bg-muted) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: var(--radius-md, 8px) !important;
   box-shadow: var(--oh-shadow-sm) !important;
 }
 [role="menuitem"] {
@@ -235,7 +235,7 @@ select:disabled,
   background: var(--bg-elevated) !important;
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
+  border-radius: var(--radius-sm, 4px) !important;
   font-size: 12px !important;
   box-shadow: var(--oh-shadow-sm) !important;
 }

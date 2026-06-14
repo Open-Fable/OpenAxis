@@ -182,7 +182,7 @@
 
     // Style du menu (Portal)
     menu.style.cssText =
-      "position:fixed;z-index:100000;background:var(--background-strong, #1e1e1e);border:1px solid var(--border-weak-base, #2a2a2a);border-radius:10px;padding:4px;min-width:140px;box-shadow:0 8px 30px rgba(0,0,0,0.5);font-family:inherit;";
+      "position:fixed;z-index:100000;background:var(--background-strong, #1e1e1e);border:1px solid var(--border-weak-base, #2a2a2a);border-radius:12px;padding:4px;min-width:140px;box-shadow:0 8px 30px rgba(0,0,0,0.5);font-family:inherit;";
 
     // Positionnement dynamique
     var menuHeight = activeLevels.length * 32 + 20;
@@ -198,7 +198,7 @@
       var isActive = item.id === currentEffort;
 
       opt.style.cssText =
-        "padding:6px 12px;cursor:pointer;border-radius:6px;font-size:13px;display:flex;align-items:center;justify-content:space-between;color:" +
+        "padding:6px 12px;cursor:pointer;border-radius:8px;font-size:13px;display:flex;align-items:center;justify-content:space-between;color:" +
         (isActive
           ? "var(--text-interactive-base, #14b8a6)"
           : "var(--text-base, #999999)") +
