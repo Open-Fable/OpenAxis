@@ -1,5 +1,7 @@
 import { ipcMain, WebContents } from "electron";
-import { readSecret } from "./keychain.js";
+import { readSecret, isSafeOllamaUrl } from "./keychain.js";
+
+const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
 
 interface OllamaProgress {
   model: string;
@@ -19,7 +21,10 @@ const activePulls = new Map<string, PullState>();
 
 async function getOllamaUrl(): Promise<string> {
   const url = await readSecret("openhub", "ollama-url");
-  return url || "http://127.0.0.1:11434";
+  // Reject unsafe (cloud-metadata / link-local) hosts even if one slipped into the
+  // store — falls back to loopback rather than letting fetch() pivot internally.
+  if (url && isSafeOllamaUrl(url)) return url;
+  return DEFAULT_OLLAMA_URL;
 }
 
 export async function checkOllamaModels(): Promise<{
@@ -58,6 +63,11 @@ export async function checkOllamaModels(): Promise<{
 async function pullModel(model: string, webContents: WebContents): Promise<void> {
   if (activePulls.has(model)) return;
 
+  // The renderer may be torn down mid-pull; guard every send.
+  const send = (payload: OllamaProgress | Record<string, unknown>): void => {
+    if (!webContents.isDestroyed()) webContents.send("ollama-pull-progress", payload);
+  };
+
   const url = await getOllamaUrl();
   const abortController = new AbortController();
   activePulls.set(model, { model, abortController });
@@ -93,7 +103,7 @@ async function pullModel(model: string, webContents: WebContents): Promise<void>
             json.percent = Math.round((json.completed / json.total) * 100);
           }
           json.model = model;
-          webContents.send("ollama-pull-progress", json);
+          send(json);
         } catch {
           // Ligne peut-être encore incomplète malgré le split
         }
@@ -101,14 +111,14 @@ async function pullModel(model: string, webContents: WebContents): Promise<void>
     }
 
     activePulls.delete(model);
-    webContents.send("ollama-pull-progress", { model, status: "success", percent: 100 });
+    send({ model, status: "success", percent: 100 });
   } catch (err) {
     activePulls.delete(model);
     if (err instanceof Error && err.name === "AbortError") {
-      webContents.send("ollama-pull-progress", { model, status: "canceled" });
+      send({ model, status: "canceled" });
     } else {
       console.error(`[ollama-manager] Error pulling ${model}:`, err);
-      webContents.send("ollama-pull-progress", {
+      send({
         model,
         status: "error",
         error: err instanceof Error ? err.message : String(err),
@@ -117,14 +127,26 @@ async function pullModel(model: string, webContents: WebContents): Promise<void>
   }
 }
 
+// These channels are only used by the local sidebar UI (file://). Gate them so a
+// remote slot view cannot trigger arbitrary model downloads.
+function fromLocalUi(e: { senderFrame?: { url?: string } | null }): boolean {
+  return (e.senderFrame?.url ?? "").startsWith("file://");
+}
+
 export function registerOllamaHandlers(): void {
-  ipcMain.handle("ollama-check-models", () => checkOllamaModels());
+  ipcMain.handle("ollama-check-models", (e) => {
+    if (!fromLocalUi(e)) throw new Error("forbidden");
+    return checkOllamaModels();
+  });
 
   ipcMain.on("ollama-pull-model", (event, model: string) => {
+    if (!fromLocalUi(event)) return;
+    if (typeof model !== "string" || model.length === 0) return;
     pullModel(model, event.sender);
   });
 
-  ipcMain.on("ollama-cancel-pull", (_event, model: string) => {
+  ipcMain.on("ollama-cancel-pull", (event, model: string) => {
+    if (!fromLocalUi(event)) return;
     const state = activePulls.get(model);
     if (state) {
       state.abortController.abort();
