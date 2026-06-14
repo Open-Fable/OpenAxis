@@ -53,6 +53,7 @@ import {
   sanitizeExpectedFiles,
   isTrivialResult,
   enforceDeliverables,
+  checkExpectedFiles,
   buildQualityGateSystemPrompt,
   buildQualityGateUserPrompt,
   collectHtmlHeadSnippets,
@@ -63,6 +64,7 @@ import {
   buildPageCoverageReport,
   findServedSiteProblems,
   findCssConsistencyProblems,
+  findInvalidJsonFiles,
   buildServedSiteReport,
   parseQualityVerdict,
   buildAutoFeedback,
@@ -299,6 +301,9 @@ export class OrchestratorRunner {
   private isRunning = false;
   private currentOrchestratorId: string | null = null;
   private abortController: AbortController | null = null;
+  // Files written on disk by a backend's tools, keyed by node id. Used so a node
+  // that produced files but returned a short chat summary isn't judged "trivial".
+  private readonly backendFilesWritten = new Map<string, number>();
   private fallbackModel: string | undefined = undefined;
   private fallbackReasoningEffort: string | undefined = undefined;
 
@@ -712,7 +717,12 @@ export class OrchestratorRunner {
         const expectedFiles = expectedFilesMap[node.id] ?? [];
         const isProducerType =
           node.type === "work" || node.type === "code" || node.type === "design";
-        if (expectedFiles.length > 0 || (isProducerType && isTrivialResult(resultText))) {
+        // A backend that wrote real files on disk is never "trivial" even if its
+        // chat text is short — relaunching via the LLM would clobber those files.
+        const backendFilesWritten = this.backendFilesWritten.get(node.id) ?? 0;
+        const looksTrivial =
+          isProducerType && isTrivialResult(resultText) && backendFilesWritten === 0;
+        if (expectedFiles.length > 0 || looksTrivial) {
           const nodeSystemPrompt = buildNodeSystemPrompt(node);
           try {
             const enforceResult = await enforceDeliverables(
@@ -1021,7 +1031,19 @@ export class OrchestratorRunner {
     const servedProblems = [
       ...(await findServedSiteProblems(workspaceDir)),
       ...(await findCssConsistencyProblems(workspaceDir)),
+      // Format-agnostic (non-web) deterministic check: every produced *.json must parse.
+      ...(await findInvalidJsonFiles(workspaceDir)),
     ];
+    // Missing contracted files (expected_files) are the one generic, domain-agnostic
+    // deliverable contract — force-fail on them and attribute to the owning agent.
+    const missingByAgent: Array<{ agent: string; file: string }> = [];
+    for (const [nodeId, files] of Object.entries(expectedFilesMap)) {
+      if (!files || files.length === 0) continue;
+      const { missing } = await checkExpectedFiles(workspaceDir, files);
+      const agentName =
+        linkedProjects.find((p) => p.id === nodeId)?.name ?? "agent inconnu";
+      for (const f of missing) missingByAgent.push({ agent: agentName, file: f });
+    }
     const brokenAssetsReport = [
       buildBrokenAssetsReport(brokenAssets),
       buildPageCoverageReport(uncodedMockups),
@@ -1072,6 +1094,11 @@ export class OrchestratorRunner {
         issue: `${s.sourceFile} → ${s.problem}`,
         fix: s.problem,
       })),
+      ...missingByAgent.map((m) => ({
+        agent: m.agent,
+        issue: `Fichier attendu manquant ou vide : ${m.file}`,
+        fix: `Produire le fichier ${m.file} (complet, > ${MIN_RESULT_CHARS} caractères de contenu réel)`,
+      })),
     ].slice(0, 30);
 
     const llmIssues = llmVerdict?.issues ?? [];
@@ -1114,6 +1141,7 @@ export class OrchestratorRunner {
     const served = [
       ...(await findServedSiteProblems(workspaceDir)),
       ...(await findCssConsistencyProblems(workspaceDir)),
+      ...(await findInvalidJsonFiles(workspaceDir)),
     ];
     if (broken.length === 0 && uncoded.length === 0 && served.length === 0) return;
 
@@ -1956,8 +1984,12 @@ export class OrchestratorRunner {
           );
 
           console.warn(
-            `[orchestrator] ✓ Backend SUCCESS for "${node.name}" — ${result.backend}, ${result.resultText.length} chars`,
+            `[orchestrator] ✓ Backend SUCCESS for "${node.name}" — ${result.backend}, ${result.resultText.length} chars, ${result.filesWritten} fichier(s)`,
           );
+          // Record real files written by the backend's tools so the trivial-result
+          // gate never relaunches (and clobbers) a node that produced files but
+          // returned only a short chat summary.
+          this.backendFilesWritten.set(node.id, result.filesWritten);
           return result.resultText;
         } catch (err: unknown) {
           if (this.abortSignal?.aborted) {
@@ -2647,6 +2679,10 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
     pathFilter?: (relPath: string) => boolean,
   ): Promise<string[]> {
     const written: string[] = [];
+    // Resolved paths already written this call, so the three parsers below can ALL
+    // run (an agent may mix formats mid-response) without re-writing the same file.
+    // First-writer-wins → the primary ```filepath: format takes precedence.
+    const seen = new Set<string>();
     const accept = (p: string): boolean =>
       OrchestratorRunner.isValidFilePath(p) && (!pathFilter || pathFilter(p));
 
@@ -2665,50 +2701,46 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
         continue;
       }
       if (written.length >= MAX_WRITTEN_FILES) break;
-      await this.tryWriteWorkspaceFile(workspaceDir, filePath, content, written);
+      await this.tryWriteWorkspaceFile(workspaceDir, filePath, content, written, seen);
     }
 
-    // Secondary: match **Fichier: `path/to/file`** then ```...``` pattern
-    if (written.length === 0) {
-      const headerRe =
-        /(?:\*{1,2})?(?:Fichier|File)\s*:\s*`?([^`\n*]+?)`?\*{0,2}\s*\n\s*```[\w]*\n([\s\S]*?)```/gi;
-
-      while ((match = headerRe.exec(resultText)) !== null) {
-        const filePath = match[1].trim();
-        const content = match[2];
-        if (!content || !accept(filePath)) continue;
-        if (written.length >= MAX_WRITTEN_FILES) break;
-        await this.tryWriteWorkspaceFile(workspaceDir, filePath, content, written);
-      }
+    // Secondary: match **Fichier: `path/to/file`** then ```...``` pattern. Runs
+    // unconditionally (deduped via `seen`) so mixed-format output isn't dropped.
+    const headerRe =
+      /(?:\*{1,2})?(?:Fichier|File)\s*:\s*`?([^`\n*]+?)`?\*{0,2}\s*\n\s*```[\w]*\n([\s\S]*?)```/gi;
+    while ((match = headerRe.exec(resultText)) !== null) {
+      const filePath = match[1].trim();
+      const content = match[2];
+      if (!content || !accept(filePath)) continue;
+      if (written.length >= MAX_WRITTEN_FILES) break;
+      await this.tryWriteWorkspaceFile(workspaceDir, filePath, content, written, seen);
     }
 
     // Tertiary: inline path comments (// filepath: ..., <!-- filepath: ... -->).
     // Parsed line-by-line (not one mega-regex) to avoid catastrophic backtracking
-    // / ReDoS on adversarial LLM output in the main process.
-    if (written.length === 0) {
-      const markerRe = /^(?:\/\/|<!--|#)\s*filepath\s*:\s*(.+?)(?:\s*-->)?\s*$/i;
-      const lines = resultText.split("\n");
-      let curPath: string | null = null;
-      let buf: string[] = [];
-      const flush = async (): Promise<void> => {
-        if (curPath === null) return;
-        const content = buf.join("\n");
-        if (content.trim() && accept(curPath) && written.length < MAX_WRITTEN_FILES) {
-          await this.tryWriteWorkspaceFile(workspaceDir, curPath, content, written);
-        }
-      };
-      for (const line of lines) {
-        const m = markerRe.exec(line);
-        if (m) {
-          await flush();
-          curPath = m[1].trim();
-          buf = [];
-        } else if (curPath !== null) {
-          buf.push(line);
-        }
+    // / ReDoS on adversarial LLM output in the main process. Also runs always.
+    const markerRe = /^(?:\/\/|<!--|#)\s*filepath\s*:\s*(.+?)(?:\s*-->)?\s*$/i;
+    const lines = resultText.split("\n");
+    let curPath: string | null = null;
+    let buf: string[] = [];
+    const flush = async (): Promise<void> => {
+      if (curPath === null) return;
+      const content = buf.join("\n");
+      if (content.trim() && accept(curPath) && written.length < MAX_WRITTEN_FILES) {
+        await this.tryWriteWorkspaceFile(workspaceDir, curPath, content, written, seen);
       }
-      await flush();
+    };
+    for (const line of lines) {
+      const m = markerRe.exec(line);
+      if (m) {
+        await flush();
+        curPath = m[1].trim();
+        buf = [];
+      } else if (curPath !== null) {
+        buf.push(line);
+      }
     }
+    await flush();
 
     return written;
   }
@@ -2720,6 +2752,7 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
     filePath: string,
     content: string,
     written: string[],
+    seen?: Set<string>,
   ): Promise<void> {
     if (Buffer.byteLength(content, "utf-8") > MAX_FILE_BYTES) {
       console.warn(
@@ -2734,6 +2767,7 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
       );
       return;
     }
+    if (seen?.has(fullPath)) return; // already written this call (first-writer-wins)
     try {
       await fs.mkdir(path.dirname(fullPath), { recursive: true });
       // The lexical check above can be defeated by a symlink planted inside the
@@ -2746,6 +2780,7 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
         return;
       }
       await fs.writeFile(fullPath, content, { encoding: "utf-8", flag: "w" });
+      seen?.add(fullPath);
       written.push(filePath);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
