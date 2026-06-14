@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import os from "os";
+import { randomBytes } from "crypto";
 
 const CONFIG_PATH = path.join(os.homedir(), ".config", "opencode", "opencode.json");
 
@@ -99,6 +100,20 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
     },
   };
 
-  await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
+  // The file embeds the per-session proxy token — restrict to owner read/write.
+  // Write to a fresh 0600 temp file then atomically rename over the target, so the
+  // secret is never briefly readable via a pre-existing file's looser perms and a
+  // concurrent reader never sees a half-written config.
+  const tmpPath = `${CONFIG_PATH}.tmp.${randomBytes(6).toString("hex")}`;
+  try {
+    await fs.writeFile(tmpPath, JSON.stringify(config, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    await fs.rename(tmpPath, CONFIG_PATH);
+  } catch (err) {
+    await fs.rm(tmpPath, { force: true }).catch(() => undefined);
+    throw err;
+  }
   console.warn(`[config] opencode.json → ${CONFIG_PATH}`);
 }
