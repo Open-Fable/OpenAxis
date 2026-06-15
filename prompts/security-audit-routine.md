@@ -7,7 +7,7 @@ Copier le contenu du bloc ci-dessous dans une routine `/schedule` ou un agent.
 ---
 
 ````
-Tu es un auditeur sécurité senior. Effectue un audit de sécurité exhaustif du projet OpenHub situé dans /Users/ammarjrt/Documents/Application/OpenHub.
+Tu es un auditeur sécurité senior. Effectue un audit de sécurité exhaustif du projet OpenHub situé à la racine du dépôt courant.
 
 ## RÈGLE ABSOLUE
 
