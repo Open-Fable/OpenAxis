@@ -21,11 +21,11 @@
 
 The sidebar ships **five slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrator** — plus a Config panel. The three slots in the table below are backed by an embedded upstream app; **Chat** and **Orchestrator** are OpenHub-native (no external app, no webview) and landed after this V1 spec was frozen.
 
-| Slot   | Repository                                               | Embedded mode       | Port              |
-| ------ | -------------------------------------------------------- | ------------------- | ----------------- |
-| Work   | `different-ai/openwork` (`apps/app`, Vite SPA)           | static build served | `5173`            |
-| Code   | `anomalyco/opencode` (`opencode serve` / `opencode web`) | HTTP server         | `4096`            |
-| Design | `nexu-io/open-design` (Express daemon + build)           | local daemon        | captured at spawn |
+| Slot   | Repository                                         | Embedded mode       | Port              |
+| ------ | -------------------------------------------------- | ------------------- | ----------------- |
+| Work   | `different-ai/openwork` (`apps/app`, Vite SPA)     | static build served | `5173`            |
+| Code   | `sst/opencode` (`opencode serve` / `opencode web`) | HTTP server         | `4096`            |
+| Design | `nexu-io/open-design` (Express daemon + build)     | local daemon        | captured at spawn |
 
 Out of V1 scope: openwork's "den"/EE cloud stack (MySQL, better-auth), Docker.
 

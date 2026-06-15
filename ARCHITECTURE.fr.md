@@ -22,11 +22,11 @@
 
 La sidebar embarque **cinq slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrateur** — plus un panneau Config. Les trois slots du tableau ci-dessous sont adossés à une app upstream embarquée ; **Chat** et **Orchestrateur** sont natifs à OpenHub (pas d'app externe, pas de webview) et ont atterri après le gel de cette spec V1.
 
-| Slot   | Dépôt                                                    | Mode embarqué        | Port             |
-| ------ | -------------------------------------------------------- | -------------------- | ---------------- |
-| Work   | `different-ai/openwork` (`apps/app`, Vite SPA)           | build statique servi | `5173`           |
-| Code   | `anomalyco/opencode` (`opencode serve` / `opencode web`) | serveur HTTP         | `4096`           |
-| Design | `nexu-io/open-design` (daemon Express + build)           | daemon local         | capturé au spawn |
+| Slot   | Dépôt                                              | Mode embarqué        | Port             |
+| ------ | -------------------------------------------------- | -------------------- | ---------------- |
+| Work   | `different-ai/openwork` (`apps/app`, Vite SPA)     | build statique servi | `5173`           |
+| Code   | `sst/opencode` (`opencode serve` / `opencode web`) | serveur HTTP         | `4096`           |
+| Design | `nexu-io/open-design` (daemon Express + build)     | daemon local         | capturé au spawn |
 
 Hors périmètre V1 : stack cloud « den »/EE d'openwork (MySQL, better-auth), Docker.
 
