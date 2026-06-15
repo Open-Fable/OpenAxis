@@ -1,50 +1,57 @@
 # Rapport de dette technique — OpenHub
 
-**Date:** 2026-06-13
-**Rapport précédent:** 2026-06-12
+**Date:** 2026-06-15
+**Rapport précédent:** 2026-06-13
 
 ## Score global
 
-| Catégorie                               | Findings | Critiques | Δ vs 2026-06-12 |
+| Catégorie                               | Findings | Critiques | Δ vs 2026-06-13 |
 | --------------------------------------- | -------- | --------- | --------------- |
-| Fichiers surdimensionnés (>400 lignes)  | 14       | 3         | +4              |
-| Fonctions surdimensionnées (>50 lignes) | ~5       | 2         | ≈               |
+| Fichiers surdimensionnés (>400 lignes)  | 19       | 5         | +5              |
+| Fonctions surdimensionnées (>50 lignes) | ~6       | 2         | ≈               |
 | Nesting excessif (>4 niveaux)           | 3        | 3         | =               |
-| Exports inutilisés (à réévaluer)        | ~11      | —         | ≈               |
-| Usage de `any`                          | **0**    | 0         | -1 ✅           |
+| Code mort / exports inutilisés          | ~11      | —         | ≈ (à réévaluer) |
+| Usage de `any`                          | **0**    | 0         | = ✅            |
 | TODO/FIXME                              | 1        | 0         | =               |
 | Duplications                            | 2        | —         | =               |
+| Organisation (dossiers non trackés)     | 5        | —         | +5              |
 | **Refactors appliqués**                 | **1**    | —         | +1 ✅           |
 
 ---
 
 ## Contexte d'exécution
 
-L'arbre de travail reste **fortement modifié** : 18 fichiers `M` (feature
-orchestrateur/projects en cours) et de nombreux fichiers/dossiers non trackés
-(`electron/orchestrator-backends/`, `electron/orchestrator-llm.ts`,
-`electron/notifications.ts`, dossiers racine `fi/`, `interface/`, `oui/`…).
+L'arbre de travail reste **fortement modifié** : 14 fichiers `M` (feature
+orchestrateur/projects toujours en cours) et plusieurs dossiers racine non
+trackés (`code-pure/`, `csv/`, `saas/`, `saas-screen/`, `svc-screen/`).
 
-Conformément au rapport précédent, **les fichiers en cours de modification ne
-sont PAS refactorés** ce cycle pour éviter de mélanger du nettoyage de dette
-avec du travail de feature non commité (risque de conflits/régressions). Seuls
-les **fichiers non modifiés** ont été ciblés pour des refactors isolés.
+Comme aux cycles précédents, **les fichiers en cours de modification ne sont PAS
+refactorés** ce cycle : mélanger du nettoyage de dette avec du travail de feature
+non commité crée des conflits et masque les régressions. Seuls les **fichiers non
+modifiés** sont ciblés pour des refactors isolés et testés.
+
+Les fichiers critiques ont **grossi** depuis la feature orchestrateur :
+`orchestrator-runner.ts` 2045 → **3541** (+1496), `main.ts` 1880 → **2168**,
+`proxy/index.ts` 2323 → 2510. Leur découpage reste **bloqué jusqu'au merge**.
 
 ---
 
 ## ✅ Refactor appliqué ce cycle
 
-### `main.ts` → extraction de `electron/semver-utils.ts`
+### `project-store.ts` → extraction de `electron/project-seed.ts`
 
-- **Commit:** `refactor: extraire la logique semver de main.ts vers electron/semver-utils.ts`
-- **Problème:** `main.ts` (1958 lignes) mélangeait l'amorçage Electron avec une
-  logique pure de versions (`Semver`, `parseSemver`, `compareSemver`,
-  `findLatestTag`), non testée.
-- **Action:** déplacement des 3 fonctions pures + interface vers un nouveau
-  module de ~85 lignes ; `main.ts` ramené à **1880 lignes** (-78).
-- **Tests:** ajout de `electron/semver-utils.test.ts` — **12 cas verts**
-  (couverture passée de 0 % à ~100 % sur ce module).
-- **Vérif:** `tsc --noEmit` OK, vitest OK, hooks pre-commit (eslint+prettier) OK.
+- **Commit:** `refactor: extraire les projets de démonstration de project-store.ts vers project-seed.ts`
+- **Problème:** `project-store.ts` (555 lignes, >400) contenait ~100 lignes de
+  données éditoriales pures (`INITIAL_PROJECTS` : 6 projets de démo avec prompts
+  système verbeux) noyant la logique de persistance (load/save/write-lock/CRUD).
+- **Action:** nouveau module `project-seed.ts` (107 lignes) exportant
+  `INITIAL_PROJECTS`, typé via `import type { Project }` (aucun cycle runtime).
+  `project-store.ts` ramené de **555 → 455 lignes** (-100).
+- **Vérif:** `tsc --noEmit` OK ; `vitest project-store` **10/10 verts** ;
+  prettier appliqué. Comportement runtime inchangé.
+
+> Choix autonome : un seul refactor sûr et testé ce cycle (comme `semver-utils`
+> au cycle 06-13), faute de pouvoir toucher aux gros fichiers en cours de feature.
 
 ---
 
@@ -52,75 +59,83 @@ les **fichiers non modifiés** ont été ciblés pour des refactors isolés.
 
 | Fichier                                              | Lignes | Statut                    |
 | ---------------------------------------------------- | ------ | ------------------------- |
-| `electron/proxy/index.ts`                            | 2323   | À REFACTORER MANUELLEMENT |
-| `electron/orchestrator-runner.ts`                    | 2045   | À REFACTORER (en cours)   |
-| `electron/main.ts`                                   | 1880   | À REFACTORER MANUELLEMENT |
-| `electron/projects/chat.js`                          | 989    | À REFACTORER (en cours)   |
-| `electron/orchestrator-prompts.ts`                   | 838    | À REFACTORER (en cours)   |
-| `electron/projects/execution.js`                     | 780    | À REFACTORER (en cours)   |
-| `electron/projects/canvas.js`                        | 681    | À REFACTORER (en cours)   |
-| `electron/projects/management.js`                    | 633    | À REFACTORER (en cours)   |
-| `electron/projects/modals.js`                        | 544    | À REFACTORER (en cours)   |
-| `electron/project-store.ts`                          | 505    | À REFACTORER (en cours)   |
-| `electron/orchestrator-backends/design-backend.ts`   | 472    | À REFACTORER MANUELLEMENT |
-| `electron/preload.ts`                                | 448    | À REFACTORER (en cours)   |
-| `electron/proxy/vision.ts`                           | 432    | À REFACTORER MANUELLEMENT |
-| `electron/orchestrator-backends/opencode-backend.ts` | 426    | À REFACTORER MANUELLEMENT |
+| `electron/chat.js`                                   | 4109   | À REFACTORER MANUELLEMENT |
+| `electron/orchestrator-runner.ts`                    | 3541   | À REFACTORER (en cours)   |
+| `electron/proxy/index.ts`                            | 2510   | À REFACTORER (en cours)   |
+| `electron/orchestrator-quality.ts`                   | 2180   | À REFACTORER MANUELLEMENT |
+| `electron/main.ts`                                   | 2168   | À REFACTORER (en cours)   |
+| `electron/sidebar-ui.js`                             | 1426   | À REFACTORER MANUELLEMENT |
+| `electron/orchestrator-prompts.ts`                   | 1077   | À REFACTORER (en cours)   |
+| `electron/projects/chat.js`                          | 994    | À REFACTORER MANUELLEMENT |
+| `electron/projects/execution.js`                     | 842    | À REFACTORER MANUELLEMENT |
+| `electron/projects/canvas.js`                        | 681    | À REFACTORER MANUELLEMENT |
+| `electron/projects/management.js`                    | 636    | À REFACTORER (en cours)   |
+| `electron/projects/modals.js`                        | 575    | À REFACTORER MANUELLEMENT |
+| `electron/orchestrator-backends/design-backend.ts`   | 573    | À REFACTORER (en cours)   |
+| `electron/orchestrator-backends/opencode-backend.ts` | 496    | À REFACTORER (en cours)   |
+| `electron/preload.ts`                                | 463    | À REFACTORER MANUELLEMENT |
+| `electron/project-store.ts`                          | 455    | ✅ ALLÉGÉ ce cycle (-100) |
+| `electron/proxy/vision.ts`                           | 448    | À REFACTORER MANUELLEMENT |
+| `electron/gemini-oauth.ts`                           | 425    | À REFACTORER MANUELLEMENT |
+| `electron/process-manager.ts`                        | 406    | À REFACTORER MANUELLEMENT |
 
-**Plan (fichiers non modifiés, refactorables sans conflit) :**
+**Plan priorisé (fichiers non modifiés, refactorables sans conflit) :**
 
-- `proxy/index.ts` (2323) — PRIORITÉ 1. Découper par responsabilité : routage
-  OpenAI-compat, gestion des clés, logique vision (déjà partiellement dans
-  `vision.ts`), middleware d'auth Bearer. Nesting jusqu'à 9 niveaux.
-- `main.ts` (1880) — PRIORITÉ 2. Extraire la gestion des slots
-  (`stopSlot`/`switchSlot`) en `slot-lifecycle.ts`, et la config des IPC handlers
-  en `ipc-handlers.ts`. La logique semver vient d'être extraite ✅.
-- `proxy/vision.ts` (432) / backends (472, 426) — légèrement au-dessus du seuil,
-  découpage de faible priorité.
+- `chat.js` (4109) — **PRIORITÉ 1**. Plus gros fichier du repo. Découper par
+  responsabilité : rendu des messages, gestion du streaming, état de
+  conversation, gestion des pièces jointes. Risque élevé (UI vivante) → prévoir
+  des tests de fumée avant découpe.
+- `orchestrator-quality.ts` (2180) — PRIORITÉ 2 (non modifié). Séparer les
+  prompts de vérification (texte) de la logique de scoring/parse.
+- `sidebar-ui.js` (1426) — extraire la logique de navigation des slots de la
+  construction du DOM.
+- `process-manager.ts` (406) / `gemini-oauth.ts` (425) / `proxy/vision.ts` (448)
+  — légèrement au-dessus du seuil, découpage de faible priorité, sans tests
+  existants → risque de régression non couverte.
 
-**Fichiers « en cours »** : tous modifiés/non trackés (feature active). À
-découper **après stabilisation et merge** pour éviter les conflits.
+**Fichiers « en cours » :** tous modifiés/non trackés (feature active). À
+découper **après stabilisation et merge**.
 
 ---
 
 ## 2. Fonctions surdimensionnées (>50 lignes)
 
-Concentrées dans les gros fichiers non refactorés (`proxy/index.ts`, `main.ts`).
-Candidats prioritaires dans `main.ts` (non modifié) :
+Concentrées dans les gros fichiers non refactorables (`proxy/index.ts`,
+`main.ts`, `orchestrator-runner.ts`). Candidats prioritaires sur fichiers
+**non modifiés** :
 
-| Fichier            | Fonction       | Statut                    |
-| ------------------ | -------------- | ------------------------- |
-| `electron/main.ts` | `stopSlot`     | À REFACTORER MANUELLEMENT |
-| `electron/main.ts` | `switchSlot`   | À REFACTORER MANUELLEMENT |
-| `electron/main.ts` | `createWindow` | À REFACTORER MANUELLEMENT |
-
-> Note : la fonction `cleanSearchQuery` signalée à « 301 lignes » dans le rapport
-> précédent ne fait en réalité que **38 lignes** (les numéros de ligne du rapport
-> 2026-06-12 étaient périmés). Finding retiré.
+| Fichier                            | Zone                  | Statut                    |
+| ---------------------------------- | --------------------- | ------------------------- |
+| `electron/orchestrator-quality.ts` | logique de scoring    | À REFACTORER MANUELLEMENT |
+| `electron/chat.js`                 | handlers de streaming | À REFACTORER MANUELLEMENT |
 
 ---
 
 ## 3. Nesting excessif (>4 niveaux)
 
-| Fichier                           | Profondeur max | Statut                    |
-| --------------------------------- | -------------- | ------------------------- |
-| `electron/proxy/index.ts`         | ~9 niveaux     | À REFACTORER MANUELLEMENT |
-| `electron/orchestrator-runner.ts` | ~9 niveaux     | À REFACTORER (en cours)   |
-| `electron/main.ts`                | ~7 niveaux     | À REFACTORER MANUELLEMENT |
+| Fichier                           | Profondeur max | Statut                  |
+| --------------------------------- | -------------- | ----------------------- |
+| `electron/proxy/index.ts`         | ~9 niveaux     | À REFACTORER (en cours) |
+| `electron/orchestrator-runner.ts` | ~9 niveaux     | À REFACTORER (en cours) |
+| `electron/main.ts`                | ~7 niveaux     | À REFACTORER (en cours) |
 
 **Recommandation :** early returns + extraction de blocs imbriqués en fonctions
 nommées.
 
 ---
 
-## 4. Exports inutilisés
+## 4. Code mort / exports inutilisés
 
-La majorité des exports « inutilisés » signalés au cycle précédent vivent dans
-des **modules non trackés en développement actif** (`orchestrator-backends/`,
-`orchestrator-llm.ts`, `notifications.ts`) — consommés par du code non commité.
-**À réévaluer après merge de la feature.** Plusieurs étaient en fait des
-faux positifs (ex. `keychain.writeSecret` est bien utilisé par le handler
-`save-api-keys`).
+La majorité des exports « inutilisés » vivent dans des **modules en
+développement actif** (`orchestrator-backends/`, `orchestrator-llm.ts`,
+`notifications.ts`), consommés par du code non commité. **À réévaluer après
+merge.** Plusieurs candidats du passé étaient des faux positifs (consommés via
+handlers IPC dynamiques).
+
+- Aucun import/variable inutilisé détecté dans les fichiers stables (eslint
+  `no-unused-vars` passe au pre-commit).
+- Pas d'override CSS/JS orphelin détecté (tous référencés dans
+  `overrides/index.json`).
 
 **Statut : À RÉÉVALUER (non actionnable sans risque ce cycle).**
 
@@ -128,8 +143,13 @@ faux positifs (ex. `keychain.writeSecret` est bien utilisé par le handler
 
 ## 5. Usage de `any`
 
-**0 occurrence** dans le code de production (hors tests). L'unique occurrence du
-cycle précédent (`ollama-manager.ts`) a disparu. **Conformité parfaite. ✅**
+**0 occurrence** problématique dans le code de production.
+
+- `main.ts:374` `type IpcArgs = any[]` — **toléré** : boundary de sérialisation
+  IPC (autorisé explicitement par les standards projet).
+- `orchestrator-runner.ts:3298` — simple commentaire contenant le mot « any ».
+
+**Conformité parfaite. ✅**
 
 ---
 
@@ -137,11 +157,11 @@ cycle précédent (`ollama-manager.ts`) a disparu. **Conformité parfaite. ✅**
 
 | Fichier                   | Ligne | Contenu                                                     | Statut        |
 | ------------------------- | ----- | ----------------------------------------------------------- | ------------- |
-| `electron/proxy/index.ts` | 2304  | `// TODO: Implémenter la logique d'extraction intelligente` | À IMPLÉMENTER |
+| `electron/proxy/index.ts` | 2491  | `// TODO: Implémenter la logique d'extraction intelligente` | À IMPLÉMENTER |
 
 Feature incomplète (extraction mémoire post-conversation, gardée derrière
 `process.env.DEBUG_MAINTENANCE`). Hors périmètre d'un refactor de dette — relève
-du développement de la feature.
+du développement de la feature. (Inchangé depuis 06-13, ligne décalée 2304→2491.)
 
 ---
 
@@ -150,8 +170,8 @@ du développement de la feature.
 - **`task-done.js`** (factory `global/` + 3 configs par app) — pattern
   factory+config correct, pas de duplication réelle.
 - **`bridge.js`** (3 apps) — logiques distinctes, non extractibles.
-- **`theme.css`** — duplication potentielle de variables CSS entre `global/` et
-  les 3 fichiers par app. **À VÉRIFIER** (audit CSS dédié).
+- **`theme.js`** — duplication potentielle de variables CSS entre `global/` et
+  les overrides par app. **À VÉRIFIER** (audit CSS dédié).
 
 Statut : aucune duplication actionnable sans risque ce cycle.
 
@@ -159,10 +179,12 @@ Statut : aucune duplication actionnable sans risque ce cycle.
 
 ## 8. Organisation
 
-- **Dossiers racine non trackés** (`fi/`, `interface/`, `oui/`, `pokjh/`,
-  `Portfolio_d_Art/`, `interface-chat/`) — apparaissent dans `git status`. À
-  clarifier : artefacts temporaires à `.gitignore` ou à supprimer s'ils ne font
-  pas partie du projet. **À TRIER MANUELLEMENT.**
+- **Dossiers racine non trackés** (`code-pure/`, `csv/`, `saas/`, `saas-screen/`,
+  `svc-screen/`) — apparaissent dans `git status`. Ce sont des **artefacts de
+  sortie de l'orchestrateur** (livrables générés + captures d'écran), PAS du code
+  source. **Recommandation : les ajouter au `.gitignore`** (ex. un dossier
+  `out/` dédié aux livrables générés) ou les déplacer hors du repo. Non supprimés
+  autonomement (travail utilisateur potentiel). **À TRIER MANUELLEMENT.**
 - **Mélange UI/business** dans `electron/projects/*.js` — état, DOM et logique
   métier dans les mêmes fichiers. Séparation model/view recommandée **après
   stabilisation**.
@@ -171,20 +193,25 @@ Statut : aucune duplication actionnable sans risque ce cycle.
 
 ## Résumé exécutif
 
-La dette dominante reste la **taille des fichiers** : 3 fichiers >1800 lignes
-(`proxy/index.ts` 2323, `orchestrator-runner.ts` 2045, `main.ts` 1880). Le
-nombre de fichiers >400 lignes est passé de 10 à **14**, principalement à cause
-de la feature orchestrateur en cours (nouveaux backends, runner agrandi).
+La dette dominante reste la **taille des fichiers** : le nombre de fichiers
+
+> 400 lignes est passé de 14 à **19**, et 5 fichiers dépassent désormais 2000
+> lignes (`chat.js` 4109, `orchestrator-runner.ts` 3541, `proxy/index.ts` 2510,
+> `orchestrator-quality.ts` 2180, `main.ts` 2168). Cette croissance vient de la
+> feature orchestrateur en cours.
 
 **Progrès ce cycle :**
 
-1. ✅ Premier refactor appliqué et testé : extraction `semver-utils.ts`.
-2. ✅ Usage de `any` ramené à 0.
+1. ✅ Refactor appliqué et testé : extraction `project-seed.ts` (-100 lignes sur
+   `project-store.ts`).
+2. ✅ Usage de `any` maintenu à 0.
 
 **Prochaines étapes (par priorité) :**
 
-1. Découper `proxy/index.ts` (non modifié, refactorable maintenant).
-2. Poursuivre l'allègement de `main.ts` (slots, IPC handlers).
-3. Après merge de la feature : découper `projects/*.js` et nettoyer les exports.
-4. Trier les dossiers racine non trackés (gitignore ou suppression).
-5. Implémenter ou retirer le TODO `proxy/index.ts:2304`.
+1. Découper `chat.js` (4109, non modifié) — priorité absolue, prévoir tests de
+   fumée d'abord.
+2. Après merge de la feature : découper `orchestrator-runner.ts`, `proxy/index.ts`,
+   `main.ts` et nettoyer les exports.
+3. Ajouter les dossiers de livrables générés au `.gitignore`.
+4. Implémenter ou retirer le TODO `proxy/index.ts:2491`.
+5. Séparer model/view dans `projects/*.js` après stabilisation.
