@@ -1,149 +1,121 @@
 # Audit des permissions macOS — OpenHub
 
-**Date de l'audit :** 2026-06-13
-**Périmètre :** code source du shell Electron (`electron/`), configuration de build
-(`electron-builder.json`, `package.json`), et processus enfants natifs.
-**Apps en aval (`apps/openwork`, `apps/opencode`, `apps/open-design`) :** code jamais
-modifié (principe OpenHub) — leurs entitlements ne sont **pas** ceux appliqués au
-binaire OpenHub et sont donc hors périmètre des correctifs.
+**Date de l'audit:** 2026-06-15
+**Périmètre:** entitlements Electron, accès Keychain (keytar), accès réseau,
+accès fichiers, processus enfants spawnés, `webPreferences` de chaque
+`WebContentsView`/`BrowserWindow`, surface du `contextBridge`.
 
 ---
 
 ## 1. Synthèse
 
-Le shell est déjà solidement durci : toutes les `WebContentsView` et `BrowserWindow`
-utilisent `contextIsolation:true`, `sandbox:true`, `nodeIntegration:false` ; le proxy
-ne se lie qu'à `127.0.0.1` avec Bearer token ; les handlers de navigation et
-`setWindowOpenHandler` sont en place ; les secrets transitent par le Keychain (keytar).
+Le projet est globalement bien durci : entitlements minimaux et documentés, tous
+les serveurs locaux liés à `127.0.0.1`, proxy protégé par `Authorization: Bearer`,
+`contextBridge` exclusivement par canaux IPC sans paramètre de chemin disque, et
+les trois drapeaux critiques (`contextIsolation`, `sandbox`, `nodeIntegration`)
+correctement posés sur **toutes** les vues.
 
-**Un seul écart réel** a été identifié et **corrigé** : l'absence de gestionnaire de
-permissions sur les sessions Electron (camera/micro/géoloc auraient pu déclencher une
-invite TCC macOS sous l'identité OpenHub). Les autres points sont conformes ou relèvent
-d'une vérification manuelle de packaging (signature/notarisation).
+Un seul durcissement a été appliqué : rendre `webSecurity` et
+`allowRunningInsecureContent` **explicites** sur la vue exposée à du contenu
+distant tiers (`createSlotView`), pour qu'aucune régression future ne puisse
+affaiblir silencieusement la same-origin policy.
 
 ---
 
 ## 2. Matrice des permissions
 
-| Permission / capacité                        | Nécessaire ?       | État avant audit                        | Recommandé                | Statut                      |
-| -------------------------------------------- | ------------------ | --------------------------------------- | ------------------------- | --------------------------- |
-| Caméra / micro (`media`) renderer            | Non                | Aucun handler → invite possible         | Refus par défaut          | **CORRIGÉ**                 |
-| Géolocalisation renderer                     | Non                | Aucun handler                           | Refus par défaut          | **CORRIGÉ**                 |
-| HID / USB / Serial / MIDI / pointerLock      | Non                | Aucun handler                           | Refus par défaut          | **CORRIGÉ**                 |
-| Notifications / presse-papiers / plein écran | Oui (UI)           | Autorisé (défaut)                       | Conserver                 | CONFORME                    |
-| Accès Keychain (keytar)                      | Oui (secrets)      | `keytar` → service `openhub`            | Conserver                 | CONFORME                    |
-| Réseau local 5173 (Work)                     | Oui                | `http://localhost:5173`                 | Conserver                 | CONFORME                    |
-| Réseau local 4096 (Code)                     | Oui                | `http://127.0.0.1:4096`                 | Conserver                 | CONFORME                    |
-| Réseau local 9999 (Proxy)                    | Oui                | `127.0.0.1` + Bearer                    | Conserver                 | CONFORME                    |
-| Port dynamique Design                        | Oui                | capturé au spawn, `127.0.0.1`           | Conserver                 | CONFORME                    |
-| Accès fichiers (dialog open/save)            | Oui                | via `dialog.*` côté main                | Conserver                 | CONFORME                    |
-| Spawn processus enfants                      | Oui                | `spawn`/`exec` côté main uniquement     | Conserver                 | CONFORME                    |
-| Hardened Runtime / entitlements signés       | Selon distribution | non défini dans `electron-builder.json` | À définir si notarisation | **À VÉRIFIER MANUELLEMENT** |
+| Permission                                               | Nécessaire ?  | Actuel                              | Recommandé | Statut                  |
+| -------------------------------------------------------- | ------------- | ----------------------------------- | ---------- | ----------------------- |
+| `com.apple.security.cs.allow-jit`                        | Oui (V8/JIT)  | activé                              | activé     | CONFORME                |
+| `com.apple.security.cs.allow-unsigned-executable-memory` | Oui (V8)      | activé                              | activé     | CONFORME                |
+| `cs.disable-library-validation`                          | Non           | **absent** (retiré)                 | absent     | CONFORME                |
+| `cs.allow-dyld-environment-variables`                    | Non           | **absent** (retiré)                 | absent     | CONFORME                |
+| `hardenedRuntime`                                        | Oui           | `true`                              | `true`     | CONFORME                |
+| `gatekeeperAssess`                                       | —             | `false` (signé à part)              | `false`    | CONFORME                |
+| Accès Keychain (keytar)                                  | Oui (secrets) | RAM uniquement, jamais disque       | idem       | CONFORME                |
+| Réseau — proxy 9999                                      | Oui           | bind `127.0.0.1` + Bearer           | idem       | CONFORME                |
+| Réseau — opencode 4096                                   | Oui           | `--hostname 127.0.0.1`              | idem       | CONFORME                |
+| Réseau — openwork 5173                                   | Oui           | `localhost` (::1/127.0.0.1, dev)    | idem       | CONFORME                |
+| Réseau — Design (port dynamique)                         | Oui           | capturé au spawn, `localhost`       | idem       | À VÉRIFIER MANUELLEMENT |
+| Réseau — Ollama 11434                                    | Optionnel     | `127.0.0.1`                         | idem       | CONFORME                |
+| Accès fichiers (renderer)                                | Non           | aucun fs exposé ; dialogs côté main | idem       | CONFORME                |
+| Spawn processus enfants                                  | Oui           | env hérité contrôlé, stdio piped    | idem       | CONFORME                |
+
+**Note Design :** le démon `od` est lancé avec `--no-open` et son port web est
+capturé au spawn ; le binding exact de l'hôte dépend du binaire upstream (non
+modifiable). À vérifier manuellement qu'il n'écoute pas sur `0.0.0.0`.
 
 ---
 
-## 3. webPreferences par WebContentsView / BrowserWindow
+## 3. `webPreferences` par vue
 
-Toutes les surfaces de rendu ont été vérifiées dans `electron/main.ts`.
+| Vue (origine)                                         | nodeIntegration | contextIsolation | sandbox | webSecurity          | allowRunningInsecureContent | preload     |
+| ----------------------------------------------------- | --------------- | ---------------- | ------- | -------------------- | --------------------------- | ----------- |
+| Splash (local)                                        | false           | true             | true    | défaut (true)        | défaut (false)              | —           |
+| Fenêtre principale (local)                            | false           | true             | true    | défaut (true)        | défaut (false)              | preload.cjs |
+| **createSlotView — work/code/design (distant tiers)** | false           | true             | true    | **true (explicite)** | **false (explicite)**       | preload.cjs |
+| Nav popup (local)                                     | false           | true             | true    | défaut (true)        | défaut (false)              | preload.cjs |
+| Vue Chat (local `chat.html`)                          | false           | true             | true    | défaut (true)        | défaut (false)              | preload.cjs |
+| Vue Projects (local `projects.html`)                  | false           | true             | true    | défaut (true)        | défaut (false)              | preload.cjs |
+| Fenêtre PDF verrouillée (data: only)                  | false           | true             | true    | défaut (true)        | défaut (false)              | —           |
 
-| Surface (ligne)                   | nodeIntegration | contextIsolation | sandbox | allowRunningInsecureContent | webSecurity   | preload                        | Verdict  |
-| --------------------------------- | --------------- | ---------------- | ------- | --------------------------- | ------------- | ------------------------------ | -------- |
-| Splash window (~88)               | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | —                              | CONFORME |
-| Main window / sidebar (~111)      | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | `preload.cjs`                  | CONFORME |
-| Slot view Work/Code/Design (~203) | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | `preload.cjs` (`persist:chat`) | CONFORME |
-| Nav popup (~330)                  | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | —                              | CONFORME |
-| Chat view (~375)                  | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | `preload.cjs`                  | CONFORME |
-| Projects view (~409)              | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | `preload.cjs`                  | CONFORME |
-| Fenêtre export PDF (~966)         | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | —                              | CONFORME |
-| Fenêtre PDF (~1271)               | `false`         | `true`           | `true`  | défaut `false`              | défaut `true` | —                              | CONFORME |
+**Constats :**
 
-**Note sur `webSecurity` et `allowRunningInsecureContent` :** non définis explicitement,
-ils reposent sur les valeurs par défaut sécurisées d'Electron (`webSecurity:true`,
-`allowRunningInsecureContent:false`). Aucune surface ne les désactive — conforme. Aucune
-modification appliquée pour respecter la règle « changements chirurgicaux » (ne pas
-toucher au code non cassé).
+- `nodeIntegration:false`, `contextIsolation:true`, `sandbox:true` sur **toutes** les vues. CONFORME.
+- `webSecurity` / `allowRunningInsecureContent` jamais surchargés ailleurs (défauts sûrs). CONFORME.
+- `experimentalFeatures`, `webviewTag`, `enableRemoteModule` : absents. CONFORME.
+- **createSlotView** : seule vue chargeant du HTTP tiers — `webSecurity`/`allowRunningInsecureContent` désormais explicites. **CORRIGÉ.**
 
-**Protections de navigation en place :**
+**Défenses complémentaires observées :**
 
-- `will-navigate` bloque tout protocole non `http(s)://` (anti file:// / drag-drop).
-- `setWindowOpenHandler` renvoie `action: "deny"` et ouvre les liens externes via
-  `shell.openExternal` (pas de popup Electron incontrôlée).
+- `will-navigate` bloque toute navigation hors `http(s)://` (slots) ou hors `file://` (chat/projects).
+- `setWindowOpenHandler` renvoie `deny` et ouvre les liens externes via `shell.openExternal`.
+- Fenêtre PDF : partition jetable + `onBeforeRequest` n'autorisant que `data:`/`about:`.
 
 ---
 
-## 4. Surface du contextBridge (`electron/preload.ts`)
+## 4. Surface du `contextBridge` (electron/preload.ts)
 
-Deux bridges exposés, tous deux via `contextBridge.exposeInMainWorld` (jamais d'objet
-Node brut, jamais `ipcRenderer` exposé directement).
+Deux objets exposés : `window.openhub` et `window.__od__`.
 
-**`window.openhub`** — API du shell, uniquement des `invoke`/`send`/`on` nommés :
-gestion des slots, clés API (écriture vers Keychain côté main), projets/dossiers,
-workflows et orchestration, mémoire/skills, mises à jour, réglages vision/web-search,
-backups chat, gestion Ollama, notifications.
+**Caractéristiques de sécurité :**
 
-**`window.__od__`** — bridge Open Design : `shell.openExternal/openPath`,
-import/replace de projet (déclenche un `dialog` natif **côté main**), impression PDF,
-visibilité du pet, updater.
+- 100 % par canaux IPC (`invoke`/`send`/`on`) — aucune fonction `fs`/`path`/`child_process` exposée. CONFORME.
+- **Aucun paramètre de chemin disque** depuis le renderer : la sélection de dossier passe par `pickProjectPath`/`pick-and-import` (dialog natif côté main) ; `od-shell:open-path` reçoit un `projectId`, pas un chemin. CONFORME (règle CLAUDE.md « NO disk path parameters »).
+- Les listeners renvoient une fonction de désabonnement (pas de fuite de handler).
 
-**Évaluation sécurité :**
+**APIs exposées (résumé par domaine) :**
 
-- ✅ Aucune API ne reçoit de **chemin disque arbitraire** depuis le renderer : la
-  sélection de dossier passe par `pickProjectPath` / `pick-and-import` qui ouvrent un
-  `dialog` natif côté main (l'utilisateur choisit, le renderer ne dicte pas le chemin).
-- ✅ Aucun accès `fs` direct exposé au renderer ; toute I/O fichier reste côté main.
-- ✅ Les secrets ne transitent jamais inline : `getApiKeys`/`saveApiKeys` délèguent au
-  Keychain via le process main.
-- ⚠️ Surface large (≈ 80 canaux) mais cohérente avec les fonctionnalités ; chaque canal
-  est typé et borné. Recommandation de suivi (non bloquante) : regrouper par domaine
-  pour faciliter l'audit. **NOTE — non corrigé** (refactor hors périmètre sécurité).
+- Navigation/slots : `switchSlot`, `showSlotContextMenu`, `getSlotStatus`, `onSlotChanged`, `showNavMenu`, `navPopupSelect`, `getNavMode`/`setNavMode`.
+- Secrets/clés : `getApiKeys`, `saveApiKeys` (→ Keychain côté main), `geminiLogin`, `geminiAuthStatus`.
+- Projets/dossiers/workflows : CRUD via IPC, `pickProjectPath` (dialog natif).
+- Orchestration : `executeOrchestration`, `iterateOrchestration`, `cancelOrchestration`, statut streamé.
+- Mémoire/skills, notifications, mises à jour apps, recherche web, vision proxy, modèles IA.
+- PDF : `exportPdf`, `exportHtmlToPdf` (rendu isolé côté main).
+- `__od__` : `shell.openExternal`/`openPath`, `project.pickAndImport`, `pdf.print`, `updater.*` — tous validés/normalisés côté preload.
+
+**Évaluation :** surface large en nombre de canaux mais minimale en capacités —
+aucune primitive dangereuse (fs brut, eval, exécution arbitraire). CONFORME.
 
 ---
 
-## 5. Processus enfants spawned (`electron/process-manager.ts`)
+## 5. Findings et statuts
 
-| Processus            | Commande                          | Réseau                | Remarque                               |
-| -------------------- | --------------------------------- | --------------------- | -------------------------------------- |
-| Work (openwork)      | `pnpm dev:ui`                     | localhost:5173        | spawn côté main                        |
-| Code (opencode)      | `opencode serve` + `opencode web` | 127.0.0.1:4096        | `OPENCODE_SERVER_PASSWORD` par session |
-| Design (open-design) | `od --no-open` (daemon)           | port capturé au spawn | `127.0.0.1`                            |
-| Proxy interne        | Express                           | 127.0.0.1:9999        | Bearer token requis                    |
-
-Tous les spawns sont initiés **côté main** uniquement (`spawn`/`exec`), jamais depuis le
-renderer. Conforme.
-
----
-
-## 6. Entitlements / signature macOS
-
-- Aucun fichier `*.entitlements` / `*.plist` propre à OpenHub n'existe dans le dépôt
-  (hors `apps/**` et `release/**` générés).
-- `electron-builder.json` ne définit ni `hardenedRuntime`, ni `entitlements`,
-  ni `entitlementsInherit`, ni `gatekeeperAssess`.
-
-**Statut : À VÉRIFIER MANUELLEMENT.** Pour une distribution notarisée, il faudra ajouter
-un `entitlements.mac.plist` minimal (le plus souvent
-`com.apple.security.cs.allow-jit` + héritage) et activer `hardenedRuntime`. Ce point
-n'a **pas** été corrigé automatiquement car il touche au pipeline de signature/notarisation
-géré hors-bande et risquerait de casser le build de packaging.
+| #   | Finding                                                                           | Sévérité                    | Statut                                                           |
+| --- | --------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| 1   | `webSecurity`/`allowRunningInsecureContent` implicites sur la vue tierce distante | LOW (défense en profondeur) | **CORRIGÉ** (commit `fix(permissions): expliciter webSecurity…`) |
+| 2   | Binding réseau du démon Design (`od`) non contrôlable côté shell                  | INFO                        | À VÉRIFIER MANUELLEMENT                                          |
+| 3   | Entitlements réduits aux 2 strictement requis par V8                              | —                           | CONFORME (déjà durci)                                            |
+| 4   | `contextBridge` sans paramètre de chemin disque                                   | —                           | CONFORME                                                         |
+| 5   | Tous les serveurs locaux liés à `127.0.0.1`/`localhost`                           | —                           | CONFORME                                                         |
+| 6   | Proxy 9999 protégé par `Authorization: Bearer` + allowlist CORS                   | —                           | CONFORME                                                         |
 
 ---
 
-## 7. Correctifs appliqués
+## 6. Recommandations résiduelles (manuel)
 
-| #   | Finding                                                     | Sévérité | Action                                                                                                                  | Commit                                                                                         |
-| --- | ----------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 1   | Aucun gestionnaire de permissions sur les sessions Electron | MEDIUM   | Handler deny-by-default (media, geolocation, midi, hid, serial, usb, pointerLock) sur `defaultSession` + `persist:chat` | `fix(permissions): durcir les permissions des WebContentsView avec un handler deny-by-default` |
-
-**Findings sans correctif (justifiés) :**
-
-- webPreferences : déjà conformes (défauts sécurisés) → aucune modification.
-- Hardened Runtime / entitlements : packaging hors-bande → **À VÉRIFIER MANUELLEMENT**.
-- Taille de la surface contextBridge : refactor non sécuritaire → **NOTE** seulement.
-
----
-
-## 8. Vérifications
-
-- `npx tsc --noEmit` : ✅ aucune erreur.
-- `npx eslint electron/main.ts` : ✅ aucune **erreur** (seuls des warnings préexistants
-  `strict-boolean-expressions`, hors lignes modifiées).
+1. **Design daemon** — vérifier au runtime (`lsof -i -P | grep od`) que le port
+   capturé écoute bien sur loopback et non sur `0.0.0.0`. Le binaire étant
+   upstream non modifiable, ce contrôle ne peut pas être forcé côté shell.
+2. **Revue périodique** — re-exécuter cet audit après chaque `npm run update:apps`
+   au cas où un binaire upstream changerait son comportement réseau.
