@@ -12,6 +12,7 @@ A macOS desktop shell that unifies [OpenWork](https://github.com/different-ai/op
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![typecheck](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/typecheck.yml?label=typecheck&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/typecheck.yml)
 [![lint](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/lint.yml?label=lint&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/lint.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/test.yml?label=tests&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/test.yml)
 
 **English** · [Français](README.fr.md)
 
@@ -113,13 +114,23 @@ See [SECURITY.md](SECURITY.md) for the full policy and how to report a vulnerabi
 
 ---
 
+## Acknowledgements
+
+OpenHub is a shell — it unifies, it doesn't fork. The AI tooling belongs to
+[OpenCode](https://github.com/sst/opencode) (sst),
+[OpenWork](https://github.com/different-ai/openwork) (different-ai), and
+[Open Design](https://github.com/nexu-io/open-design) (nexu-io), each cloned at install
+time and run unmodified. See [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for credits and
+licenses.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). This covers OpenHub's own code only; the bundled tools
+keep their own licenses.
 
 ---
 
-**[Open an issue](https://github.com/1zalt/OpenHub/issues) · [Usage](docs/USAGE.md) · [Orchestrator](docs/ORCHESTRATOR.md) · [FAQ](docs/FAQ.md) · [Architecture](ARCHITECTURE.md) · [Contribute](CONTRIBUTING.md)**
+**[Open an issue](https://github.com/1zalt/OpenHub/issues) · [Usage](docs/USAGE.md) · [Orchestrator](docs/ORCHESTRATOR.md) · [FAQ](docs/FAQ.md) · [Architecture](ARCHITECTURE.md) · [Acknowledgements](ACKNOWLEDGEMENTS.md) · [Contribute](CONTRIBUTING.md)**
 
 ---
 

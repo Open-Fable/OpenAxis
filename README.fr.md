@@ -10,6 +10,7 @@ Un shell desktop macOS qui réunit [OpenWork](https://github.com/different-ai/op
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
 [![Electron](https://img.shields.io/badge/Electron-42+-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![tests](https://img.shields.io/github/actions/workflow/status/1zalt/OpenHub/test.yml?label=tests&style=flat)](https://github.com/1zalt/OpenHub/actions/workflows/test.yml)
 
 [English](README.md) · **Français**
 
@@ -111,13 +112,23 @@ Voir [SECURITY.fr.md](SECURITY.fr.md) pour la politique complète et comment sig
 
 ---
 
+## Remerciements
+
+OpenHub est un shell — il unifie, il ne forke pas. L'outillage IA appartient à
+[OpenCode](https://github.com/sst/opencode) (sst),
+[OpenWork](https://github.com/different-ai/openwork) (different-ai) et
+[Open Design](https://github.com/nexu-io/open-design) (nexu-io), chacun cloné à
+l'installation et exécuté sans modification. Voir [ACKNOWLEDGEMENTS.fr.md](ACKNOWLEDGEMENTS.fr.md)
+pour les crédits et licences.
+
 ## Licence
 
-MIT — voir [LICENSE](LICENSE).
+MIT — voir [LICENSE](LICENSE). Cela couvre uniquement le code propre d'OpenHub ; les
+outils wrappés gardent leurs propres licences.
 
 ---
 
-**[Ouvrir une issue](https://github.com/1zalt/OpenHub/issues) · [Usage](docs/USAGE.fr.md) · [Orchestrateur](docs/ORCHESTRATOR.fr.md) · [FAQ](docs/FAQ.fr.md) · [Architecture](ARCHITECTURE.fr.md) · [Contribuer](CONTRIBUTING.fr.md)**
+**[Ouvrir une issue](https://github.com/1zalt/OpenHub/issues) · [Usage](docs/USAGE.fr.md) · [Orchestrateur](docs/ORCHESTRATOR.fr.md) · [FAQ](docs/FAQ.fr.md) · [Architecture](ARCHITECTURE.fr.md) · [Remerciements](ACKNOWLEDGEMENTS.fr.md) · [Contribuer](CONTRIBUTING.fr.md)**
 
 ---
 

@@ -4,6 +4,9 @@
 
 Thanks for wanting to contribute! Here's how to get involved.
 
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md) — by participating, you are
+expected to uphold it.
+
 ## Prerequisites
 
 - macOS 14+

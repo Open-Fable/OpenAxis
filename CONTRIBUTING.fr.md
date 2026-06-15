@@ -4,6 +4,9 @@
 
 Merci de vouloir contribuer ! Voici comment participer.
 
+Ce projet suit un [Code de conduite](CODE_OF_CONDUCT.md) — en participant, tu es tenu de
+le respecter.
+
 ## Prérequis
 
 - macOS 14+
