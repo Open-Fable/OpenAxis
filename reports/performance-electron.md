@@ -1,9 +1,43 @@
 # Rapport d'audit performance — OpenHub (Electron)
 
-**Date de l'audit :** 2026-06-13
+**Date de l'audit :** 2026-06-15 (révision ; audit initial 2026-06-13)
 **Périmètre :** mémoire, processus enfants, IPC/contextBridge, chargement des
 WebContentsView, proxy Express.
 **Stack :** Electron v32+, TypeScript, 3 WebContentsView, processus natifs.
+
+---
+
+## Mise à jour 2026-06-15 — chemin d'injection des overrides
+
+La passe du 2026-06-13 (observers coalescés rAF + proxy vision parallèle) est
+toujours en place. Cette révision corrige le **chemin d'injection des overrides**,
+appelé à chaque navigation, qui restait non optimisé et contenait la **seule
+vraie fuite mémoire** identifiée à ce jour.
+
+| Goulot                                                                                                                                          | Fichier:ligne                                           | Impact                                                                                | Statut                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `loadOverrides()` relit `index.json` + tous les fichiers d'override **depuis le disque à chaque navigation** (dont `did-navigate-in-page` SPA)  | `electron/override-loader.ts:35-64`                     | Dizaines à centaines de lectures fichier redondantes sur le hot path de navigation    | **OPTIMISÉ** (cache mémoire `Map` par `slot:type` + `clearOverridesCache()`)                   |
+| `insertCSS()` réinjecté sur `did-navigate-in-page` alors que le document est identique → **feuilles de style dupliquées accumulées sans borne** | `electron/main.ts:242-243` (avant) → `248-249, 286-296` | **Fuite mémoire renderer** monotone + coût de recalcul de style en session SPA longue | **OPTIMISÉ** (CSS injecté uniquement sur `did-navigate`; JS toujours sur les deux, idempotent) |
+
+Détail :
+
+- **Cache des overrides** — les fichiers d'override sont des assets statiques
+  livrés avec l'app, jamais modifiés au runtime. Le résultat assemblé est
+  désormais mémoïsé par `slot:type`. `clearOverridesCache()` permet d'invalider
+  (tests + après `update:apps` qui réécrit les overrides). 2 tests ajoutés.
+- **CSS une seule fois par document** — un `did-navigate-in-page` conserve le
+  même document, donc la feuille `insertCSS()` est toujours présente ; la
+  réinjecter ajoutait un doublon à chaque route SPA. Le CSS n'est désormais
+  injecté que sur `did-navigate` (nouveau document). Le JS continue d'être
+  exécuté sur les deux events (gardé par `window.__OPENHUB_*_INJECTED__`).
+  Comportement visuel identique, accumulation supprimée.
+
+**Recommandation de mesure :** ouvrir l'onglet Code (opencode), naviguer entre
+20+ routes/sessions, puis inspecter `document.styleSheets.length` dans la
+DevTools du renderer — attendu : stable (≈ nombre de blocs CSS d'override) au
+lieu de croître à chaque navigation. Pour le cache : profiler les appels
+`fs.readFile` (ou compteur ad hoc) sur une session de navigation — attendu :
+N lectures au premier chargement de chaque slot, 0 ensuite.
 
 ---
 
