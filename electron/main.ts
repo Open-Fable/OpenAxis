@@ -90,6 +90,24 @@ let activeSlot: SlotName = "work";
 let processManager: ProcessManager | null = null;
 let proxyToken = "";
 
+// Renderer console output is logged to the main-process stdout/stderr. A view
+// could echo the per-session proxy token (or a provider key) to its console —
+// e.g. SDK debug logging — which would then leak into our logs verbatim. Strip
+// the known session token and common key shapes before logging, mirroring the
+// redaction ProcessManager applies to spawned-child output.
+function redactRendererLog(text: string): string {
+  let out = text;
+  if (proxyToken.length >= 8) {
+    out = out.split(proxyToken).join("[REDACTED]");
+  }
+  return out
+    .replace(
+      /\b(sk-ant|sk-proj|sk-or|sk|ghp|gho|ghs|github_pat|xoxb|AIza|GOCSPX)[-_][A-Za-z0-9_-]{6,}/g,
+      "[REDACTED]",
+    )
+    .replace(/Bearer\s+[A-Za-z0-9._-]{8,}/g, "Bearer [REDACTED]");
+}
+
 function createSplash(): BrowserWindow {
   const splash = new BrowserWindow({
     width: 320,
@@ -133,7 +151,7 @@ async function createWindow(): Promise<void> {
 
   mainWindow.webContents.on("console-message", (_e, level, message, line, sourceId) => {
     console.warn(
-      `[sidebar:console] [level:${level}] ${message} (at ${sourceId}:${line})`,
+      `[sidebar:console] [level:${level}] ${redactRendererLog(message)} (at ${sourceId}:${line})`,
     );
   });
 
@@ -243,7 +261,9 @@ function createSlotView(
   view.webContents.on("console-message", (_e, level, message, line, sourceId) => {
     // Only log warnings and errors to avoid spam
     if (level >= 2 && !message.includes("Network.streamResourceContent failed")) {
-      console.warn(`[${slot}:console] [${level}] ${message} (${sourceId}:${line})`);
+      console.warn(
+        `[${slot}:console] [${level}] ${redactRendererLog(message)} (${sourceId}:${line})`,
+      );
     }
   });
 
@@ -481,7 +501,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
       });
       view.webContents.on("console-message", (_e, level, message, line, sourceId) => {
         console.warn(
-          `[chat:console] [level:${level}] ${message} (at ${sourceId}:${line})`,
+          `[chat:console] [level:${level}] ${redactRendererLog(message)} (at ${sourceId}:${line})`,
         );
       });
       mainWindow.contentView.addChildView(view);
@@ -523,7 +543,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
       });
       view.webContents.on("console-message", (_e, level, message, line, sourceId) => {
         console.warn(
-          `[projects:console] [level:${level}] ${message} (at ${sourceId}:${line})`,
+          `[projects:console] [level:${level}] ${redactRendererLog(message)} (at ${sourceId}:${line})`,
         );
       });
       mainWindow.contentView.addChildView(view);
