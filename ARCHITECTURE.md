@@ -19,7 +19,7 @@
 
 ## 1. V1 scope
 
-3 sidebar slots: **Work**, **Code**, **Design**. (Chat deferred to V2.)
+The sidebar ships **five slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrator** — plus a Config panel. The three slots in the table below are backed by an embedded upstream app; **Chat** and **Orchestrator** are OpenHub-native (no external app, no webview) and landed after this V1 spec was frozen.
 
 | Slot   | Repository                                               | Embedded mode       | Port              |
 | ------ | -------------------------------------------------------- | ------------------- | ----------------- |
@@ -27,7 +27,7 @@
 | Code   | `anomalyco/opencode` (`opencode serve` / `opencode web`) | HTTP server         | `4096`            |
 | Design | `nexu-io/open-design` (Express daemon + build)           | local daemon        | captured at spawn |
 
-Out of V1 scope: Chat slot, openwork's "den"/EE cloud stack (MySQL, better-auth), Docker.
+Out of V1 scope: openwork's "den"/EE cloud stack (MySQL, better-auth), Docker.
 
 ---
 
@@ -51,7 +51,7 @@ Out of V1 scope: Chat slot, openwork's "den"/EE cloud stack (MySQL, better-auth)
 ```
 ELECTRON (shell + proxy + secrets) ─ seul détenteur des clés réelles
 │
-├─ Sidebar : [Work] [Code] [Design] [Config]
+├─ Sidebar : [Chat] [Code] [Work] [Design] [Orchestrateur] [Config]
 │
 ├─ 3 WebContentsView (lazy, état préservé, builds servis) :
 │    Work   → openwork apps/app        :5173
@@ -167,7 +167,7 @@ settings (centralized in the Config panel).
 | 16  | Update each project                           | ✅                             |
 | 17  | Zero Docker                                   | ✅                             |
 
-Chat (4th pill of the initial brief): **deferred to V2** by decision.
+Chat (4th pill of the initial brief): **shipped** — now a native slot, alongside the Orchestrator, both added after this V1 spec was frozen.
 
 ---
 

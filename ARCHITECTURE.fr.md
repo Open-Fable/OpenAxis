@@ -20,7 +20,7 @@
 
 ## 1. Périmètre V1
 
-3 slots dans la sidebar : **Work**, **Code**, **Design**. (Chat reporté en V2.)
+La sidebar embarque **cinq slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrateur** — plus un panneau Config. Les trois slots du tableau ci-dessous sont adossés à une app upstream embarquée ; **Chat** et **Orchestrateur** sont natifs à OpenHub (pas d'app externe, pas de webview) et ont atterri après le gel de cette spec V1.
 
 | Slot   | Dépôt                                                    | Mode embarqué        | Port             |
 | ------ | -------------------------------------------------------- | -------------------- | ---------------- |
@@ -28,7 +28,7 @@
 | Code   | `anomalyco/opencode` (`opencode serve` / `opencode web`) | serveur HTTP         | `4096`           |
 | Design | `nexu-io/open-design` (daemon Express + build)           | daemon local         | capturé au spawn |
 
-Hors périmètre V1 : slot Chat, stack cloud « den »/EE d'openwork (MySQL, better-auth), Docker.
+Hors périmètre V1 : stack cloud « den »/EE d'openwork (MySQL, better-auth), Docker.
 
 ---
 
@@ -52,7 +52,7 @@ Hors périmètre V1 : slot Chat, stack cloud « den »/EE d'openwork (MySQL, bet
 ```
 ELECTRON (shell + proxy + secrets) ─ seul détenteur des clés réelles
 │
-├─ Sidebar : [Work] [Code] [Design] [Config]
+├─ Sidebar : [Chat] [Code] [Work] [Design] [Orchestrateur] [Config]
 │
 ├─ 3 WebContentsView (lazy, état préservé, builds servis) :
 │    Work   → openwork apps/app        :5173
@@ -169,7 +169,7 @@ natifs (centralisés dans le panel Config).
 | 16  | Mettre à jour chaque projet                     | ✅                             |
 | 17  | Zéro Docker                                     | ✅                             |
 
-Chat (4e pilule du brief initial) : **reporté V2** par décision.
+Chat (4e pilule du brief initial) : **livré** — désormais un slot natif, aux côtés de l'Orchestrateur, tous deux ajoutés après le gel de cette spec V1.
 
 ---
 
