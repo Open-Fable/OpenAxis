@@ -2,9 +2,9 @@
 
 # OpenHub
 
-**One window. Three AI tools. Zero Docker.**
+**Your entire AI workflow in one macOS window.**
 
-A macOS desktop shell that unifies [OpenWork](https://github.com/different-ai/openwork), [OpenCode](https://github.com/sst/opencode), and [Open Design](https://github.com/nexu-io/open-design) behind a single sidebar — with a local LLM proxy that routes to any provider.
+A unified AI workspace: a built-in **chat**, a **multi-agent orchestrator** that builds real deliverables, persistent **memory**, and three integrated open-source tools — [OpenWork](https://github.com/different-ai/openwork), [OpenCode](https://github.com/sst/opencode), and [Open Design](https://github.com/nexu-io/open-design) — all sharing a single local LLM proxy that routes to any provider. Zero Docker.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
@@ -24,20 +24,21 @@ A macOS desktop shell that unifies [OpenWork](https://github.com/different-ai/op
 
 ## Why OpenHub?
 
-Running OpenWork, OpenCode, and Open Design separately means three terminals, three ports, three configs, and no shared context. OpenHub wraps them in a single Electron window with a unified LLM proxy — your AI tools share memory, projects, and API keys without touching their source code.
+Most AI tools live in their own silo — separate windows, separate API keys, no shared context. OpenHub is a single macOS window that ties everything together: chat with any model, run a multi-agent orchestrator that builds real deliverables, and switch between integrated code, design, and work tools — all sharing one memory, one project context, and one LLM proxy. Your keys are entered **once** and never leave the macOS Keychain.
+
+**Five sidebar slots:** Chat · Code · Work · Design · Orchestrator (plus a Config panel).
 
 ## Features
 
-|                              |                                                                                                                  |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **3 apps, 1 window**         | Switch between OpenWork (orchestration), OpenCode (code agent), and Open Design (visual design) via a sidebar    |
-| **Unified LLM proxy**        | Routes calls to Anthropic, OpenAI, OpenRouter, Ollama, and Google Gemini — on `127.0.0.1:9999`                   |
-| **Persistent memory**        | AI remembers your project and decisions across sessions                                                          |
-| **Built-in chat**            | Model selector, history, auto-save                                                                               |
-| **Project management**       | Multiple projects with custom instructions, injected into AI context                                             |
-| **Unified theming**          | CSS/JS overrides per app for a cohesive look — upstream code is never modified                                   |
-| **Multi-agent orchestrator** | A DAG of agents that plan, build, and self-verify a real deliverable — see [the deep dive](docs/ORCHESTRATOR.md) |
-| **Secure by default**        | API keys in **macOS Keychain**, never on disk. WebViews sandboxed. Proxy localhost-only with Bearer auth         |
+|                              |                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Multi-agent orchestrator** | Describe a goal; a DAG of agents plans, builds, and **self-verifies** a real deliverable — a site, report, code library… See [the deep dive](docs/ORCHESTRATOR.md) |
+| **Built-in chat**            | Talk to any model with history, attachments, web search, and per-model reasoning effort                                                                            |
+| **3 integrated tools**       | OpenCode (code agent), OpenWork (structured work), Open Design (visual mockups) — one sidebar, each view's state preserved                                         |
+| **Unified LLM proxy**        | One endpoint (`127.0.0.1:9999`) routing to Anthropic, OpenAI, OpenRouter, Ollama, and Google Gemini                                                                |
+| **Persistent memory**        | A profile and tagged facts injected across sessions, so the AI remembers your project and decisions                                                                |
+| **Project management**       | Multiple projects with custom instructions, injected into the AI context                                                                                           |
+| **Secure by default**        | API keys in **macOS Keychain**, never on disk. WebViews sandboxed. Proxy localhost-only with Bearer auth                                                           |
 
 ---
 
