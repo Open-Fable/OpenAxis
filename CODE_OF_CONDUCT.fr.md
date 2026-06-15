@@ -83,5 +83,3 @@ Pour obtenir des réponses aux questions courantes sur ce code de conduite, cons
 [Mozilla CoC]: https://github.com/mozilla/diversity
 [FAQ]: https://www.contributor-covenant.org/faq
 [translations]: https://www.contributor-covenant.org/translations
-
-</content>
