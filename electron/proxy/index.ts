@@ -1767,7 +1767,12 @@ async function fetchWithRetry(
 
     const body = await resp.text();
     const match = body.match(/after\s+(\d+)s/i);
-    const waitSec = match ? Math.min(parseInt(match[1], 10), 60) : 5 * (attempt + 1);
+    // Honor an explicit Retry-After hint when present; otherwise back off
+    // exponentially (2s, 4s, 8s, …) capped at 60s. Exponential backoff avoids
+    // hammering an already-rate-limited upstream and the cap bounds the wait.
+    const waitSec = match
+      ? Math.min(parseInt(match[1], 10), 60)
+      : Math.min(2 ** (attempt + 1), 60);
     console.warn(
       `[proxy] 429 rate-limited, retrying in ${waitSec}s (attempt ${attempt + 1}/${maxRetries})`,
     );
