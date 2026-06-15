@@ -68,6 +68,8 @@ import {
   findUnreferencedModules,
   findModuleGraphProblems,
   findOrphanStylesheets,
+  findServedHtmlPlaceholders,
+  findStructuredDataMismatch,
   sanitizeWorkspaceIndex,
   findConsolidationShrinkage,
   findUnstyledClasses,
@@ -1396,6 +1398,10 @@ export class OrchestratorRunner {
       ...(await findConsolidationShrinkage(workspaceDir)),
       // HTML pages whose classes have no CSS rule → unstyled/broken site (B2).
       ...(await findUnstyledClasses(workspaceDir)),
+      // Served pages still carrying placeholder containers / filler text (N4).
+      ...(await findServedHtmlPlaceholders(workspaceDir)),
+      // JSON-LD price never shown in the visible page → structured-data drift (N8).
+      ...(await findStructuredDataMismatch(workspaceDir)),
     ];
     // Cross-agent API mismatches (import of a symbol a sibling module doesn't
     // export) + unintegrated orphan modules — the #1 multi-file code failure.

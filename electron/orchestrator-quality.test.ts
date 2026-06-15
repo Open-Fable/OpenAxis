@@ -24,6 +24,8 @@ import {
   findUnreferencedModules,
   findModuleGraphProblems,
   findOrphanStylesheets,
+  findServedHtmlPlaceholders,
+  findStructuredDataMismatch,
   sanitizeWorkspaceIndex,
   deriveFloorChecks,
   PROSE_FLOOR_WORDS,
@@ -949,6 +951,83 @@ describe("findOrphanStylesheets", () => {
 
     const orphans = await findOrphanStylesheets(tmpDir);
     expect(orphans).toEqual([]);
+  });
+});
+
+describe("findServedHtmlPlaceholders", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "htmlph-"));
+  });
+
+  it("flags a placeholder container but not a legit input placeholder attribute", async () => {
+    const root = path.join(tmpDir, "public");
+    await realFs.mkdir(root, { recursive: true });
+    await realFs.writeFile(
+      path.join(root, "page.html"),
+      '<html><body><div class="demo-placeholder">x</div></body></html>',
+    );
+    await realFs.writeFile(
+      path.join(root, "form.html"),
+      '<html><body><input type="email" placeholder="votre@email.com"></body></html>',
+    );
+    const found = await findServedHtmlPlaceholders(tmpDir);
+    const files = found.map((p) => p.sourceFile);
+    expect(files).toContain(path.join("public", "page.html"));
+    expect(files).not.toContain(path.join("public", "form.html"));
+  });
+
+  it("flags generic filler phrases", async () => {
+    const root = path.join(tmpDir, "site");
+    await realFs.mkdir(root, { recursive: true });
+    await realFs.writeFile(
+      path.join(root, "index.html"),
+      "<html><body><p>Lorem ipsum dolor sit amet.</p></body></html>",
+    );
+    const found = await findServedHtmlPlaceholders(tmpDir);
+    expect(found.length).toBeGreaterThan(0);
+  });
+});
+
+describe("findStructuredDataMismatch", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "jsonld-"));
+  });
+
+  it("flags a JSON-LD price absent from the visible page", async () => {
+    const root = path.join(tmpDir, "public");
+    await realFs.mkdir(root, { recursive: true });
+    await realFs.writeFile(
+      path.join(root, "index.html"),
+      `<html><head><script type="application/ld+json">{"@type":"Product","offers":{"price":"14.90"}}</script></head><body><p>Abonnement 19,90€/mois</p></body></html>`,
+    );
+    const found = await findStructuredDataMismatch(tmpDir);
+    expect(found.map((p) => p.sourceFile)).toContain(path.join("public", "index.html"));
+  });
+
+  it("does not flag when the JSON-LD price is shown on the page", async () => {
+    const root = path.join(tmpDir, "public");
+    await realFs.mkdir(root, { recursive: true });
+    await realFs.writeFile(
+      path.join(root, "index.html"),
+      `<html><head><script type="application/ld+json">{"offers":{"price":"19.90"}}</script></head><body><p>Seulement 19,90 € par mois</p></body></html>`,
+    );
+    const found = await findStructuredDataMismatch(tmpDir);
+    expect(found).toEqual([]);
+  });
+
+  it("does not flag a price of a different number (no false 14 inside 114)", async () => {
+    const root = path.join(tmpDir, "shop");
+    await realFs.mkdir(root, { recursive: true });
+    await realFs.writeFile(
+      path.join(root, "p.html"),
+      `<html><head><script type="application/ld+json">{"offers":{"price":"14"}}</script></head><body><p>Prix : 114 dollars</p></body></html>`,
+    );
+    const found = await findStructuredDataMismatch(tmpDir);
+    expect(found.length).toBe(1); // 14 not shown (only 114) → correctly flagged
   });
 });
 

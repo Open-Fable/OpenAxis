@@ -1891,6 +1891,153 @@ export async function findOrphanStylesheets(
   return problems.slice(0, 30);
 }
 
+// Collects { rel, content } for every HTML file under a served root (depth ≤ 5,
+// skipping dotfiles / node_modules / scratch dirs). Shared by the HTML checks.
+async function collectHtmlUnderRoot(
+  root: string,
+  workspaceDir: string,
+): Promise<Array<{ rel: string; content: string }>> {
+  const out: Array<{ rel: string; content: string }> = [];
+  async function walk(dir: string, depth: number): Promise<void> {
+    if (depth > 5 || out.length >= 80) return;
+    let entries: import("fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name.startsWith(".") || NON_SERVED_DIR.test(e.name)) continue;
+      const full = path.resolve(dir, e.name);
+      if (e.isDirectory()) await walk(full, depth + 1);
+      else if (/\.html?$/i.test(e.name)) {
+        try {
+          out.push({
+            rel: path.relative(workspaceDir, full),
+            content: await fs.readFile(full, "utf-8"),
+          });
+        } catch {
+          /* unreadable — skip */
+        }
+      }
+    }
+  }
+  await walk(root, 0);
+  return out;
+}
+
+// Visible filler phrases an unfinished page keeps (theme-agnostic, multilingual).
+// Deliberately NOT "loading"/"chargement" alone — those are legit runtime states.
+const HTML_FILLER_RE =
+  /\b(lorem ipsum|coming soon|bient[oô]t disponible|content goes here|your (?:text|content|image) here|votre (?:texte|contenu) ici|to be (?:improved|added|completed|done)|placeholder text|sample text|texte d['e ]exemple)\b/i;
+// A container element whose class/id literally says "placeholder" (NOT the legit
+// <input placeholder="…"> hint, which uses the placeholder ATTRIBUTE, not class/id).
+const PLACEHOLDER_CONTAINER_RE =
+  /\b(?:class|id)\s*=\s*["'][^"']*\bplaceholder\b[^"']*["']/i;
+
+/**
+ * Flags served HTML pages that still contain visible filler: a "placeholder"
+ * container left unfilled, or generic filler phrases (lorem ipsum, "coming soon",
+ * "to be improved", …). Generic across themes; ignores the design daemon scratch.
+ * Catches a maquette that looks done but ships placeholder blocks.
+ */
+export async function findServedHtmlPlaceholders(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const roots = await discoverServedRoots(workspaceDir);
+  const problems: ServedSiteProblem[] = [];
+  for (const { dir } of roots) {
+    for (const { rel, content } of await collectHtmlUnderRoot(dir, workspaceDir)) {
+      if (problems.length >= 30) break;
+      if (PLACEHOLDER_CONTAINER_RE.test(content)) {
+        problems.push({
+          sourceFile: rel,
+          problem:
+            "conteneur « placeholder » non remplacé (class/id placeholder) : remplacer par le contenu final",
+        });
+        continue;
+      }
+      const m = HTML_FILLER_RE.exec(content);
+      if (m !== null) {
+        problems.push({
+          sourceFile: rel,
+          problem: `texte de remplissage détecté (« ${m[1]} ») : remplacer par le contenu final`,
+        });
+      }
+    }
+  }
+  return problems.slice(0, 30);
+}
+
+function collectJsonLdPrices(value: unknown, out: Set<number>): void {
+  if (Array.isArray(value)) {
+    for (const v of value) collectJsonLdPrices(v, out);
+    return;
+  }
+  if (value !== null && typeof value === "object") {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (/^price$/i.test(k) && (typeof v === "number" || typeof v === "string")) {
+        const n = parseFloat(String(v));
+        if (!Number.isNaN(n) && n > 0) out.add(n);
+      } else {
+        collectJsonLdPrices(v, out);
+      }
+    }
+  }
+}
+
+// Matches a price value in free text with a flexible separator and optional
+// trailing-zero on the cents (14.90 → "14,90" / "14.9" / "14.90"), guarded so
+// "14" doesn't match inside "114" or "14.95".
+function buildPriceRegex(val: number): RegExp {
+  const intPart = Math.floor(val);
+  const cents = Math.round((val - intPart) * 100);
+  if (cents === 0) return new RegExp("(?<![\\d.,])" + intPart + "(?![\\d.,])");
+  const cc = String(cents).padStart(2, "0");
+  const ccTrim = cc.replace(/0+$/, "") || cc;
+  const dec = cc === ccTrim ? cc : `${cc}|${ccTrim}`;
+  return new RegExp("(?<![\\d.,])" + intPart + "[.,](?:" + dec + ")(?![\\d])");
+}
+
+/**
+ * Flags a page whose structured-data (JSON-LD) price never appears in the page's
+ * VISIBLE content — a real, theme-agnostic inconsistency (the schema advertises a
+ * price the user never sees; bad for rich results). Multi-tier pricing is fine as
+ * long as the JSON-LD price is one of the displayed prices. Fully deterministic.
+ */
+export async function findStructuredDataMismatch(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const roots = await discoverServedRoots(workspaceDir);
+  const problems: ServedSiteProblem[] = [];
+  const ldRe =
+    /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  for (const { dir } of roots) {
+    for (const { rel, content } of await collectHtmlUnderRoot(dir, workspaceDir)) {
+      if (problems.length >= 30) break;
+      const prices = new Set<number>();
+      for (const m of content.matchAll(ldRe)) {
+        try {
+          collectJsonLdPrices(JSON.parse(m[1].trim()), prices);
+        } catch {
+          /* malformed JSON-LD — covered by findInvalidJsonFiles elsewhere */
+        }
+      }
+      if (prices.size === 0) continue;
+      // Visible text = page minus JSON-LD blocks minus tags.
+      const visible = content.replace(ldRe, " ").replace(/<[^>]+>/g, " ");
+      const missing = [...prices].filter((p) => !buildPriceRegex(p).test(visible));
+      if (missing.length > 0) {
+        problems.push({
+          sourceFile: rel,
+          problem: `prix structuré JSON-LD (${missing.join(", ")}) absent du contenu visible — aligner la donnée structurée sur le prix réellement affiché`,
+        });
+      }
+    }
+  }
+  return problems.slice(0, 30);
+}
+
 /**
  * Deterministic repair of WORKSPACE_INDEX.md corruption: an LLM that rewrites the
  * whole index each turn duplicates file-map rows (the same path listed 2-3×). We
