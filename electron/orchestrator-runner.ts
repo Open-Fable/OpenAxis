@@ -75,6 +75,7 @@ import {
   findUselessDesignArtifacts,
   validateDeclaredChecks,
   buildServedSiteReport,
+  extractJsonObject,
   parseQualityVerdict,
   buildAutoFeedback,
   buildSyntheticRun,
@@ -167,6 +168,43 @@ export function parseFilepathBlocks(
     blocks.push({ path: filePath, content: lines.slice(start, end).join("\n") });
   }
   return blocks;
+}
+
+// ── Détecteur déterministe de troncature ─────────────────────────────────────
+/**
+ * Returns a short reason when a file's content looks cut off, else null.
+ *
+ * The output verifier used to GUESS truncation from a chat preview, and the
+ * audit's own display cap was mistaken for disk truncation — wrongly failing
+ * complete files and triggering destructive corrective cycles. This is the
+ * factual signal that replaces the guess. Deliberately CONSERVATIVE (only
+ * high-confidence cases) so it never raises a false alarm on a legitimately
+ * short, clean deliverable.
+ */
+export function detectTruncation(content: string): string | null {
+  const trimmed = content.replace(/\s+$/, "");
+  if (trimmed.length === 0) return "fichier vide";
+
+  // An odd number of ``` fences means a code block was opened but never closed.
+  const fenceCount = trimmed.split("```").length - 1;
+  if (fenceCount % 2 !== 0) return "bloc de code non fermé";
+
+  // HTML that opens <html> but never closes it.
+  if (/<html[\s>]/i.test(trimmed) && !/<\/html\s*>/i.test(trimmed)) {
+    return "balise </html> manquante";
+  }
+
+  // Ends mid-sentence: the last non-empty line is prose that stops on a letter
+  // or comma, with no terminal punctuation and no structural marker. Conservative
+  // length/shape guards avoid flagging headers, list items, table rows or files
+  // that simply close on a bracket/quote.
+  const lastLine = trimmed.slice(trimmed.lastIndexOf("\n") + 1).trim();
+  const endsClean = /[.!?:;)\]}>"\x60*|_]$/.test(lastLine) || /^[#\-*|>]/.test(lastLine);
+  if (!endsClean && lastLine.length > 30 && /[\p{L},]$/u.test(lastLine)) {
+    return `se termine en milieu de phrase : « …${lastLine.slice(-40)} »`;
+  }
+
+  return null;
 }
 
 // ── Tier « modèle léger » ────────────────────────────────────────────────────
@@ -457,6 +495,14 @@ export class OrchestratorRunner {
   // Files written on disk by a backend's tools, keyed by node id. Used so a node
   // that produced files but returned a short chat summary isn't judged "trivial".
   private readonly backendFilesWritten = new Map<string, number>();
+  // relPath → owning node id. First node to write a path claims it; later nodes
+  // (e.g. during a corrective cycle) cannot overwrite another agent's deliverable.
+  // This is what stops the research/design agents from clobbering everyone else's
+  // files with short rewrites. Shared paths (index, reports/) are never claimed.
+  private readonly fileOwner = new Map<string, string>();
+  // Set for the duration of a node's execution so EVERY extractAndWriteFiles call
+  // it triggers (final write + multi-turn intermediate writes) is scoped.
+  private activeNodePathFilter: ((relPath: string) => boolean) | undefined;
   private fallbackModel: string | undefined = undefined;
   private fallbackReasoningEffort: string | undefined = undefined;
   private tierProfile: TierProfile = STRONG_TIER;
@@ -967,6 +1013,10 @@ export class OrchestratorRunner {
       0,
       ...Object.values(nodeChecks).map((c) => c.minWords ?? 0),
     );
+    // Scope every write this node makes (final + multi-turn intermediate) to its
+    // own files, so a corrective relaunch can't clobber siblings' deliverables.
+    const nodePathFilter = this.buildNodePathFilter(node.id, nodeExpectedFiles);
+    this.activeNodePathFilter = nodePathFilter;
     try {
       let resultText = await this.executeNode(
         node,
@@ -984,20 +1034,12 @@ export class OrchestratorRunner {
       );
       const initialResultText = resultText;
 
-      // Verifier nodes default to writing audit reports only — never let an audit
-      // verifier clobber source by quoting it back with a filepath: marker. But a
-      // verifier whose declared deliverables include code (e.g. a test-writing
-      // "verifier" producing tests/*.test.ts) must be allowed to emit exactly
-      // those files; the triage routes such fixes here during corrective cycles.
-      const verifierPathFilter =
-        node.type === "verifier"
-          ? (p: string) => p.startsWith("reports/") || nodeExpectedFiles.includes(p)
-          : undefined;
       const writtenFiles = await this.extractAndWriteFiles(
         resultText,
         workspaceDir,
-        verifierPathFilter,
+        nodePathFilter,
       );
+      this.claimOwnership(node.id, writtenFiles);
       if (writtenFiles.length > 0) {
         console.warn(
           `[orchestrator] Wrote ${writtenFiles.length} files for "${node.name}": ${writtenFiles.join(", ")}`,
@@ -1033,8 +1075,15 @@ export class OrchestratorRunner {
                   this.fallbackModel,
                   this.fallbackReasoningEffort,
                 ),
-              writeFiles: (text) =>
-                this.extractAndWriteFiles(text, workspaceDir, verifierPathFilter),
+              writeFiles: async (text) => {
+                const w = await this.extractAndWriteFiles(
+                  text,
+                  workspaceDir,
+                  nodePathFilter,
+                );
+                this.claimOwnership(node.id, w);
+                return w;
+              },
               onStatus: (msg) =>
                 this.sendStatus({ projectId: node.id, status: "running", task: msg }),
             },
@@ -1136,6 +1185,8 @@ export class OrchestratorRunner {
       console.error(`[orchestrator] Node "${node.name}" failed:`, msg);
       executionStatuses[node.id] = "error";
       this.sendStatus({ projectId: node.id, status: "error", error: msg });
+    } finally {
+      this.activeNodePathFilter = undefined;
     }
   }
 
@@ -1442,9 +1493,26 @@ export class OrchestratorRunner {
     ].slice(0, 30);
 
     const llmIssues = llmVerdict?.issues ?? [];
+    // Fail CLOSED: an unparseable LLM verdict must NOT pass the gate. Previously
+    // `?? true` let a parse failure sail through (the degraded state shipped
+    // because the verdict couldn't be read). A null verdict now blocks and adds
+    // an explicit issue so the corrective cycle has something to act on.
+    const parseFailureIssues =
+      llmVerdict === null
+        ? [
+            {
+              agent: "vérificateur",
+              issue: "Verdict qualité illisible (parse JSON échoué)",
+              fix: "Relancer la vérification et renvoyer un JSON {pass, issues} valide.",
+            },
+          ]
+        : [];
     const verdict = {
-      pass: (llmVerdict?.pass ?? true) && deterministicIssues.length === 0,
-      issues: [...deterministicIssues, ...llmIssues],
+      pass:
+        llmVerdict !== null &&
+        llmVerdict.pass === true &&
+        deterministicIssues.length === 0,
+      issues: [...deterministicIssues, ...parseFailureIssues, ...llmIssues],
     };
     console.warn(
       `[orchestrator:quality] Verdict: pass=${verdict.pass}, issues=${verdict.issues.length} (déterministes: ${deterministicIssues.length}, LLM: ${llmIssues.length}${llmVerdict ? "" : ", parse LLM échoué"})`,
@@ -2210,11 +2278,9 @@ export class OrchestratorRunner {
       `[orchestrator:verify] LLM response for "${node.name}": ${response.substring(0, 300)}`,
     );
     try {
-      const cleaned = response
-        .replace(/```json/gi, "")
-        .replace(/```/g, "")
-        .trim();
-      const parsed = JSON.parse(cleaned) as {
+      const json = extractJsonObject(response);
+      if (json === null) throw new Error("aucun objet JSON dans le verdict");
+      const parsed = JSON.parse(json) as {
         valid: boolean;
         reason?: string;
         issues?: ReadonlyArray<{ severity?: string; description?: string }>;
@@ -2234,10 +2300,16 @@ export class OrchestratorRunner {
       }
       return { valid: parsed.valid === true, reason: reason || undefined };
     } catch {
+      // Fail CLOSED: an unreadable verdict is NOT an implicit pass. Flag it as a
+      // warning (the output-verify path is non-blocking and continues anyway) so
+      // a parse failure surfaces instead of silently green-lighting the node.
       console.warn(
-        `[orchestrator:verify] Failed to parse response for "${node.name}" — defaulting to valid`,
+        `[orchestrator:verify] Failed to parse response for "${node.name}" — treating as invalid (fail-closed)`,
       );
-      return { valid: true };
+      return {
+        valid: false,
+        reason: "verdict du vérificateur illisible (parse JSON échoué)",
+      };
     }
   }
 
@@ -2252,8 +2324,8 @@ export class OrchestratorRunner {
   ): Promise<string> {
     if (expectedFiles.length === 0) return "";
 
-    const MAX_PER_FILE = 4000;
-    const MAX_TOTAL = 16000;
+    const MAX_PER_FILE = 6000;
+    const MAX_TOTAL = 24000;
     const lines: string[] = [];
     let total = 0;
 
@@ -2263,17 +2335,37 @@ export class OrchestratorRunner {
       try {
         const content = await fs.readFile(full, "utf-8");
         const size = Buffer.byteLength(content, "utf-8");
+        // Deterministic completeness signal so the verifier judges on a FACT, not
+        // a guess. Critically, the display cap below NEVER stands in for disk
+        // truncation: we show the real END of the file (head + tail) and say the
+        // file is complete — otherwise the LLM reads the cap marker as "truncated
+        // on disk" and triggers a destructive (and wrong) corrective cycle.
+        const trunc = detectTruncation(content);
+        const ending = trunc !== null ? `⚠ FIN SUSPECTE (${trunc})` : "fin propre";
         if (total >= MAX_TOTAL) {
-          lines.push(`✓ ${rel} (${size} octets) [contenu omis — limite atteinte]`);
+          lines.push(
+            `✓ ${rel} (${size} octets, ${ending}) [affichage omis — limite globale d'audit atteinte ; le fichier sur disque est COMPLET]`,
+          );
           continue;
         }
         const budget = Math.min(MAX_PER_FILE, MAX_TOTAL - total);
-        const shown =
-          content.length > budget
-            ? content.substring(0, budget) + "\n[… tronqué pour l'audit …]"
-            : content;
-        total += shown.length;
-        lines.push(`✓ ${rel} (${size} octets) :\n${shown}`);
+        let shown: string;
+        if (content.length > budget) {
+          const headLen = Math.floor(budget * 0.7);
+          const tailLen = budget - headLen;
+          const head = content.substring(0, headLen);
+          const tail = content.substring(content.length - tailLen);
+          shown =
+            `${head}\n\n[… NOTE D'AUDIT : portion centrale omise de l'AFFICHAGE seulement ` +
+            `(cap ${budget} car.). Le fichier sur disque fait ${size} octets et est ` +
+            `COMPLET. Sa FIN réelle est juste en dessous — juge la complétude sur ` +
+            `cette fin, PAS sur cette coupure d'affichage. …]\n\n${tail}`;
+          total += budget;
+        } else {
+          shown = content;
+          total += shown.length;
+        }
+        lines.push(`Fichier ${rel} (${size} octets — ${ending}) :\n${shown}`);
       } catch {
         lines.push(`✗ ${rel} — ABSENT du disque`);
       }
@@ -3161,6 +3253,45 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
     return true;
   }
 
+  // Index + audit reports are shared: any node may write them, and they are never
+  // claimed as a single owner.
+  private static isSharedPath(p: string): boolean {
+    return p === "WORKSPACE_INDEX.md" || p.startsWith("reports/");
+  }
+
+  /**
+   * Per-node write scope. A node may write: its declared deliverables, the shared
+   * index/reports, or any path no other node already owns. Writing a path owned
+   * by ANOTHER node is refused — this is what prevents corrective-cycle agents
+   * from overwriting siblings' work, and (because an undeclared report is a free
+   * path) it also lets a verifier emit its own audit file instead of losing it.
+   */
+  private buildNodePathFilter(
+    nodeId: string,
+    nodeExpectedFiles: readonly string[],
+  ): (relPath: string) => boolean {
+    // A node that already owns files is on a corrective relaunch: it may rewrite
+    // ITS files but must NOT mint new free paths (that's how a parasitic public/
+    // site got spawned). On the first run (no ownership yet) free paths are open.
+    const isRerun = [...this.fileOwner.values()].includes(nodeId);
+    return (p: string): boolean => {
+      if (OrchestratorRunner.isSharedPath(p)) return true;
+      if (nodeExpectedFiles.includes(p)) return true;
+      const owner = this.fileOwner.get(p);
+      if (owner === nodeId) return true;
+      if (owner !== undefined) return false; // owned by another agent → refuse
+      return !isRerun; // free path: only on the first run
+    };
+  }
+
+  // First writer of a non-shared path claims ownership for its node.
+  private claimOwnership(nodeId: string, written: readonly string[]): void {
+    for (const p of written) {
+      if (OrchestratorRunner.isSharedPath(p)) continue;
+      if (!this.fileOwner.has(p)) this.fileOwner.set(p, nodeId);
+    }
+  }
+
   private async extractAndWriteFiles(
     resultText: string,
     workspaceDir: string,
@@ -3171,8 +3302,11 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
     // run (an agent may mix formats mid-response) without re-writing the same file.
     // First-writer-wins → the primary ```filepath: format takes precedence.
     const seen = new Set<string>();
+    // Explicit filter wins; otherwise fall back to the executing node's scope so
+    // intermediate (multi-turn) writes are gated too, not just the final write.
+    const filter = pathFilter ?? this.activeNodePathFilter;
     const accept = (p: string): boolean =>
-      OrchestratorRunner.isValidFilePath(p) && (!pathFilter || pathFilter(p));
+      OrchestratorRunner.isValidFilePath(p) && (!filter || filter(p));
 
     // Primary: ```lang filepath: path blocks (filepath: REQUIRED). Nested-fence
     // safe — see parseFilepathBlocks (a naive non-greedy regex truncates a file

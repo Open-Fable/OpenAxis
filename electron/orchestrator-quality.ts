@@ -1805,13 +1805,47 @@ export async function findUnstyledClasses(
   return problems;
 }
 
+/**
+ * Extracts the first balanced top-level JSON object from an LLM response.
+ *
+ * LLM verdicts often wrap the JSON in ```json fences or surround it with prose
+ * ("Voici mon analyse : { … }. En conclusion…"). A naive `JSON.parse` on the raw
+ * text then throws, and the caller silently treats the verdict as missing. We
+ * strip fences, then scan for the first brace-balanced span (string-aware, so
+ * braces inside quoted reasons don't fool it). Returns null only when there is
+ * genuinely no object — letting the caller fail CLOSED instead of guessing.
+ */
+export function extractJsonObject(raw: string): string | null {
+  const cleaned = raw
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < cleaned.length; i++) {
+    const c = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === "\\") esc = true;
+      else if (c === '"') inStr = false;
+    } else if (c === '"') inStr = true;
+    else if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) return cleaned.substring(start, i + 1);
+    }
+  }
+  return null;
+}
+
 export function parseQualityVerdict(raw: string): QualityVerdict | null {
+  const json = extractJsonObject(raw);
+  if (json === null) return null;
   try {
-    const cleaned = raw
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-    const parsed = JSON.parse(cleaned) as { pass?: boolean; issues?: QualityIssue[] };
+    const parsed = JSON.parse(json) as { pass?: boolean; issues?: QualityIssue[] };
     if (typeof parsed.pass !== "boolean") return null;
     return {
       pass: parsed.pass,

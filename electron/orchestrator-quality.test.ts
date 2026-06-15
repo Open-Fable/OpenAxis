@@ -9,6 +9,7 @@ import {
   buildMissingFilesPrompt,
   buildTrivialResultPrompt,
   enforceDeliverables,
+  extractJsonObject,
   parseQualityVerdict,
   buildAutoFeedback,
   buildSyntheticRun,
@@ -892,6 +893,35 @@ describe("parseQualityVerdict", () => {
   it("defaults issues to empty array if missing", () => {
     const result = parseQualityVerdict('{"pass": true}');
     expect(result).toEqual({ pass: true, issues: [] });
+  });
+
+  it("parses a verdict wrapped in surrounding prose", () => {
+    const raw =
+      'Voici mon analyse du livrable.\n{"pass": false, "issues": []}\nEn conclusion, à corriger.';
+    expect(parseQualityVerdict(raw)).toEqual({ pass: false, issues: [] });
+  });
+});
+
+describe("extractJsonObject", () => {
+  it("returns a bare object unchanged", () => {
+    expect(extractJsonObject('{"a": 1}')).toBe('{"a": 1}');
+  });
+
+  it("strips ```json fences", () => {
+    expect(extractJsonObject('```json\n{"a": 1}\n```')).toBe('{"a": 1}');
+  });
+
+  it("extracts the object from surrounding prose", () => {
+    expect(extractJsonObject('blah { "a": 1 } trailing')).toBe('{ "a": 1 }');
+  });
+
+  it("ignores braces inside quoted strings", () => {
+    const raw = '{"reason": "use a } brace { here", "pass": true}';
+    expect(extractJsonObject(raw)).toBe(raw);
+  });
+
+  it("returns null when there is no object", () => {
+    expect(extractJsonObject("no json here")).toBeNull();
   });
 });
 

@@ -3,6 +3,7 @@ import {
   OrchestratorRunner,
   mapWithConcurrency,
   parseFilepathBlocks,
+  detectTruncation,
 } from "./orchestrator-runner.js";
 import type { Project } from "./project-store.js";
 
@@ -220,5 +221,42 @@ describe("parseFilepathBlocks", () => {
     const blocks = parseFilepathBlocks(text);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe("const a = 1;");
+  });
+});
+
+describe("detectTruncation", () => {
+  it("returns null for a short but cleanly-ended markdown document", () => {
+    const md = "# Titre\n\n## 1. Contexte\nDu contenu.\n\n## 2. Conclusion\nFin nette.\n";
+    expect(detectTruncation(md)).toBeNull();
+  });
+
+  it("flags an empty file", () => {
+    expect(detectTruncation("   \n  ")).toBe("fichier vide");
+  });
+
+  it("flags an unclosed code fence", () => {
+    const md = "# Titre\n\n```js\nconst a = 1;\n";
+    expect(detectTruncation(md)).toBe("bloc de code non fermé");
+  });
+
+  it("does not flag balanced code fences", () => {
+    const md = "# Titre\n\n```js\nconst a = 1;\n```\n\nVoilà la fin.\n";
+    expect(detectTruncation(md)).toBeNull();
+  });
+
+  it("flags HTML missing its closing </html>", () => {
+    const html = '<!DOCTYPE html>\n<html lang="fr">\n<body><p>Salut</p></body>\n';
+    expect(detectTruncation(html)).toBe("balise </html> manquante");
+  });
+
+  it("flags prose cut off mid-sentence", () => {
+    const md =
+      "# Plan\n\nCampagnes ciblées sur des mots-clés spécifiques liés à la fiscalité et au revenu complémentaire des freelances qui cherchent à optimiser";
+    expect(detectTruncation(md)).toMatch(/milieu de phrase/);
+  });
+
+  it("does not flag a heading or list item as truncated", () => {
+    expect(detectTruncation("## Une section sans ponctuation finale")).toBeNull();
+    expect(detectTruncation("- un point de liste de longueur correcte ici")).toBeNull();
   });
 });
