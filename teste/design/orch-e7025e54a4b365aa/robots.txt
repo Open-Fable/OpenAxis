@@ -1,8 +1,0 @@
-User-agent: *
-Allow: /presentation/
-Allow: /reports/
-Disallow: /data/raw/
-Disallow: /audit/
-Disallow: /research/internal/
-
-Sitemap: https://ev-vision.eu/sitemap.xml

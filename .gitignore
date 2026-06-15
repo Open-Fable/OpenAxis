@@ -78,6 +78,28 @@ interface/
 interface-chat/
 Portfolio_d_Art/
 
+# Orchestrator test-output workspaces (each has a WORKSPACE_INDEX.md) and debug
+# screenshots — generated during development, never part of the shell.
+bouteil/
+code-pure/
+csv/
+saas/
+saas-screen/
+svc-screen/
+cqui/
+ghj/
+pied/
+sport/
+sport-screen/
+teste/
+teste 2/
+
+# Internal audit / handoff / open-defect docs — working notes, not for distribution.
+AUDIT_RECAP_*.md
+ORCHESTRATEUR_*.md
+SESSION-HANDOFF.md
+reports/
+
 # Graphify output (regenerated on demand, user-specific)
 graphify-out/
 
