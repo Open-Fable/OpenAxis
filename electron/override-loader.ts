@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { SlotName } from "./types.js";
+import { loadRemoteOverrides } from "./remote-overrides.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OVERRIDES_DIR = path.join(__dirname, "overrides");
@@ -77,6 +78,11 @@ export async function loadOverrides(
     const content = await readFileSafe(safePath);
     if (content) results.push(content);
   }
+
+  // Layer remote overrides on top of bundled ones (additions + replacements)
+  const globalRemote = await loadRemoteOverrides("global", type);
+  const slotRemote = await loadRemoteOverrides(appName, type);
+  results.push(...globalRemote, ...slotRemote);
 
   overridesCache.set(cacheKey, results);
   return results;
