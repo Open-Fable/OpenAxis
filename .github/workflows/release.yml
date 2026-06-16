@@ -1,0 +1,65 @@
+name: release
+
+# Build l'app et attache le .dmg autonome à la Release lors d'un tag v*.
+on:
+  push:
+    tags:
+      - "v*"
+
+# Least-privilege : seul l'upload d'asset de Release est nécessaire.
+permissions:
+  contents: write
+
+jobs:
+  build-dmg:
+    # Apple Silicon : les modules natifs (better-sqlite3, node-pty) doivent matcher
+    # l'ABI Node 24 / arm64 du runtime cible (S6).
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # Node 24 : requis par open-design et compatible avec openwork/opencode.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Enable pnpm via corepack
+        run: corepack enable pnpm
+
+      - name: Install OpenHub dependencies
+        run: npm ci
+
+      # Clone les 3 apps upstream + installe le CLI opencode + leurs deps.
+      - name: Setup upstream apps
+        run: npm run setup
+
+      # tsc + copy-assets + package:apps (builds prod des 3 apps) + electron-builder.
+      - name: Build standalone .dmg
+        run: npm run build
+
+      - name: Compute zip checksum (U1)
+        run: |
+          ZIP=$(ls release/*.zip 2>/dev/null | grep -v '.blockmap' | head -1)
+          if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then
+            echo "::error::No .zip found in release/ — electron-builder may have failed."
+            exit 1
+          fi
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          shasum -a 256 "$ZIP" | awk '{print $1}' > "${ZIP}.sha256"
+          echo "SHA256 for $(basename "$ZIP"): $(cat "${ZIP}.sha256")"
+
+      - name: Publish assets to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DMG=$(ls release/*.dmg | head -1)
+          ZIP="${ZIP}"
+          SHA="${ZIP}.sha256"
+          echo "Publishing $DMG, $ZIP, $SHA"
+          ASSETS=("$DMG" "$ZIP" "$SHA")
+          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" --generate-notes
+          else
+            gh release upload "${GITHUB_REF_NAME}" "${ASSETS[@]}" --clobber
+          fi
