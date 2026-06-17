@@ -8,6 +8,7 @@
     />
     <title>OpenHub</title>
     <link rel="stylesheet" href="shared/oh-tokens.css" />
+    <link rel="stylesheet" href="onboarding.css" />
     <style>
       *,
       *::before,
@@ -1322,7 +1323,7 @@
 
         <button class="dropdown-trigger" id="dropdown-trigger">
           <span class="trigger-icon" id="trigger-icon"></span>
-          <span class="trigger-label" id="trigger-label">Chat</span>
+          <span class="trigger-label" id="trigger-label" data-i18n="nav.slot.chat">Chat</span>
           <span class="trigger-chevron">
             <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
           </span>
@@ -1332,6 +1333,7 @@
           class="btn-config dropdown-config-btn"
           id="dropdown-config-btn"
           aria-label="Configuration"
+          data-i18n-aria-label="nav.config.aria"
         >
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" />
@@ -1352,8 +1354,8 @@
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
             </span>
-            <span class="slot-label">Chat</span>
-            <span class="tooltip">Chat IA</span>
+            <span class="slot-label" data-i18n="nav.slot.chat">Chat</span>
+            <span class="tooltip" data-i18n="nav.tooltip.chat">Chat IA</span>
           </button>
 
           <button class="slot-btn" data-slot="work">
@@ -1366,8 +1368,8 @@
                 <rect x="14" y="14" width="7" height="7" rx="1.5" />
               </svg>
             </span>
-            <span class="slot-label">Work</span>
-            <span class="tooltip">OpenWork</span>
+            <span class="slot-label" data-i18n="nav.slot.work">Work</span>
+            <span class="tooltip" data-i18n="nav.tooltip.work">OpenWork</span>
           </button>
 
           <button class="slot-btn" data-slot="code">
@@ -1378,8 +1380,8 @@
                 <polyline points="8 6 2 12 8 18" />
               </svg>
             </span>
-            <span class="slot-label">Code</span>
-            <span class="tooltip">OpenCode</span>
+            <span class="slot-label" data-i18n="nav.slot.code">Code</span>
+            <span class="tooltip" data-i18n="nav.tooltip.code">OpenCode</span>
           </button>
 
           <button class="slot-btn" data-slot="design">
@@ -1391,8 +1393,8 @@
                 <path d="M2 12l10 5 10-5" />
               </svg>
             </span>
-            <span class="slot-label">Design</span>
-            <span class="tooltip">Open Design</span>
+            <span class="slot-label" data-i18n="nav.slot.design">Design</span>
+            <span class="tooltip" data-i18n="nav.tooltip.design">Open Design</span>
           </button>
 
           <button class="slot-btn" data-slot="projects">
@@ -1403,19 +1405,24 @@
                 ></path>
               </svg>
             </span>
-            <span class="slot-label">Orchestrateur</span>
-            <span class="tooltip">Orchestration</span>
+            <span class="slot-label" data-i18n="nav.slot.projects">Orchestrateur</span>
+            <span class="tooltip" data-i18n="nav.tooltip.projects">Orchestration</span>
           </button>
         </div>
 
-        <button class="btn-config" data-slot="config" aria-label="Configuration">
+        <button
+          class="btn-config"
+          data-slot="config"
+          aria-label="Configuration"
+          data-i18n-aria-label="nav.config.aria"
+        >
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" />
             <path
               d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
             />
           </svg>
-          <span class="tooltip">Paramètres</span>
+          <span class="tooltip" data-i18n="nav.tooltip.config">Paramètres</span>
         </button>
       </div>
     </div>
@@ -1434,8 +1441,9 @@
           role="tablist"
           aria-orientation="vertical"
           aria-label="Sections des réglages"
+          data-i18n-aria-label="cfg.nav.aria"
         >
-          <div class="config-nav-title">Réglages</div>
+          <div class="config-nav-title" data-i18n="cfg.nav.title">Réglages</div>
 
           <button
             class="config-tab active"
@@ -1451,7 +1459,7 @@
                 d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
               />
             </svg>
-            <span>Clés API</span>
+            <span data-i18n="cfg.tab.keys">Clés API</span>
           </button>
           <button
             class="config-tab"
@@ -1468,7 +1476,7 @@
                 d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
               />
             </svg>
-            <span>Modèles IA</span>
+            <span data-i18n="cfg.tab.models">Modèles IA</span>
           </button>
           <button
             class="config-tab"
@@ -1484,7 +1492,7 @@
               <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
               <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
             </svg>
-            <span>Mémoire</span>
+            <span data-i18n="cfg.tab.memory">Mémoire</span>
           </button>
           <button
             class="config-tab"
@@ -1499,7 +1507,7 @@
               <polyline points="23 4 23 10 17 10" />
               <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
             </svg>
-            <span>Mises à jour</span>
+            <span data-i18n="cfg.tab.updates">Mises à jour</span>
           </button>
           <button
             class="config-tab"
@@ -1514,7 +1522,7 @@
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
-            <span>Notifications</span>
+            <span data-i18n="cfg.tab.notifs">Notifications</span>
           </button>
           <button
             class="config-tab"
@@ -1529,7 +1537,7 @@
               <path d="M3 3v18h18" />
               <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
             </svg>
-            <span>Cache</span>
+            <span data-i18n="cfg.tab.cache">Cache</span>
           </button>
 
           <div class="config-nav-spacer"></div>
@@ -1538,7 +1546,7 @@
               <rect x="3" y="11" width="18" height="11" rx="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
             </svg>
-            Keychain macOS
+            <span data-i18n="cfg.nav.hint">Keychain macOS</span>
           </div>
         </nav>
 
@@ -1546,13 +1554,16 @@
         <div class="config-main">
           <header class="config-main-header">
             <div class="config-main-heading">
-              <h2 id="config-section-title">Clés API</h2>
-              <p id="config-section-desc">Stockées en sécurité dans le Keychain macOS.</p>
+              <h2 id="config-section-title" data-i18n="cfg.tab.keys">Clés API</h2>
+              <p id="config-section-desc" data-i18n="cfg.keys.desc">
+                Stockées en sécurité dans le Keychain macOS.
+              </p>
             </div>
             <button
               class="btn-close-cfg"
               id="close-config"
               aria-label="Fermer les réglages"
+              data-i18n-aria-label="cfg.close.aria"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -1570,12 +1581,14 @@
               aria-labelledby="cfg-tab-keys"
             >
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Modèles IA</legend>
+                <legend class="settings-group-title" data-i18n="cfg.keys.group.ai">
+                  Modèles IA
+                </legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-anthropic">Anthropic</label>
-                      <p class="setting-desc">Modèles Claude</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.anthropic.desc">Modèles Claude</p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1591,6 +1604,7 @@
                         class="btn-reveal"
                         data-target="key-anthropic"
                         aria-label="Afficher la clé"
+                        data-i18n-aria-label="cfg.keys.reveal"
                         aria-pressed="false"
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1603,7 +1617,7 @@
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-openai">OpenAI</label>
-                      <p class="setting-desc">Modèles GPT</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.openai.desc">Modèles GPT</p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1619,6 +1633,7 @@
                         class="btn-reveal"
                         data-target="key-openai"
                         aria-label="Afficher la clé"
+                        data-i18n-aria-label="cfg.keys.reveal"
                         aria-pressed="false"
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1631,7 +1646,9 @@
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-openrouter">OpenRouter</label>
-                      <p class="setting-desc">Routage multi-fournisseurs</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.openrouter.desc">
+                        Routage multi-fournisseurs
+                      </p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1647,6 +1664,7 @@
                         class="btn-reveal"
                         data-target="key-openrouter"
                         aria-label="Afficher la clé"
+                        data-i18n-aria-label="cfg.keys.reveal"
                         aria-pressed="false"
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1659,7 +1677,7 @@
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-ollama">Ollama</label>
-                      <p class="setting-desc">Modèles locaux</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.ollama.desc">Modèles locaux</p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1674,7 +1692,7 @@
                   </div>
                 </div>
                 <div id="ollama-model-manager">
-                  <div class="settings-group-title" style="margin-top: 12px">
+                  <div class="settings-group-title" style="margin-top: 12px" data-i18n="cfg.keys.ollamaRequired">
                     Modèles Ollama requis
                   </div>
                   <div id="ollama-model-list"></div>
@@ -1682,12 +1700,16 @@
               </fieldset>
 
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Intégrations</legend>
+                <legend class="settings-group-title" data-i18n="cfg.keys.group.integrations">
+                  Intégrations
+                </legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-github">GitHub</label>
-                      <p class="setting-desc">Token d'accès personnel</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.github.desc">
+                        Token d'accès personnel
+                      </p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1703,6 +1725,7 @@
                         class="btn-reveal"
                         data-target="key-github"
                         aria-label="Afficher la clé"
+                        data-i18n-aria-label="cfg.keys.reveal"
                         aria-pressed="false"
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1715,7 +1738,9 @@
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="key-brave">Brave Search</label>
-                      <p class="setting-desc">Clé API pour la recherche web</p>
+                      <p class="setting-desc" data-i18n="cfg.keys.brave.desc">
+                        Clé API pour la recherche web
+                      </p>
                     </div>
                     <div class="key-input-group">
                       <input
@@ -1731,6 +1756,7 @@
                         class="btn-reveal"
                         data-target="key-brave"
                         aria-label="Afficher la clé"
+                        data-i18n-aria-label="cfg.keys.reveal"
                         aria-pressed="false"
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1745,12 +1771,15 @@
                       <label class="setting-label" for="btn-google-login"
                         >Google Gemini</label
                       >
-                      <p class="setting-desc" id="google-login-status">Non connecté</p>
+                      <p class="setting-desc" id="google-login-status" data-i18n="gemini.disconnected">
+                        Non connecté
+                      </p>
                     </div>
                     <button
                       type="button"
                       class="btn-update primary"
                       id="btn-google-login"
+                      data-i18n="gemini.connect"
                     >
                       Se connecter avec Google
                     </button>
@@ -1767,14 +1796,16 @@
               aria-labelledby="cfg-tab-models"
             >
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Classifieur mémoire</legend>
+                <legend class="settings-group-title" data-i18n="cfg.models.classifier">
+                  Classifieur mémoire
+                </legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="ai-classifier"
+                      <label class="setting-label" for="ai-classifier" data-i18n="cfg.models.sort.label"
                         >Tri des informations</label
                       >
-                      <p class="setting-desc">
+                      <p class="setting-desc" data-i18n="cfg.models.sort.desc">
                         Modèle utilisé pour classer les faits mémorisés.
                       </p>
                     </div>
@@ -1785,27 +1816,27 @@
                   </div>
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="default-reasoning-effort"
+                      <label class="setting-label" for="default-reasoning-effort" data-i18n="cfg.models.effort.label"
                         >Effort de réflexion</label
                       >
-                      <p class="setting-desc">Niveau par défaut pour tous les modèles.</p>
+                      <p class="setting-desc" data-i18n="cfg.models.effort.desc">Niveau par défaut pour tous les modèles.</p>
                     </div>
                     <select id="default-reasoning-effort" class="form-select">
-                      <option value="none">Aucun</option>
-                      <option value="minimal">Minimal</option>
-                      <option value="low">Bas</option>
-                      <option value="medium">Moyen</option>
-                      <option value="high">Élevé</option>
-                      <option value="xhigh">Très élevé</option>
-                      <option value="max">Maximum</option>
+                      <option value="none" data-i18n="cfg.models.effort.none">Aucun</option>
+                      <option value="minimal" data-i18n="cfg.models.effort.minimal">Minimal</option>
+                      <option value="low" data-i18n="cfg.models.effort.low">Bas</option>
+                      <option value="medium" data-i18n="cfg.models.effort.medium">Moyen</option>
+                      <option value="high" data-i18n="cfg.models.effort.high">Élevé</option>
+                      <option value="xhigh" data-i18n="cfg.models.effort.xhigh">Très élevé</option>
+                      <option value="max" data-i18n="cfg.models.effort.max">Maximum</option>
                     </select>
                   </div>
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="web-search-toggle"
+                      <label class="setting-label" for="web-search-toggle" data-i18n="cfg.models.websearch.label"
                         >Recherche Internet</label
                       >
-                      <p class="setting-desc">
+                      <p class="setting-desc" data-i18n="cfg.models.websearch.desc">
                         Permet aux modèles d'interroger Brave Search.
                       </p>
                     </div>
@@ -1818,14 +1849,14 @@
               </fieldset>
 
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Vision</legend>
+                <legend class="settings-group-title" data-i18n="cfg.models.vision.group">Vision</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
                       <label class="setting-label" for="vision-proxy-toggle"
                         >Vision Proxy</label
                       >
-                      <p class="setting-desc">
+                      <p class="setting-desc" data-i18n="cfg.models.vision.desc">
                         Ajoute la vision aux modèles qui n'en ont pas.
                       </p>
                     </div>
@@ -1839,10 +1870,10 @@
                   <div class="settings-group-card">
                     <div class="setting-row">
                       <div class="setting-row-text">
-                        <label class="setting-label" for="vision-model"
+                        <label class="setting-label" for="vision-model" data-i18n="cfg.models.visionModel.label"
                           >Modèle de vision</label
                         >
-                        <p class="setting-desc">
+                        <p class="setting-desc" data-i18n="cfg.models.visionModel.desc">
                           Modèle Ollama local pour l'analyse d'images.
                         </p>
                       </div>
@@ -1853,14 +1884,14 @@
                     </div>
                     <div class="setting-row">
                       <div class="setting-row-text">
-                        <label class="setting-label" for="vision-detail-level"
+                        <label class="setting-label" for="vision-detail-level" data-i18n="cfg.models.detail.label"
                           >Niveau de détail</label
                         >
-                        <p class="setting-desc">Résolution de l'analyse.</p>
+                        <p class="setting-desc" data-i18n="cfg.models.detail.desc">Résolution de l'analyse.</p>
                       </div>
                       <select id="vision-detail-level" class="form-select">
-                        <option value="high">Élevé</option>
-                        <option value="low">Bas</option>
+                        <option value="high" data-i18n="opt.high">Élevé</option>
+                        <option value="low" data-i18n="opt.low">Bas</option>
                       </select>
                     </div>
                   </div>
@@ -1876,14 +1907,14 @@
               aria-labelledby="cfg-tab-memory"
             >
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Contrôle</legend>
+                <legend class="settings-group-title" data-i18n="cfg.memory.control">Contrôle</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="memory-toggle"
+                      <label class="setting-label" for="memory-toggle" data-i18n="cfg.memory.longterm.label"
                         >Mémoire long-terme</label
                       >
-                      <p class="setting-desc">
+                      <p class="setting-desc" data-i18n="cfg.memory.longterm.desc">
                         Injecte le profil et les faits dans chaque requête.
                       </p>
                     </div>
@@ -1897,14 +1928,16 @@
 
               <div id="memory-body">
                 <fieldset class="settings-group">
-                  <legend class="settings-group-title">Profil utilisateur</legend>
+                  <legend class="settings-group-title" data-i18n="cfg.memory.profile.group">
+                    Profil utilisateur
+                  </legend>
                   <div class="settings-group-card">
                     <div class="setting-row">
                       <div class="setting-row-text" style="flex: 1">
-                        <label class="setting-label" for="memory-profile"
+                        <label class="setting-label" for="memory-profile" data-i18n="cfg.memory.profile.label"
                           >Instructions globales (YAML)</label
                         >
-                        <p class="setting-desc">
+                        <p class="setting-desc" data-i18n="cfg.memory.profile.desc">
                           Définit le contexte persistant : langue, style, stack technique.
                         </p>
                       </div>
@@ -1915,6 +1948,7 @@
                         type="text"
                         id="memory-profile"
                         placeholder="lang:fr style:concis stack:ts,electron"
+                        data-i18n-placeholder="cfg.memory.profile.placeholder"
                         maxlength="2000"
                       />
                     </div>
@@ -1922,14 +1956,16 @@
                 </fieldset>
 
                 <fieldset class="settings-group">
-                  <legend class="settings-group-title">Mémorisation automatique</legend>
+                  <legend class="settings-group-title" data-i18n="cfg.memory.auto.group">
+                    Mémorisation automatique
+                  </legend>
                   <div class="settings-group-card">
                     <div class="setting-row">
                       <div class="setting-row-text">
-                        <label class="setting-label" for="memory-auto-extract-toggle"
+                        <label class="setting-label" for="memory-auto-extract-toggle" data-i18n="cfg.memory.auto.label"
                           >Auto-extraction de faits</label
                         >
-                        <p class="setting-desc">
+                        <p class="setting-desc" data-i18n="cfg.memory.auto.desc">
                           Extrait automatiquement les faits via Ollama.
                         </p>
                       </div>
@@ -1946,7 +1982,9 @@
                 </fieldset>
 
                 <fieldset class="settings-group">
-                  <legend class="settings-group-title">Base de connaissances</legend>
+                  <legend class="settings-group-title" data-i18n="cfg.memory.kb.group">
+                    Base de connaissances
+                  </legend>
                   <div class="fact-list" id="fact-list"></div>
                   <div class="add-fact-row">
                     <input
@@ -1954,10 +1992,12 @@
                       type="text"
                       id="new-fact"
                       placeholder="Ajouter un fait manuellement..."
+                      data-i18n-placeholder="cfg.memory.kb.placeholder"
                       aria-label="Ajouter un fait à la mémoire"
+                      data-i18n-aria-label="cfg.memory.kb.aria"
                       maxlength="500"
                     />
-                    <button class="btn-add-fact" id="btn-add-fact">+ Ajouter</button>
+                    <button class="btn-add-fact" id="btn-add-fact" data-i18n="cfg.memory.kb.add">+ Ajouter</button>
                   </div>
                   <div class="memory-token-hint" id="memory-token-hint"></div>
                 </fieldset>
@@ -1972,7 +2012,7 @@
               aria-labelledby="cfg-tab-updates"
             >
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Système</legend>
+                <legend class="settings-group-title" data-i18n="cfg.updates.system">Système</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
@@ -1980,9 +2020,10 @@
                         class="setting-label"
                         for="auto-update-toggle"
                         id="auto-update-label"
+                        data-i18n="cfg.updates.auto.label"
                         >Mise à jour automatique</label
                       >
-                      <p class="setting-desc" id="auto-update-desc">
+                      <p class="setting-desc" id="auto-update-desc" data-i18n="cfg.updates.auto.desc">
                         Installe les mises à jour des apps au démarrage.
                       </p>
                     </div>
@@ -2005,9 +2046,9 @@
                   <div class="setting-row" style="align-items: center">
                     <div class="setting-row-text" style="flex: 1">
                       <span class="setting-label" id="self-update-version"></span>
-                      <p class="setting-desc" id="self-update-status">Vérification…</p>
+                      <p class="setting-desc" id="self-update-status" data-i18n="common.checking">Vérification…</p>
                     </div>
-                    <button class="btn-update" id="self-update-btn" style="display: none">
+                    <button class="btn-update" id="self-update-btn" style="display: none" data-i18n="common.install">
                       Installer
                     </button>
                   </div>
@@ -2040,34 +2081,61 @@
                 id="bundled-versions-section"
                 style="display: none"
               >
-                <legend class="settings-group-title">Applications incluses</legend>
+                <legend class="settings-group-title" data-i18n="cfg.updates.bundled">
+                  Applications incluses
+                </legend>
                 <div class="settings-group-card" id="bundled-versions-list"></div>
               </fieldset>
 
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Apparence</legend>
+                <legend class="settings-group-title" data-i18n="cfg.updates.appearance">Apparence</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="nav-mode-select"
+                      <label class="setting-label" for="language-select" data-i18n="cfg.updates.lang.label"
+                        >Langue</label
+                      >
+                      <p class="setting-desc" data-i18n="cfg.updates.lang.desc">Langue de l'interface.</p>
+                    </div>
+                    <select
+                      id="language-select"
+                      class="form-select"
+                      style="-webkit-app-region: no-drag"
+                    >
+                      <option value="fr">Français</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <div class="setting-row">
+                    <div class="setting-row-text">
+                      <label class="setting-label" for="nav-mode-select" data-i18n="cfg.updates.nav.label"
                         >Style de navigation</label
                       >
-                      <p class="setting-desc">Barre d'onglets ou menu déroulant.</p>
+                      <p class="setting-desc" data-i18n="cfg.updates.nav.desc">Barre d'onglets ou menu déroulant.</p>
                     </div>
                     <select
                       id="nav-mode-select"
                       class="form-select"
                       style="-webkit-app-region: no-drag"
                     >
-                      <option value="topbar">Barre d'onglets</option>
-                      <option value="dropdown">Menu déroulant</option>
+                      <option value="topbar" data-i18n="cfg.updates.nav.topbar">Barre d'onglets</option>
+                      <option value="dropdown" data-i18n="cfg.updates.nav.dropdown">Menu déroulant</option>
                     </select>
                   </div>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-row-text">
+                    <label class="setting-label" data-i18n="cfg.updates.redo.label"
+                      >Refaire l'onboarding</label
+                    >
+                    <p class="setting-desc" data-i18n="cfg.updates.redo.desc">Relancer l'assistant de premier lancement.</p>
+                  </div>
+                  <button id="redo-onboarding" class="btn-secondary" data-i18n="cfg.updates.redo.btn">Relancer</button>
                 </div>
               </fieldset>
 
               <fieldset class="settings-group" id="git-update-section">
-                <legend class="settings-group-title">Applications</legend>
+                <legend class="settings-group-title" data-i18n="cfg.updates.apps">Applications</legend>
                 <div class="settings-group-card" id="update-list"></div>
               </fieldset>
             </section>
@@ -2080,28 +2148,28 @@
               aria-labelledby="cfg-tab-notifs"
             >
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Comportement</legend>
+                <legend class="settings-group-title" data-i18n="cfg.notifs.behavior">Comportement</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="notify-mode"
+                      <label class="setting-label" for="notify-mode" data-i18n="cfg.notifs.when.label"
                         >Quand notifier</label
                       >
-                      <p class="setting-desc">Notifications de fin de tâche.</p>
+                      <p class="setting-desc" data-i18n="cfg.notifs.when.desc">Notifications de fin de tâche.</p>
                     </div>
                     <select id="notify-mode" class="form-select">
-                      <option value="always">Toujours</option>
-                      <option value="other-tab">Autre onglet ou arrière-plan</option>
-                      <option value="background">App en arrière-plan uniquement</option>
-                      <option value="sound">Son bref uniquement</option>
-                      <option value="never">Jamais</option>
+                      <option value="always" data-i18n="cfg.notifs.when.always">Toujours</option>
+                      <option value="other-tab" data-i18n="cfg.notifs.when.otherTab">Autre onglet ou arrière-plan</option>
+                      <option value="background" data-i18n="cfg.notifs.when.background">App en arrière-plan uniquement</option>
+                      <option value="sound" data-i18n="cfg.notifs.when.sound">Son bref uniquement</option>
+                      <option value="never" data-i18n="cfg.notifs.when.never">Jamais</option>
                     </select>
                   </div>
                 </div>
               </fieldset>
 
               <fieldset class="settings-group">
-                <legend class="settings-group-title">Sources</legend>
+                <legend class="settings-group-title" data-i18n="cfg.notifs.sources">Sources</legend>
                 <div class="settings-group-card">
                   <div class="setting-row">
                     <div class="setting-row-text">
@@ -2165,7 +2233,7 @@
                   </div>
                   <div class="setting-row">
                     <div class="setting-row-text">
-                      <label class="setting-label" for="notify-src-orchestrator"
+                      <label class="setting-label" for="notify-src-orchestrator" data-i18n="nav.slot.projects"
                         >Orchestrateur</label
                       >
                     </div>
@@ -2201,9 +2269,9 @@
                     width: 100%;
                   "
                 >
-                  <span>Efficacité du caching</span>
+                  <span data-i18n="cfg.cache.efficiency">Efficacité du caching</span>
                   <span id="cache-reset-area">
-                    <button class="btn-danger-ghost" id="btn-reset-cache">
+                    <button class="btn-danger-ghost" id="btn-reset-cache" data-i18n="cfg.cache.reset">
                       Réinitialiser
                     </button>
                   </span>
@@ -2211,7 +2279,7 @@
 
                 <div class="cache-stats-grid">
                   <div class="cache-stat-card">
-                    <div class="cache-stat-label">Ratio cache hit global</div>
+                    <div class="cache-stat-label" data-i18n="cfg.cache.hitRatio">Ratio cache hit global</div>
                     <div class="cache-stat-value" id="cache-hit-ratio">0.0%</div>
                     <div class="cache-stat-bar-container">
                       <div
@@ -2222,10 +2290,12 @@
                     </div>
                   </div>
                   <div class="cache-stat-card">
-                    <div class="cache-stat-label">Tokens économisés</div>
+                    <div class="cache-stat-label" data-i18n="cfg.cache.savedTokens">Tokens économisés</div>
                     <div class="cache-stat-value" id="cache-saved-tokens">0</div>
                     <div class="cache-stat-sub">
-                      sur <span id="cache-total-tokens">0</span> analysés au total
+                      <span data-i18n="cfg.cache.savedSubPre">sur</span>
+                      <span id="cache-total-tokens">0</span>
+                      <span data-i18n="cfg.cache.savedSubPost">analysés au total</span>
                     </div>
                   </div>
                 </div>
@@ -2233,15 +2303,15 @@
 
               <div id="cache-details-container" style="display: none">
                 <fieldset class="settings-group">
-                  <legend class="settings-group-title">Gains par modèle</legend>
+                  <legend class="settings-group-title" data-i18n="cfg.cache.byModel">Gains par modèle</legend>
                   <div class="cache-table-wrapper">
                     <table class="cache-table">
                       <thead>
                         <tr>
-                          <th>Modèle</th>
-                          <th style="text-align: right">Requêtes</th>
-                          <th style="text-align: right">Gains</th>
-                          <th style="text-align: right">Ratio</th>
+                          <th data-i18n="cfg.cache.th.model">Modèle</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.requests">Requêtes</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.gains">Gains</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.ratio">Ratio</th>
                         </tr>
                       </thead>
                       <tbody id="cache-model-table-body"></tbody>
@@ -2250,17 +2320,17 @@
                 </fieldset>
 
                 <fieldset class="settings-group">
-                  <legend class="settings-group-title">
+                  <legend class="settings-group-title" data-i18n="cfg.cache.byWorkspace">
                     Gains par espace de travail
                   </legend>
                   <div class="cache-table-wrapper">
                     <table class="cache-table">
                       <thead>
                         <tr>
-                          <th>Workspace</th>
-                          <th style="text-align: right">Requêtes</th>
-                          <th style="text-align: right">Gains</th>
-                          <th style="text-align: right">Ratio</th>
+                          <th data-i18n="cfg.cache.th.workspace">Workspace</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.requests">Requêtes</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.gains">Gains</th>
+                          <th style="text-align: right" data-i18n="cfg.cache.th.ratio">Ratio</th>
                         </tr>
                       </thead>
                       <tbody id="cache-workspace-table-body"></tbody>
@@ -2300,9 +2370,9 @@
                     margin-bottom: 4px;
                   "
                 >
-                  Aucune statistique disponible
+                  <span data-i18n="cfg.cache.empty.title">Aucune statistique disponible</span>
                 </div>
-                <div style="font-size: 12px">
+                <div style="font-size: 12px" data-i18n="cfg.cache.empty.desc">
                   Envoyez des requêtes pour mesurer vos gains de prompt caching.
                 </div>
               </div>
@@ -2320,13 +2390,305 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span id="config-toast-text">Enregistré</span>
+            <span id="config-toast-text" data-i18n="toast.saved">Enregistré</span>
           </div>
         </div>
       </div>
     </div>
     <div id="config-backdrop"></div>
 
+    <!-- ── Onboarding overlay (first-run wizard) ─────────────────────────── -->
+    <div id="onboarding-overlay" role="dialog" aria-modal="true">
+      <div class="onboarding-progress">
+        <div class="onboarding-progress-fill" id="ob-progress-fill" style="width: 20%"></div>
+      </div>
+
+      <div class="onboarding-content">
+        <!-- Step 1 — Welcome -->
+        <section class="onboarding-step active" id="onboarding-step-welcome">
+          <span class="onboarding-step-counter" id="ob-step-counter"
+                data-i18n="onboarding.step"></span>
+          <h1 class="onboarding-title" data-i18n="onboarding.welcome.title">Bienvenue sur OpenHub</h1>
+          <p class="onboarding-subtitle" data-i18n="onboarding.welcome.subtitle">
+            Votre environnement IA unifié — trois outils, une seule interface.
+          </p>
+          <div class="ob-cards">
+            <div class="ob-card">
+              <div class="ob-card-icon">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </div>
+              <span class="ob-card-title" data-i18n="onboarding.welcome.work.title">Work</span>
+              <span class="ob-card-desc" data-i18n="onboarding.welcome.work.desc">Gestion de tâches et productivité assistée par IA.</span>
+            </div>
+            <div class="ob-card">
+              <div class="ob-card-icon">
+                <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <span class="ob-card-title" data-i18n="onboarding.welcome.code.title">Code</span>
+              <span class="ob-card-desc" data-i18n="onboarding.welcome.code.desc">Éditeur de code avec assistant IA intégré.</span>
+            </div>
+            <div class="ob-card">
+              <div class="ob-card-icon">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+              </div>
+              <span class="ob-card-title" data-i18n="onboarding.welcome.design.title">Design</span>
+              <span class="ob-card-desc" data-i18n="onboarding.welcome.design.desc">Conception visuelle et prototypage IA.</span>
+            </div>
+            <div class="ob-card">
+              <div class="ob-card-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+              </div>
+              <span class="ob-card-title" data-i18n="onboarding.welcome.orchestrator.title">Orchestrateur</span>
+              <span class="ob-card-desc" data-i18n="onboarding.welcome.orchestrator.desc">Coordonne des équipes d'agents IA sur vos projets.</span>
+            </div>
+          </div>
+          <button class="ob-btn ob-btn--primary" id="ob-start" data-i18n="onboarding.start">Commencer</button>
+        </section>
+
+        <!-- Step 2 — Language -->
+        <section class="onboarding-step" id="onboarding-step-lang">
+          <h1 class="onboarding-title" data-i18n="onboarding.lang.title">Langue</h1>
+          <p class="onboarding-subtitle" data-i18n="onboarding.lang.subtitle">
+            Choisissez la langue de l'interface.
+          </p>
+          <div class="ob-lang-toggle">
+            <button class="ob-lang-btn selected" data-lang="fr">🇫🇷 Français</button>
+            <button class="ob-lang-btn" data-lang="en">🇬🇧 English</button>
+          </div>
+        </section>
+
+        <!-- Step 3 — Preferences -->
+        <section class="onboarding-step" id="onboarding-step-prefs">
+          <h1 class="onboarding-title" data-i18n="onboarding.prefs.title">Préférences</h1>
+          <p class="onboarding-subtitle" data-i18n="onboarding.prefs.subtitle">
+            Configurez vos fournisseurs IA et préférences. Vous pourrez tout modifier plus tard dans Réglages.
+          </p>
+          <div class="ob-prefs">
+            <!-- AI Provider -->
+            <div class="ob-prefs-group">
+              <span class="ob-prefs-group-title" data-i18n="onboarding.prefs.provider">Fournisseur IA</span>
+              <p class="ob-prefs-desc" data-i18n="onboarding.prefs.provider.desc">Ajoutez au moins une clé API pour utiliser les modèles IA.</p>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label">Anthropic</span>
+                  <span class="ob-prefs-desc" data-i18n="cfg.keys.anthropic.desc">Modèles Claude</span>
+                </div>
+                <div class="key-input-group">
+                  <input class="form-input form-input--mono" type="password" id="ob-key-anthropic"
+                         placeholder="sk-ant-..." autocomplete="off" spellcheck="false"/>
+                  <button type="button" class="btn-reveal" data-target="ob-key-anthropic"
+                          aria-pressed="false" data-i18n-aria-label="cfg.keys.reveal">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label">OpenAI</span>
+                  <span class="ob-prefs-desc" data-i18n="cfg.keys.openai.desc">Modèles GPT</span>
+                </div>
+                <div class="key-input-group">
+                  <input class="form-input form-input--mono" type="password" id="ob-key-openai"
+                         placeholder="sk-..." autocomplete="off" spellcheck="false"/>
+                  <button type="button" class="btn-reveal" data-target="ob-key-openai"
+                          aria-pressed="false" data-i18n-aria-label="cfg.keys.reveal">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label">OpenRouter</span>
+                  <span class="ob-prefs-desc" data-i18n="cfg.keys.openrouter.desc">Routage multi-fournisseurs</span>
+                </div>
+                <div class="key-input-group">
+                  <input class="form-input form-input--mono" type="password" id="ob-key-openrouter"
+                         placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false"/>
+                  <button type="button" class="btn-reveal" data-target="ob-key-openrouter"
+                          aria-pressed="false" data-i18n-aria-label="cfg.keys.reveal">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label">Ollama</span>
+                  <span class="ob-prefs-desc" data-i18n="cfg.keys.ollama.desc">Modèles locaux</span>
+                </div>
+                <div class="key-input-group">
+                  <input class="form-input form-input--mono" type="text" id="ob-key-ollama"
+                         placeholder="http://localhost:11434" autocomplete="off" spellcheck="false"/>
+                </div>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label">Google Gemini</span>
+                </div>
+                <button class="ob-btn ob-btn--outline" id="ob-google-login"
+                        data-i18n="onboarding.prefs.google">Se connecter avec Google</button>
+              </div>
+            </div>
+
+            <!-- Default models -->
+            <div class="ob-prefs-group">
+              <span class="ob-prefs-group-title" data-i18n="onboarding.prefs.models">Modèles par défaut</span>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label" data-i18n="onboarding.prefs.proModel">Modèle raisonnement</span>
+                </div>
+                <select class="form-select" id="ob-pro-model"></select>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label" data-i18n="onboarding.prefs.flashModel">Modèle rapide</span>
+                </div>
+                <select class="form-select" id="ob-flash-model"></select>
+              </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="ob-prefs-group">
+              <span class="ob-prefs-group-title" data-i18n="onboarding.prefs.notifications">Notifications</span>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label" data-i18n="onboarding.prefs.notifyMode">Mode de notification</span>
+                </div>
+                <select class="form-select" id="ob-notify-mode">
+                  <option value="otherTab" data-i18n="cfg.notifs.when.otherTab">Autre onglet ou arrière-plan</option>
+                  <option value="always" data-i18n="cfg.notifs.when.always">Toujours</option>
+                  <option value="background" data-i18n="cfg.notifs.when.background">App en arrière-plan uniquement</option>
+                  <option value="sound" data-i18n="cfg.notifs.when.sound">Son court uniquement</option>
+                  <option value="never" data-i18n="cfg.notifs.when.never">Jamais</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Memory -->
+            <div class="ob-prefs-group">
+              <span class="ob-prefs-group-title" data-i18n="onboarding.prefs.memory">Mémoire</span>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label" data-i18n="onboarding.prefs.memoryEnabled">Mémoire long terme</span>
+                  <span class="ob-prefs-desc" data-i18n="onboarding.prefs.memoryEnabled.desc">Injecte le profil et les faits dans chaque requête.</span>
+                </div>
+                <label class="ob-switch">
+                  <input type="checkbox" id="ob-memory-enabled" checked/>
+                  <span class="ob-switch-track"></span>
+                </label>
+              </div>
+              <div class="ob-prefs-row">
+                <div class="ob-prefs-row-text">
+                  <span class="ob-prefs-label" data-i18n="onboarding.prefs.autoExtract">Extraction automatique</span>
+                  <span class="ob-prefs-desc" data-i18n="onboarding.prefs.autoExtract.desc">Extrait les faits automatiquement via Ollama local.</span>
+                </div>
+                <label class="ob-switch">
+                  <input type="checkbox" id="ob-memory-auto"/>
+                  <span class="ob-switch-track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 4 — Ollama local models -->
+        <section class="onboarding-step" id="onboarding-step-ollama">
+          <h1 class="onboarding-title" data-i18n="onboarding.ollama.title">Modèles locaux</h1>
+          <p class="onboarding-subtitle" data-i18n="onboarding.ollama.subtitle">
+            Ces modèles tournent sur votre machine via Ollama pour la vision et la mémoire.
+          </p>
+
+          <!-- Ollama not detected -->
+          <div class="ob-ollama-notice" id="ob-ollama-notice" style="display: none">
+            <p class="ob-ollama-notice-text" data-i18n="onboarding.ollama.notRunning">
+              Ollama n'est pas détecté sur votre machine. Installez-le pour activer la vision et la mémoire locales.
+            </p>
+            <div class="ob-ollama-notice-actions">
+              <button class="ob-btn ob-btn--primary" id="ob-ollama-download"
+                      data-i18n="onboarding.ollama.download">Télécharger Ollama</button>
+              <button class="ob-btn ob-btn--ghost" id="ob-ollama-recheck"
+                      data-i18n="onboarding.ollama.recheck">Revérifier</button>
+            </div>
+          </div>
+
+          <!-- Ollama running — model cards -->
+          <div class="ob-ollama-models" id="ob-ollama-models" style="display: none">
+            <!-- Vision model -->
+            <div class="ob-ollama-card" id="ob-ollama-vision">
+              <div class="ob-ollama-card-info">
+                <span class="ob-ollama-card-name" data-i18n="onboarding.ollama.vision">Vision</span>
+                <span class="ob-ollama-card-role">openbmb/minicpm-v4.6</span>
+                <span class="ob-prefs-desc" data-i18n="onboarding.ollama.vision.desc">Analyse d'images en local.</span>
+                <div class="ob-ollama-progress" style="display: none">
+                  <div class="ob-ollama-progress-track">
+                    <div class="ob-ollama-progress-bar" style="width: 0%"></div>
+                  </div>
+                  <span class="ob-ollama-progress-text"></span>
+                </div>
+              </div>
+              <div class="ob-ollama-card-actions">
+                <span class="ob-ollama-status ob-ollama-status--missing"
+                      data-i18n="ollama.missing">Manquant</span>
+                <button class="ob-btn ob-btn--outline ob-ollama-action"
+                        data-i18n="common.install">Installer</button>
+              </div>
+            </div>
+            <!-- Memory model -->
+            <div class="ob-ollama-card" id="ob-ollama-memory">
+              <div class="ob-ollama-card-info">
+                <span class="ob-ollama-card-name" data-i18n="onboarding.ollama.memory">Mémoire / Cache</span>
+                <span class="ob-ollama-card-role">qwen2.5:1.5b</span>
+                <span class="ob-prefs-desc" data-i18n="onboarding.ollama.memory.desc">Extraction automatique de faits.</span>
+                <div class="ob-ollama-progress" style="display: none">
+                  <div class="ob-ollama-progress-track">
+                    <div class="ob-ollama-progress-bar" style="width: 0%"></div>
+                  </div>
+                  <span class="ob-ollama-progress-text"></span>
+                </div>
+              </div>
+              <div class="ob-ollama-card-actions">
+                <span class="ob-ollama-status ob-ollama-status--missing"
+                      data-i18n="ollama.missing">Manquant</span>
+                <button class="ob-btn ob-btn--outline ob-ollama-action"
+                        data-i18n="common.install">Installer</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 5 — Done -->
+        <section class="onboarding-step" id="onboarding-step-done">
+          <div class="ob-done-icon">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h1 class="onboarding-title" data-i18n="onboarding.done.title">Vous êtes prêt !</h1>
+          <p class="onboarding-subtitle" data-i18n="onboarding.done.subtitle">
+            Tout est configuré. Vous pouvez toujours modifier vos réglages depuis l'icône ⚙ en haut à droite.
+          </p>
+        </section>
+      </div>
+
+      <!-- Footer navigation -->
+      <div class="onboarding-footer">
+        <div class="onboarding-footer-left">
+          <button class="ob-btn ob-btn--ghost" id="ob-prev" style="display: none"
+                  data-i18n="onboarding.prev">Précédent</button>
+        </div>
+        <div class="onboarding-footer-right">
+          <button class="ob-btn ob-btn--ghost" id="ob-skip" style="display: none"
+                  data-i18n="onboarding.skip">Passer</button>
+          <button class="ob-btn ob-btn--primary" id="ob-next" style="display: none"
+                  data-i18n="onboarding.next">Suivant</button>
+          <button class="ob-btn ob-btn--primary" id="ob-ollama-continue" style="display: none"
+                  data-i18n="onboarding.next">Suivant</button>
+          <button class="ob-btn ob-btn--primary" id="ob-finish" style="display: none"
+                  data-i18n="onboarding.finish">Terminer</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="i18n/runtime.js"></script>
+    <script src="i18n/shell.js"></script>
     <script src="sidebar-ui.js"></script>
+    <script src="onboarding.js"></script>
   </body>
 </html>

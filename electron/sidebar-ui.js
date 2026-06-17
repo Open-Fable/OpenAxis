@@ -39,14 +39,6 @@ var slotIcons = {
     '<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>',
 };
 
-var slotLabels = {
-  chat: "Chat",
-  work: "Work",
-  code: "Code",
-  design: "Design",
-  projects: "Orchestrateur",
-};
-
 function applyNavMode(mode) {
   currentNavMode = mode;
   if (mode === "dropdown") {
@@ -67,7 +59,7 @@ var activeSlotName = "chat";
 
 function updateDropdownTrigger(slot) {
   activeSlotName = slot;
-  triggerLabel.textContent = slotLabels[slot] || slot;
+  triggerLabel.textContent = window.t ? t("nav.slot." + slot) : slot;
   triggerIcon.innerHTML = slotIcons[slot] || "";
 }
 
@@ -110,6 +102,44 @@ if (navModeSelect) {
     applyNavMode(mode);
     if (window.openhub.setNavMode) {
       window.openhub.setNavMode(mode);
+    }
+  });
+}
+
+// ── Language select in config panel ──
+var languageSelect = document.getElementById("language-select");
+if (languageSelect) {
+  if (window.I18N) languageSelect.value = window.I18N.lang;
+  languageSelect.addEventListener("change", function () {
+    var lang = languageSelect.value;
+    if (window.I18N) window.I18N.setLanguage(lang); // translate this view immediately
+    if (window.openhub && window.openhub.setLanguage) {
+      window.openhub.setLanguage(lang); // persist + broadcast to the other views
+    }
+  });
+}
+
+// Re-render dynamically-built chrome when the language changes — the runtime
+// only auto-translates [data-i18n] elements, so anything set from JS is redone.
+if (window.I18N && window.I18N.onChange) {
+  window.I18N.onChange(function () {
+    if (languageSelect) languageSelect.value = window.I18N.lang;
+    updateDropdownTrigger(activeSlotName);
+    var activeTab = document.querySelector(".config-tab.active");
+    if (activeTab) {
+      var meta = SECTION_META[activeTab.dataset.tab];
+      if (meta) {
+        var titleEl = document.getElementById("config-section-title");
+        var descEl = document.getElementById("config-section-desc");
+        if (titleEl) titleEl.textContent = t(meta.title);
+        if (descEl) descEl.textContent = t(meta.desc);
+      }
+    }
+    if (isPackagedMode) {
+      var lbl = document.getElementById("auto-update-label");
+      if (lbl) lbl.textContent = t("cfg.updates.autoPackaged.label");
+      var d = document.getElementById("auto-update-desc");
+      if (d) d.textContent = t("cfg.updates.autoPackaged.desc");
     }
   });
 }
@@ -203,13 +233,15 @@ window.openhub.onSlotChanged(function (slot) {
 });
 
 // ── Tab switching ──
+// Values are i18n keys, resolved with t() each time a tab is shown so the
+// header title/description follow the current language.
 var SECTION_META = {
-  keys: { title: "Clés API", desc: "Stockées en sécurité dans le Keychain macOS." },
-  models: { title: "Modèles IA", desc: "Configuration des modèles et fonctionnalités." },
-  memory: { title: "Mémoire", desc: "Profil utilisateur et base de connaissances." },
-  updates: { title: "Mises à jour", desc: "Gérer les apps et l'apparence." },
-  notifs: { title: "Notifications", desc: "Alertes de fin de tâche par source." },
-  cache: { title: "Cache", desc: "Statistiques d'efficacité du prompt caching." },
+  keys: { title: "cfg.tab.keys", desc: "cfg.keys.desc" },
+  models: { title: "cfg.tab.models", desc: "cfg.models.desc" },
+  memory: { title: "cfg.tab.memory", desc: "cfg.memory.desc" },
+  updates: { title: "cfg.tab.updates", desc: "cfg.updates.desc" },
+  notifs: { title: "cfg.tab.notifs", desc: "cfg.notifs.desc" },
+  cache: { title: "cfg.tab.cache", desc: "cfg.cache.desc" },
 };
 
 function switchConfigTab(tab) {
@@ -233,8 +265,8 @@ function switchConfigTab(tab) {
   if (meta) {
     var titleEl = document.getElementById("config-section-title");
     var descEl = document.getElementById("config-section-desc");
-    if (titleEl) titleEl.textContent = meta.title;
-    if (descEl) descEl.textContent = meta.desc;
+    if (titleEl) titleEl.textContent = t(meta.title);
+    if (descEl) descEl.textContent = t(meta.desc);
   }
 
   var scroll = document.getElementById("config-scroll");
@@ -305,7 +337,7 @@ function showSaveToast(msg) {
   var toast = document.getElementById("config-toast");
   var textEl = document.getElementById("config-toast-text");
   if (!toast) return;
-  if (textEl) textEl.textContent = msg || "Enregistré";
+  if (textEl) textEl.textContent = msg || t("toast.saved");
   toast.hidden = false;
   toast.classList.add("visible");
   clearTimeout(toastTimer);
@@ -323,10 +355,12 @@ function setGeminiStatus(connected, email) {
   var btn = document.getElementById("btn-google-login");
   if (statusEl) {
     statusEl.textContent = connected
-      ? "Connecté" + (email ? " : " + email : "")
-      : "Non connecté";
+      ? email
+        ? t("gemini.connectedWith", { email: email })
+        : t("gemini.connected")
+      : t("gemini.disconnected");
   }
-  if (btn) btn.textContent = connected ? "Reconnecter" : "Se connecter avec Google";
+  if (btn) btn.textContent = connected ? t("gemini.reconnect") : t("gemini.connect");
 }
 
 function loadGeminiAuthStatus() {
@@ -345,16 +379,16 @@ function loadGeminiAuthStatus() {
   btn.addEventListener("click", function () {
     btn.disabled = true;
     var prev = btn.textContent;
-    btn.textContent = "Connexion…";
+    btn.textContent = t("gemini.connecting");
     window.openhub
       .geminiLogin()
       .then(function (res) {
         setGeminiStatus(true, res && res.email);
-        showSaveToast("Connecté à Google");
+        showSaveToast(t("gemini.connectedToast"));
       })
       .catch(function (err) {
         btn.textContent = prev;
-        var raw = err && err.message ? String(err.message) : "Connexion échouée";
+        var raw = err && err.message ? String(err.message) : t("gemini.connectFailed");
         // Strip Electron's "Error invoking remote method '…': Error: " wrapper.
         showSaveToast(raw.split("Error: ").pop());
       })
@@ -366,6 +400,7 @@ function loadGeminiAuthStatus() {
 
 // ── Config panel ──
 var configFocusTrigger = null;
+var isPackagedMode = false;
 
 function openConfig() {
   configFocusTrigger = document.activeElement;
@@ -421,16 +456,15 @@ function openConfig() {
       .then(function (mode) {
         if (mode && mode.isPackaged) {
           // Packaged: hide git-based app updates, show self-update
+          isPackagedMode = true;
           var gitSection = document.getElementById("git-update-section");
           if (gitSection) gitSection.style.display = "none";
           var selfSection = document.getElementById("self-update-section");
           if (selfSection) selfSection.style.display = "";
           var lbl = document.getElementById("auto-update-label");
-          if (lbl) lbl.textContent = "Vérifier les mises à jour au démarrage";
+          if (lbl) lbl.textContent = t("cfg.updates.autoPackaged.label");
           var desc = document.getElementById("auto-update-desc");
-          if (desc)
-            desc.textContent =
-              "Vérifie si une nouvelle version est disponible (l'installation reste manuelle).";
+          if (desc) desc.textContent = t("cfg.updates.autoPackaged.desc");
           initSelfUpdateUI();
           loadBundledVersions();
         } else {
@@ -512,6 +546,21 @@ window.openhub.onShowConfig(openConfig);
 document.getElementById("close-config").addEventListener("click", closeConfig);
 backdrop.addEventListener("click", closeConfig);
 
+// Redo onboarding from settings
+var redoBtn = document.getElementById("redo-onboarding");
+if (redoBtn) {
+  redoBtn.addEventListener("click", async function () {
+    await window.openhub.resetOnboarding();
+    closeConfig();
+    var overlay = document.getElementById("onboarding-overlay");
+    if (overlay) {
+      overlay.classList.add("open");
+      window.openhub.notifyOnboardingVisibility(true);
+      overlay.dispatchEvent(new CustomEvent("onboarding-restart"));
+    }
+  });
+}
+
 // Auto-save API keys on blur when value changed
 [
   "key-anthropic",
@@ -540,13 +589,13 @@ backdrop.addEventListener("click", closeConfig);
         braveSearchKey: document.getElementById("key-brave").value.trim(),
       })
       .then(function () {
-        showSaveToast("Clé enregistrée");
+        showSaveToast(t("toast.keySaved"));
         if (id === "key-ollama") loadOllamaStatus();
       })
       .catch(function (err) {
         // Ne jamais avaler l'erreur en silence : restaurer l'état et prévenir
         el.dataset.initial = previous;
-        showSaveToast("Échec de l'enregistrement de la clé");
+        showSaveToast(t("toast.keySaveFailed"));
         console.error("saveApiKeys failed", err);
       });
   });
@@ -565,7 +614,7 @@ document.querySelectorAll(".btn-reveal").forEach(function (btn) {
     var isPass = input.type === "password";
     input.type = isPass ? "text" : "password";
     btn.setAttribute("aria-pressed", isPass ? "true" : "false");
-    btn.setAttribute("aria-label", isPass ? "Masquer la clé" : "Afficher la clé");
+    btn.setAttribute("aria-label", isPass ? t("cfg.keys.hide") : t("cfg.keys.reveal"));
     var svg = btn.querySelector("svg");
     if (svg) {
       var tmp = document.createElement("span");
@@ -745,11 +794,15 @@ function loadUpdateStatus() {
       "</div>" +
       '<div class="update-item-status" id="update-status-' +
       a.id +
-      '">Vérification…</div>' +
+      '">' +
+      t("common.checking") +
+      "</div>" +
       "</div>" +
       '<button class="btn-update" id="update-btn-' +
       a.id +
-      '">Vérifier</button>';
+      '">' +
+      t("common.check") +
+      "</button>";
     list.appendChild(item);
   }
   if (!list.dataset.wired) {
@@ -770,7 +823,7 @@ async function checkUpdate(appId) {
   var statusEl = document.getElementById("update-status-" + appId);
   var btnEl = document.getElementById("update-btn-" + appId);
   if (!statusEl || !btnEl) return;
-  statusEl.textContent = "Vérification…";
+  statusEl.textContent = t("common.checking");
   statusEl.className = "update-item-status updating";
   btnEl.classList.add("checking");
   btnEl.disabled = true;
@@ -782,7 +835,7 @@ async function checkUpdate(appId) {
     if (info.behind > 0) {
       statusEl.textContent = info.localTag + " → " + info.remoteTag;
       statusEl.className = "update-item-status available";
-      btnEl.textContent = "Mettre à jour";
+      btnEl.textContent = t("update.update");
       btnEl.className = "btn-update primary";
       btnEl.disabled = false;
       btnEl.onclick = function () {
@@ -796,9 +849,10 @@ async function checkUpdate(appId) {
       }
     } else {
       statusEl.textContent =
-        "À jour" + (info.localTag !== "none" ? " (" + info.localTag + ")" : "");
+        t("update.upToDate") +
+        (info.localTag !== "none" ? " (" + info.localTag + ")" : "");
       statusEl.className = "update-item-status latest";
-      btnEl.textContent = "Vérifier";
+      btnEl.textContent = t("common.check");
       btnEl.className = "btn-update";
       btnEl.disabled = false;
       btnEl.onclick = function () {
@@ -806,9 +860,11 @@ async function checkUpdate(appId) {
       };
     }
   } catch (err) {
-    statusEl.textContent = "Erreur : " + (err.message || "inconnue");
+    statusEl.textContent = t("common.errorWith", {
+      msg: err.message || t("common.unknown"),
+    });
     statusEl.className = "update-item-status error";
-    btnEl.textContent = "Réessayer";
+    btnEl.textContent = t("common.retry");
     btnEl.className = "btn-update";
     btnEl.disabled = false;
     btnEl.onclick = function () {
@@ -822,25 +878,28 @@ async function runUpdate(appId) {
   var statusEl = document.getElementById("update-status-" + appId);
   var btnEl = document.getElementById("update-btn-" + appId);
   if (!statusEl || !btnEl) return;
-  statusEl.textContent = "Mise à jour en cours…";
+  statusEl.textContent = t("update.updating");
   statusEl.className = "update-item-status updating";
   btnEl.textContent = "…";
   btnEl.disabled = true;
   try {
     var result = await window.openhub.runAppUpdate(appId);
-    if (!result || !result.ok) throw new Error((result && result.error) || "échec");
-    statusEl.textContent = "Mise à jour terminée ✓";
+    if (!result || !result.ok)
+      throw new Error((result && result.error) || t("common.failed"));
+    statusEl.textContent = t("update.done");
     statusEl.className = "update-item-status latest";
-    btnEl.textContent = "Vérifier";
+    btnEl.textContent = t("common.check");
     btnEl.className = "btn-update";
     btnEl.disabled = false;
     btnEl.onclick = function () {
       checkUpdate(appId);
     };
   } catch (err) {
-    statusEl.textContent = "Erreur : " + (err.message || "inconnue");
+    statusEl.textContent = t("common.errorWith", {
+      msg: err.message || t("common.unknown"),
+    });
     statusEl.className = "update-item-status error";
-    btnEl.textContent = "Réessayer";
+    btnEl.textContent = t("common.retry");
     btnEl.className = "btn-update";
     btnEl.disabled = false;
     btnEl.onclick = function () {
@@ -906,7 +965,7 @@ function initSelfUpdateUI() {
   }
 
   if (window.openhub.selfUpdateCheck) {
-    statusEl.textContent = "Vérification…";
+    statusEl.textContent = t("common.checking");
     window.openhub
       .selfUpdateCheck()
       .then(function (info) {
@@ -920,11 +979,11 @@ function initSelfUpdateUI() {
             barEl,
           );
         } else {
-          statusEl.textContent = "Vous utilisez la dernière version.";
+          statusEl.textContent = t("selfupdate.upToDate");
         }
       })
       .catch(function () {
-        statusEl.textContent = "Impossible de vérifier les mises à jour.";
+        statusEl.textContent = t("selfupdate.checkFailed");
       });
   }
 
@@ -941,38 +1000,41 @@ function applySelfUpdateStatus(s, versionEl, statusEl, btnEl, progressEl, barEl)
   if (!s || !s.stage) return;
   switch (s.stage) {
     case "idle":
-      statusEl.textContent = "Vous utilisez la dernière version.";
+      statusEl.textContent = t("selfupdate.upToDate");
       btnEl.style.display = "none";
       if (progressEl) progressEl.style.display = "none";
       break;
     case "checking":
-      statusEl.textContent = "Vérification…";
+      statusEl.textContent = t("common.checking");
       btnEl.style.display = "none";
       if (progressEl) progressEl.style.display = "none";
       break;
     case "available":
-      if (versionEl) versionEl.textContent = "v" + s.version + " disponible";
-      statusEl.textContent = "Une nouvelle version est prête à être installée.";
-      btnEl.textContent = "Installer";
+      if (versionEl)
+        versionEl.textContent = t("selfupdate.versionAvailable", { version: s.version });
+      statusEl.textContent = t("selfupdate.available");
+      btnEl.textContent = t("common.install");
       btnEl.disabled = false;
       btnEl.style.display = "";
       btnEl.className = "btn-update primary";
       if (progressEl) progressEl.style.display = "none";
       break;
     case "downloading":
-      statusEl.textContent = "Téléchargement… " + (s.percent || 0) + " %";
+      statusEl.textContent = t("selfupdate.downloading", { percent: s.percent || 0 });
       btnEl.style.display = "none";
       if (progressEl) progressEl.style.display = "";
       if (barEl) barEl.style.width = (s.percent || 0) + "%";
       break;
     case "ready":
-      statusEl.textContent = "Installation en cours…";
+      statusEl.textContent = t("selfupdate.installing");
       btnEl.style.display = "none";
       if (progressEl) progressEl.style.display = "none";
       break;
     case "error":
-      statusEl.textContent = "Erreur : " + (s.message || "inconnue");
-      btnEl.textContent = "Réessayer";
+      statusEl.textContent = t("common.errorWith", {
+        msg: s.message || t("common.unknown"),
+      });
+      btnEl.textContent = t("common.retry");
       btnEl.disabled = false;
       btnEl.style.display = "";
       btnEl.className = "btn-update";
@@ -1042,16 +1104,11 @@ function updateTokenHint(mem) {
   var totalTokens = parts.length > 0 ? approxTokens(parts.join("\n")) : 0;
   // Estimation par budget seul. À l'exécution, les faits sont en plus filtrés par
   // pertinence à la requête, donc l'injection réelle est ≤ ce maximum.
-  tokenHint.textContent =
-    "~" +
-    totalTokens +
-    " tokens max · " +
-    includedFacts +
-    "/" +
-    (mem.facts || []).length +
-    " faits candidats (selon la requête) · " +
-    (mem.facts || []).length +
-    "/50 max";
+  tokenHint.textContent = t("memory.tokenHint", {
+    total: totalTokens,
+    included: includedFacts,
+    count: (mem.facts || []).length,
+  });
 }
 
 memToggle.addEventListener("change", function () {
@@ -1175,8 +1232,9 @@ var configScroll = document.getElementById("config-scroll");
 if (configScroll) {
   configScroll.addEventListener("change", function (e) {
     var t = e.target;
-    if (t.tagName === "INPUT" && t.type === "checkbox") showSaveToast("Enregistré");
-    else if (t.tagName === "SELECT") showSaveToast("Enregistré");
+    if (t.tagName === "INPUT" && t.type === "checkbox")
+      showSaveToast(window.t("toast.saved"));
+    else if (t.tagName === "SELECT") showSaveToast(window.t("toast.saved"));
   });
 }
 
@@ -1186,7 +1244,7 @@ memProfile.addEventListener("input", function () {
   profileTimer = setTimeout(function () {
     window.openhub.setMemoryProfile(memProfile.value);
     loadMemoryUI();
-    showSaveToast("Profil enregistré");
+    showSaveToast(t("toast.profileSaved"));
   }, 600);
 });
 memProfile.addEventListener("blur", function () {
@@ -1266,7 +1324,7 @@ async function loadOllamaStatus() {
       const statusSpan = document.createElement("span");
       statusSpan.className = "ollama-model-status";
       statusSpan.id = "ollama-status-" + safeId;
-      statusSpan.textContent = isPulling ? "En cours..." : "Manquant";
+      statusSpan.textContent = isPulling ? t("ollama.pulling") : t("ollama.missing");
 
       header.appendChild(nameSpan);
       header.appendChild(statusSpan);
@@ -1290,7 +1348,7 @@ async function loadOllamaStatus() {
 
       const btn = document.createElement("button");
       btn.className = "btn-ollama" + (isPulling ? " cancel" : "");
-      btn.textContent = isPulling ? "Annuler" : "Installer";
+      btn.textContent = isPulling ? t("common.cancel") : t("common.install");
       btn.addEventListener("click", () => {
         if (isPulling) {
           window.openhub.ollamaCancelPull(model);
@@ -1319,12 +1377,13 @@ async function loadOllamaStatus() {
 function showOllamaProgress(model) {
   const safeId = model.replace(/[:.]/g, "-");
   document.getElementById("ollama-progress-cont-" + safeId).style.display = "block";
-  document.getElementById("ollama-status-" + safeId).textContent = "Initialisation...";
+  document.getElementById("ollama-status-" + safeId).textContent =
+    t("ollama.initializing");
   const actions = document.getElementById("ollama-actions-" + safeId);
   actions.textContent = "";
   const btn = document.createElement("button");
   btn.className = "btn-ollama cancel";
-  btn.textContent = "Annuler";
+  btn.textContent = t("common.cancel");
   btn.addEventListener("click", () => {
     window.openhub.ollamaCancelPull(model);
     hideOllamaProgress(model);
@@ -1335,12 +1394,12 @@ function showOllamaProgress(model) {
 function hideOllamaProgress(model) {
   const safeId = model.replace(/[:.]/g, "-");
   document.getElementById("ollama-progress-cont-" + safeId).style.display = "none";
-  document.getElementById("ollama-status-" + safeId).textContent = "Manquant";
+  document.getElementById("ollama-status-" + safeId).textContent = t("ollama.missing");
   const actions = document.getElementById("ollama-actions-" + safeId);
   actions.textContent = "";
   const btn = document.createElement("button");
   btn.className = "btn-ollama";
-  btn.textContent = "Installer";
+  btn.textContent = t("common.install");
   btn.addEventListener("click", () => {
     window.openhub.ollamaPullModel(model);
     showOllamaProgress(model);
@@ -1359,14 +1418,16 @@ if (window.openhub.onOllamaPullProgress) {
     if (!statusEl) return;
 
     if (progress.status === "success") {
-      statusEl.textContent = "Installé ✓";
+      statusEl.textContent = t("ollama.installed");
       statusEl.style.color = "var(--oh-color-success)";
       if (contEl) contEl.style.display = "none";
       if (actionsEl) actionsEl.style.display = "none";
       // Refresh in 2 seconds to hide the manager if all models are installed
       setTimeout(loadOllamaStatus, 2000);
     } else if (progress.status === "error") {
-      statusEl.textContent = "Erreur : " + (progress.error || "échec");
+      statusEl.textContent = t("common.errorWith", {
+        msg: progress.error || t("common.failed"),
+      });
       statusEl.style.color = "var(--oh-color-error)";
       if (actionsEl) {
         // Build via DOM (not innerHTML/onclick) so the model id can never
@@ -1374,7 +1435,7 @@ if (window.openhub.onOllamaPullProgress) {
         const model = progress.model;
         const retryBtn = document.createElement("button");
         retryBtn.className = "btn-ollama";
-        retryBtn.textContent = "Réessayer";
+        retryBtn.textContent = t("common.retry");
         retryBtn.addEventListener("click", () => {
           window.openhub.ollamaPullModel(model);
           showOllamaProgress(model);
@@ -1524,9 +1585,15 @@ if (btnResetCache && cacheResetArea) {
   btnResetCache.addEventListener("click", function () {
     cacheResetArea.innerHTML =
       '<span class="reset-confirm">' +
-      '<span style="font-size:12px;color:var(--oh-color-text-secondary);">Confirmer ?</span> ' +
-      '<button class="btn-confirm-yes">Oui</button> ' +
-      '<button class="btn-confirm-no">Non</button>' +
+      '<span style="font-size:12px;color:var(--oh-color-text-secondary);">' +
+      t("cfg.cache.confirm") +
+      "</span> " +
+      '<button class="btn-confirm-yes">' +
+      t("cfg.cache.yes") +
+      "</button> " +
+      '<button class="btn-confirm-no">' +
+      t("cfg.cache.no") +
+      "</button>" +
       "</span>";
     cacheResetArea
       .querySelector(".btn-confirm-yes")
@@ -1534,20 +1601,24 @@ if (btnResetCache && cacheResetArea) {
         fetch("http://127.0.0.1:9999/v1/cache/reset", { method: "POST" })
           .then(function () {
             loadCacheMetrics();
-            showSaveToast("Cache réinitialisé");
+            showSaveToast(t("toast.cacheReset"));
           })
           .catch(function (err) {
             console.error("Failed to reset metrics:", err);
           });
         cacheResetArea.innerHTML =
-          '<button class="btn-danger-ghost" id="btn-reset-cache">Réinitialiser</button>';
+          '<button class="btn-danger-ghost" id="btn-reset-cache" data-i18n="cfg.cache.reset">' +
+          t("cfg.cache.reset") +
+          "</button>";
         rebindResetCache();
       });
     cacheResetArea
       .querySelector(".btn-confirm-no")
       .addEventListener("click", function () {
         cacheResetArea.innerHTML =
-          '<button class="btn-danger-ghost" id="btn-reset-cache">Réinitialiser</button>';
+          '<button class="btn-danger-ghost" id="btn-reset-cache" data-i18n="cfg.cache.reset">' +
+          t("cfg.cache.reset") +
+          "</button>";
         rebindResetCache();
       });
   });
@@ -1560,26 +1631,36 @@ function rebindResetCache() {
     if (!area) return;
     area.innerHTML =
       '<span class="reset-confirm">' +
-      '<span style="font-size:12px;color:var(--oh-color-text-secondary);">Confirmer ?</span> ' +
-      '<button class="btn-confirm-yes">Oui</button> ' +
-      '<button class="btn-confirm-no">Non</button>' +
+      '<span style="font-size:12px;color:var(--oh-color-text-secondary);">' +
+      t("cfg.cache.confirm") +
+      "</span> " +
+      '<button class="btn-confirm-yes">' +
+      t("cfg.cache.yes") +
+      "</button> " +
+      '<button class="btn-confirm-no">' +
+      t("cfg.cache.no") +
+      "</button>" +
       "</span>";
     area.querySelector(".btn-confirm-yes").addEventListener("click", function () {
       fetch("http://127.0.0.1:9999/v1/cache/reset", { method: "POST" })
         .then(function () {
           loadCacheMetrics();
-          showSaveToast("Cache réinitialisé");
+          showSaveToast(t("toast.cacheReset"));
         })
         .catch(function (err) {
           console.error("Failed to reset metrics:", err);
         });
       area.innerHTML =
-        '<button class="btn-danger-ghost" id="btn-reset-cache">Réinitialiser</button>';
+        '<button class="btn-danger-ghost" id="btn-reset-cache" data-i18n="cfg.cache.reset">' +
+        t("cfg.cache.reset") +
+        "</button>";
       rebindResetCache();
     });
     area.querySelector(".btn-confirm-no").addEventListener("click", function () {
       area.innerHTML =
-        '<button class="btn-danger-ghost" id="btn-reset-cache">Réinitialiser</button>';
+        '<button class="btn-danger-ghost" id="btn-reset-cache" data-i18n="cfg.cache.reset">' +
+        t("cfg.cache.reset") +
+        "</button>";
       rebindResetCache();
     });
   });

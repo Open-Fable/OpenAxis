@@ -2908,7 +2908,12 @@
     <div class="app-layout">
       <!-- Chat View -->
       <div class="chat-layout" id="chatView">
-        <aside class="conv-sidebar" role="complementary" aria-label="Conversations">
+        <aside
+          class="conv-sidebar"
+          role="complementary"
+          aria-label="Conversations"
+          data-i18n-aria-label="chat.sidebar.conversationsAria"
+        >
           <div class="conv-sidebar-nav">
             <button class="conv-nav-item active" id="btnNavNewChat">
               <svg
@@ -2922,7 +2927,7 @@
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
               </svg>
-              Nouveau chat
+              <span data-i18n="chat.nav.newChat">Nouveau chat</span>
             </button>
             <button class="conv-nav-item" id="btnNavProjects">
               <svg
@@ -2937,7 +2942,7 @@
                   d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
                 ></path>
               </svg>
-              Projets
+              <span data-i18n="chat.nav.projects">Projets</span>
             </button>
             <button class="conv-nav-item" id="btnNavSearch">
               <svg
@@ -2951,11 +2956,16 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              Recherche Web
+              <span data-i18n="chat.nav.webSearch">Recherche Web</span>
             </button>
           </div>
           <div class="conv-sidebar-header" style="padding-top: 24px">
-            <span class="conv-sidebar-title" style="margin-left: 4px">CONVERSATIONS</span>
+            <span
+              class="conv-sidebar-title"
+              style="margin-left: 4px"
+              data-i18n="chat.sidebar.conversationsTitle"
+              >CONVERSATIONS</span
+            >
           </div>
           <div class="conv-search" id="convSearchWrap">
             <svg
@@ -2973,7 +2983,9 @@
               type="text"
               id="convSearch"
               placeholder="Rechercher…"
+              data-i18n-placeholder="chat.sidebar.searchPlaceholder"
               aria-label="Rechercher une conversation"
+              data-i18n-aria-label="chat.sidebar.searchAria"
             />
           </div>
           <div
@@ -2981,6 +2993,7 @@
             id="convList"
             role="listbox"
             aria-label="Liste des conversations"
+            data-i18n-aria-label="chat.sidebar.listAria"
           ></div>
         </aside>
 
@@ -2993,7 +3006,9 @@
                 class="btn-sidebar-toggle"
                 id="btnSidebarToggle"
                 title="Afficher les conversations"
+                data-i18n-title="chat.sidebar.show"
                 aria-label="Afficher les conversations"
+                data-i18n-aria-label="chat.sidebar.show"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -3008,7 +3023,9 @@
                   <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
               </button>
-              <h1 class="chat-header-title" id="chatTitle">Nouvelle conversation</h1>
+              <h1 class="chat-header-title" id="chatTitle" data-i18n="chat.title.new">
+                Nouvelle conversation
+              </h1>
             </div>
             <div class="chat-header-right" id="chatHeaderRight"></div>
           </header>
@@ -3034,10 +3051,14 @@
                     ></path>
                   </svg>
                 </div>
-                <div class="empty-state-title" id="emptyTitle">
+                <div class="empty-state-title" id="emptyTitle" data-i18n="chat.empty.help">
                   Comment puis-je vous aider ?
                 </div>
-                <div class="empty-state-desc" id="emptyDesc">
+                <div
+                  class="empty-state-desc"
+                  id="emptyDesc"
+                  data-i18n="chat.empty.helpDesc"
+                >
                   Sélectionnez un modèle et posez votre question
                 </div>
               </div>
@@ -3059,7 +3080,9 @@
                     class="btn-input-more"
                     id="btnInputMore"
                     title="Plus d'options"
+                    data-i18n-title="chat.more.title"
                     aria-label="Plus d'options"
+                    data-i18n-aria-label="chat.more.title"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -3089,7 +3112,7 @@
                           d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                         ></path>
                       </svg>
-                      Recherche web
+                      <span data-i18n="chat.more.webSearch">Recherche web</span>
                     </button>
                     <button class="more-dropdown-item" id="ddProject" role="menuitem">
                       <svg
@@ -3104,7 +3127,7 @@
                           d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
                         ></path>
                       </svg>
-                      Projet
+                      <span data-i18n="chat.more.project">Projet</span>
                     </button>
                     <button class="more-dropdown-item" id="ddSkills" role="menuitem">
                       <svg
@@ -3119,7 +3142,7 @@
                           d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
                         ></path>
                       </svg>
-                      Compétences (Skills)
+                      <span data-i18n="chat.more.skills">Compétences (Skills)</span>
                     </button>
                     <div class="more-dropdown-divider"></div>
                     <button class="more-dropdown-item" id="ddCatalog" role="menuitem">
@@ -3136,7 +3159,7 @@
                           d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-4.01 2.86-4.01 4.7"
                         ></path>
                       </svg>
-                      Catalogue
+                      <span data-i18n="chat.more.catalog">Catalogue</span>
                     </button>
                     <div class="more-dropdown-divider"></div>
                     <button class="more-dropdown-item" id="ddAttach" role="menuitem">
@@ -3152,15 +3175,17 @@
                           d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
                         ></path>
                       </svg>
-                      Joindre un fichier
+                      <span data-i18n="chat.more.attach">Joindre un fichier</span>
                     </button>
                   </div>
                 </div>
                 <textarea
                   id="chatInput"
                   placeholder="Écrivez votre message…"
+                  data-i18n-placeholder="chat.input.placeholder"
                   rows="1"
                   aria-label="Message"
+                  data-i18n-aria-label="chat.input.aria"
                   spellcheck="true"
                 ></textarea>
                 <div class="input-bar-context" id="inputBarContextInside">
@@ -3170,8 +3195,12 @@
                         class="input-context-pill"
                         id="btnModelContext"
                         title="Modèle actuel"
+                        data-i18n-title="chat.pill.model.title"
                       >
-                        <span class="context-pill-label" id="modelContextLabel"
+                        <span
+                          class="context-pill-label"
+                          id="modelContextLabel"
+                          data-i18n="chat.pill.model.waiting"
                           >En attente…</span
                         ><svg
                           viewBox="0 0 24 24"
@@ -3204,8 +3233,12 @@
                         class="input-context-pill"
                         id="btnReasoningContext"
                         title="Niveau de réflexion"
+                        data-i18n-title="chat.pill.reasoning.title"
                       >
-                        <span class="context-pill-label" id="reasoningContextLabel"
+                        <span
+                          class="context-pill-label"
+                          id="reasoningContextLabel"
+                          data-i18n="chat.pill.reasoning.medium"
                           >Moyen</span
                         ><svg
                           viewBox="0 0 24 24"
@@ -3236,6 +3269,7 @@
                     class="btn-send"
                     id="btnSend"
                     aria-label="Envoyer le message"
+                    data-i18n-aria-label="chat.send.aria"
                     disabled
                   >
                     <svg
@@ -3254,7 +3288,9 @@
               </div>
             </div>
           </div>
-          <div class="drop-overlay" id="dropOverlay">Dépose tes fichiers ici</div>
+          <div class="drop-overlay" id="dropOverlay" data-i18n="chat.drop.overlay">
+            Dépose tes fichiers ici
+          </div>
         </main>
       </div>
 
@@ -3264,9 +3300,12 @@
         id="projectsHubView"
         role="region"
         aria-label="Gestionnaire de projets"
+        data-i18n-aria-label="chat.hub.projectsAria"
       >
         <div class="projects-hub-toprow">
-          <h2 class="projects-hub-heading" id="hubHeading">Projets</h2>
+          <h2 class="projects-hub-heading" id="hubHeading" data-i18n="chat.hub.heading">
+            Projets
+          </h2>
           <div class="projects-hub-actions">
             <div class="projects-hub-search" role="search">
               <svg
@@ -3283,7 +3322,9 @@
                 type="text"
                 id="projectSearchInput"
                 placeholder="Rechercher..."
+                data-i18n-placeholder="chat.hub.searchPlaceholder"
                 aria-label="Rechercher un projet"
+                data-i18n-aria-label="chat.hub.searchAria"
               />
               <span class="hub-search-kbd" aria-hidden="true">&#8984;K</span>
             </div>
@@ -3291,16 +3332,20 @@
               class="projects-hub-sort"
               id="hubSortSelect"
               aria-label="Trier les projets"
+              data-i18n-aria-label="chat.hub.sortAria"
             >
-              <option value="recent">R&#233;cents</option>
-              <option value="az">A &#8594; Z</option>
-              <option value="type">Type</option>
+              <option value="recent" data-i18n="chat.hub.sort.recent">R&#233;cents</option>
+              <option value="az" data-i18n="chat.hub.sort.az">A &#8594; Z</option>
+              <option value="type" data-i18n="chat.hub.sort.type">Type</option>
             </select>
-            <button class="hub-btn-ghost" id="btnSelectMode">Sélectionner</button>
+            <button class="hub-btn-ghost" id="btnSelectMode" data-i18n="chat.hub.selectMode">
+              Sélectionner
+            </button>
             <button
               class="projects-hub-btn-new"
               id="btnNewProjectHub"
               aria-label="Créer un nouveau projet"
+              data-i18n-aria-label="chat.hub.newAria"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -3313,12 +3358,13 @@
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Nouveau
+              <span data-i18n="chat.hub.new">Nouveau</span>
             </button>
             <button
               class="btn-icon"
               id="btnCloseHub"
               aria-label="Fermer le gestionnaire de projets"
+              data-i18n-aria-label="chat.hub.closeAria"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -3338,12 +3384,24 @@
             id="hubSelectBar"
             role="toolbar"
             aria-label="Actions de sélection"
+            data-i18n-aria-label="chat.hub.selectActionsAria"
           >
-            <span class="hub-select-count" id="hubSelectCount" aria-live="polite"
+            <span
+              class="hub-select-count"
+              id="hubSelectCount"
+              aria-live="polite"
+              data-i18n="chat.hub.selectedCount"
               >0 sélectionné</span
             >
-            <button class="hub-btn-ghost" id="btnCancelSelect">Annuler</button>
-            <button class="hub-btn-danger" id="btnDeleteSelected" aria-live="polite">
+            <button class="hub-btn-ghost" id="btnCancelSelect" data-i18n="chat.hub.cancel">
+              Annuler
+            </button>
+            <button
+              class="hub-btn-danger"
+              id="btnDeleteSelected"
+              aria-live="polite"
+              data-i18n="chat.hub.deleteCount"
+            >
               Supprimer (0)
             </button>
           </div>
@@ -3353,6 +3411,7 @@
           id="hubFilters"
           role="radiogroup"
           aria-label="Filtrer par type"
+          data-i18n-aria-label="chat.hub.filterAria"
         ></div>
         <div
           aria-live="polite"
@@ -3361,14 +3420,35 @@
           id="hubAnnouncer"
         ></div>
         <div class="projects-hub-scroll" id="projectsHubScroll">
-          <div id="hubPinnedSection" role="region" aria-label="Projets épinglés"></div>
-          <div id="hubFoldersSection" role="region" aria-label="Dossiers"></div>
-          <div id="hubAllSection" role="region" aria-label="Tous les projets"></div>
-          <div id="hubArchivedSection" role="region" aria-label="Projets archivés"></div>
+          <div
+            id="hubPinnedSection"
+            role="region"
+            aria-label="Projets épinglés"
+            data-i18n-aria-label="chat.hub.pinnedAria"
+          ></div>
+          <div
+            id="hubFoldersSection"
+            role="region"
+            aria-label="Dossiers"
+            data-i18n-aria-label="chat.hub.foldersAria"
+          ></div>
+          <div
+            id="hubAllSection"
+            role="region"
+            aria-label="Tous les projets"
+            data-i18n-aria-label="chat.hub.allAria"
+          ></div>
+          <div
+            id="hubArchivedSection"
+            role="region"
+            aria-label="Projets archivés"
+            data-i18n-aria-label="chat.hub.archivedAria"
+          ></div>
           <div
             id="hubGeneratedSection"
             role="region"
             aria-label="Projets de l'orchestrateur"
+            data-i18n-aria-label="chat.hub.generatedAria"
           ></div>
         </div>
         <div
@@ -3376,6 +3456,7 @@
           id="hubCtxMenu"
           role="menu"
           aria-label="Actions du projet"
+          data-i18n-aria-label="chat.hub.ctxActionsAria"
         ></div>
       </div>
 
@@ -3394,7 +3475,9 @@
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <span id="detailProjectName">Nom du Projet</span>
+            <span id="detailProjectName" data-i18n="chat.detail.projectName"
+              >Nom du Projet</span
+            >
           </div>
         </header>
         <div class="project-details-body">
@@ -3415,11 +3498,13 @@
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
-                Nouveau chat
+                <span data-i18n="chat.detail.newChat">Nouveau chat</span>
               </button>
             </div>
             <div class="conv-sidebar-header" style="padding: 12px 20px 8px">
-              <span class="conv-sidebar-title">Conversations</span>
+              <span class="conv-sidebar-title" data-i18n="chat.detail.conversations"
+                >Conversations</span
+              >
             </div>
             <div class="project-conv-list" id="projectConvList">
               <!-- Filtered conversation items -->
@@ -3429,24 +3514,33 @@
             <div class="project-details-main-inner">
               <div class="project-context-grid">
                 <div class="project-section context-panel">
-                  <div class="project-section-title">Instructions personnalisées</div>
-                  <div class="project-section-desc">
+                  <div class="project-section-title" data-i18n="chat.detail.instructions">
+                    Instructions personnalisées
+                  </div>
+                  <div class="project-section-desc" data-i18n="chat.detail.instructionsDesc">
                     Définissez le rôle et le comportement de l'IA pour ce projet.
                   </div>
                   <textarea
                     class="instructions-textarea"
                     id="projectInstructions"
                     placeholder="Ex: Tu es un assistant spécialisé en marketing..."
+                    data-i18n-placeholder="chat.detail.instructionsPlaceholder"
                   ></textarea>
                   <div style="display: flex; justify-content: flex-end">
-                    <button class="oh-btn oh-btn-primary" id="btnSaveInstructions">
+                    <button
+                      class="oh-btn oh-btn-primary"
+                      id="btnSaveInstructions"
+                      data-i18n="chat.detail.save"
+                    >
                       Enregistrer
                     </button>
                   </div>
                 </div>
                 <div class="project-section context-panel" id="projectFilesPanel">
-                  <div class="project-section-title">Fichiers du projet</div>
-                  <div class="project-section-desc">
+                  <div class="project-section-title" data-i18n="chat.detail.files">
+                    Fichiers du projet
+                  </div>
+                  <div class="project-section-desc" data-i18n="chat.detail.filesDesc">
                     Contextes additionnels pour vos conversations.
                   </div>
                   <div class="file-list" id="projectFileList">
@@ -3458,6 +3552,7 @@
                         color: var(--text-muted);
                         font-size: 13px;
                       "
+                      data-i18n-html="chat.detail.filesHint"
                     >
                       La gestion des fichiers est disponible dans l'onglet <b>Work</b>.
                     </div>
@@ -3465,10 +3560,16 @@
                 </div>
               </div>
               <div class="project-detail-danger" id="projectDangerZone">
-                <span class="project-detail-danger-label"
+                <span
+                  class="project-detail-danger-label"
+                  data-i18n="chat.detail.dangerLabel"
                   >Supprimer définitivement ce projet et toutes ses conversations.</span
                 >
-                <button class="hub-btn-danger" id="btnDeleteProjectDetail">
+                <button
+                  class="hub-btn-danger"
+                  id="btnDeleteProjectDetail"
+                  data-i18n="chat.detail.delete"
+                >
                   Supprimer
                 </button>
               </div>
@@ -3484,11 +3585,17 @@
       role="dialog"
       aria-modal="true"
       aria-label="Catalogue de modèles"
+      data-i18n-aria-label="chat.modal.catalogAria"
     >
       <div class="modal catalog-modal">
         <div class="modal-header">
-          <h3>Catalogue de modèles</h3>
-          <button class="btn-icon" data-close-modal="modalCatalog" aria-label="Fermer">
+          <h3 data-i18n="chat.modal.catalogTitle">Catalogue de modèles</h3>
+          <button
+            class="btn-icon"
+            data-close-modal="modalCatalog"
+            aria-label="Fermer"
+            data-i18n-aria-label="chat.modal.close"
+          >
             <svg
               width="16"
               height="16"
@@ -3509,14 +3616,29 @@
           ></div>
         </div>
         <div class="modal-catalog-search">
-          <input type="text" id="catalogSearch" placeholder="Rechercher un modèle…" />
+          <input
+            type="text"
+            id="catalogSearch"
+            placeholder="Rechercher un modèle…"
+            data-i18n-placeholder="chat.modal.catalogSearch"
+          />
         </div>
         <div class="modal-catalog-list" id="catalogList" tabindex="0"></div>
         <div class="modal-footer">
-          <button class="oh-btn oh-btn-ghost" data-close-modal="modalCatalog">
+          <button
+            class="oh-btn oh-btn-ghost"
+            data-close-modal="modalCatalog"
+            data-i18n="chat.modal.cancel"
+          >
             Annuler
           </button>
-          <button class="oh-btn oh-btn-primary" id="btnSaveCatalog">Enregistrer</button>
+          <button
+            class="oh-btn oh-btn-primary"
+            id="btnSaveCatalog"
+            data-i18n="chat.modal.save"
+          >
+            Enregistrer
+          </button>
         </div>
       </div>
     </div>
@@ -3527,11 +3649,17 @@
       role="dialog"
       aria-modal="true"
       aria-label="Sélecteur de projet"
+      data-i18n-aria-label="chat.modal.projectAria"
     >
       <div class="modal">
         <div class="modal-header">
-          <h3>Projet</h3>
-          <button class="btn-icon" data-close-modal="modalProject" aria-label="Fermer">
+          <h3 data-i18n="chat.modal.projectTitle">Projet</h3>
+          <button
+            class="btn-icon"
+            data-close-modal="modalProject"
+            aria-label="Fermer"
+            data-i18n-aria-label="chat.modal.close"
+          >
             <svg
               width="16"
               height="16"
@@ -3557,11 +3685,17 @@
       role="dialog"
       aria-modal="true"
       aria-label="Gestionnaire de compétences"
+      data-i18n-aria-label="chat.modal.skillsAria"
     >
       <div class="modal" style="max-width: 600px; width: 90%">
         <div class="modal-header">
-          <h3>Compétences (Skills)</h3>
-          <button class="btn-icon" data-close-modal="modalSkills" aria-label="Fermer">
+          <h3 data-i18n="chat.modal.skillsTitle">Compétences (Skills)</h3>
+          <button
+            class="btn-icon"
+            data-close-modal="modalSkills"
+            aria-label="Fermer"
+            data-i18n-aria-label="chat.modal.close"
+          >
             <svg
               width="16"
               height="16"
@@ -3591,6 +3725,8 @@
       </div>
     </div>
 
+    <script src="i18n/runtime.js"></script>
+    <script src="i18n/chat.js"></script>
     <script src="chat.js"></script>
 
     <div class="modal-overlay hidden" id="oh-proj-modal-overlay"></div>

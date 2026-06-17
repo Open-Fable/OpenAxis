@@ -103,6 +103,25 @@
       <button class="btn-close" id="btn-close">✕</button>
     </div>
     <script>
+      var lang = window.openhub && window.openhub.language === "en" ? "en" : "fr";
+      var STR = {
+        fr: {
+          available: "Mise à jour disponible",
+          install: "Installer",
+          downloading: "Téléchargement…",
+        },
+        en: {
+          available: "Update available",
+          install: "Install",
+          downloading: "Downloading…",
+        },
+      }[lang];
+
+      var titleEl = document.querySelector(".toast-title");
+      if (titleEl) titleEl.textContent = STR.available;
+      var installBtn = document.getElementById("btn-install");
+      if (installBtn) installBtn.textContent = STR.install;
+
       var params = new URLSearchParams(window.location.search);
       var ver = params.get("version") || "?";
       document.getElementById("toast-version").textContent = "OpenHub v" + ver;
@@ -113,13 +132,12 @@
         }
       });
 
-      document.getElementById("btn-install").addEventListener("click", function () {
-        var btn = document.getElementById("btn-install");
-        if (btn.disabled) return;
-        btn.disabled = true;
-        btn.textContent = "…";
-        btn.style.opacity = "0.6";
-        document.getElementById("toast-title").textContent = "Téléchargement…";
+      installBtn.addEventListener("click", function () {
+        if (installBtn.disabled) return;
+        installBtn.disabled = true;
+        installBtn.textContent = "…";
+        installBtn.style.opacity = "0.6";
+        if (titleEl) titleEl.textContent = STR.downloading;
         if (window.openhub && window.openhub.selfUpdateInstall) {
           window.openhub.selfUpdateInstall();
         }

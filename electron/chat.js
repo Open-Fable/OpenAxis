@@ -197,7 +197,10 @@ function getConvTitle(msgs) {
   var f = msgs.find(function (m) {
     return m.role === "user" && m.content;
   });
-  if (!f) return state.isSearchMode ? "Nouvelle recherche" : "Nouvelle conversation";
+  if (!f)
+    return state.isSearchMode
+      ? window.t("chat.title.newSearch")
+      : window.t("chat.title.new");
   var t = "";
   if (typeof f.content === "string") {
     t = f.content;
@@ -270,7 +273,7 @@ function showConvMenu(e, conv) {
   menu.style.minWidth = "160px";
   menu.style.zIndex = "1000";
 
-  var pinLabel = conv.pinned ? "Détacher" : "Épingler";
+  var pinLabel = conv.pinned ? t("chat.conv.detach") : t("chat.conv.pin");
   var pinIcon = conv.pinned
     ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M10.5 3.5 5 9v3h14V9l-5.5-5.5a2 2 0 0 0-3 0Z"/></svg>'
     : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M10.5 3.5 5 9v3h14V9l-5.5-5.5a2 2 0 0 0-3 0Z"/></svg>';
@@ -281,9 +284,13 @@ function showConvMenu(e, conv) {
     "<span>" +
     pinLabel +
     "</span></button>" +
-    '<button class="dropdown-item" data-action="rename"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><span>Renommer</span></button>' +
+    '<button class="dropdown-item" data-action="rename"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><span>' +
+    t("chat.conv.rename") +
+    "</span></button>" +
     '<div style="height:1px;background:var(--border-subtle);margin:4px 0"></div>' +
-    '<button class="dropdown-item" data-action="delete" style="color:var(--error)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Supprimer</span></button>';
+    '<button class="dropdown-item" data-action="delete" style="color:var(--error)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>' +
+    t("chat.conv.delete") +
+    "</span></button>";
 
   document.body.appendChild(menu);
 
@@ -362,8 +369,8 @@ function renderConvList(filter) {
     list.innerHTML =
       '<div class="conv-item" style="text-align:center;color:var(--text-muted);font-size:13px;padding:24px 12px">' +
       (filter
-        ? 'Aucun résultat pour "' + escapeHtml(filter) + '"'
-        : "Aucune conversation<br>Envoyez un message<br>pour commencer") +
+        ? t("chat.conv.noResults", { filter: escapeHtml(filter) })
+        : t("chat.conv.emptyList")) +
       "</div>";
     return;
   }
@@ -380,10 +387,14 @@ function renderConvList(filter) {
       item.innerHTML =
         '<div class="conv-item-title">' +
         '<svg class="conv-pin-indicator" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M10.5 3.5 5 9v3h14V9l-5.5-5.5a2 2 0 0 0-3 0Z"/></svg>' +
-        escapeHtml(conv.title || "Sans titre") +
+        escapeHtml(conv.title || t("chat.conv.untitled")) +
         "</div>" +
         '<div class="conv-actions">' +
-        '<button class="btn-icon btn-more" title="Plus d\'options" aria-label="Plus d\'options"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>' +
+        '<button class="btn-icon btn-more" title="' +
+        escapeHtml(t("chat.conv.moreOptions")) +
+        '" aria-label="' +
+        escapeHtml(t("chat.conv.moreOptions")) +
+        '"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>' +
         "</div>";
 
       var moreBtn = item.querySelector(".btn-more");
@@ -409,11 +420,20 @@ function formatDate(ts) {
   var d = new Date(ts);
   var now = new Date();
   var diff = now - d;
-  if (diff < 86400000) return "Aujourd'hui";
-  if (diff < 172800000) return "Hier";
+  if (diff < 86400000) return t("chat.date.today");
+  if (diff < 172800000) return t("chat.date.yesterday");
   if (diff < 604800000)
-    return ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][d.getDay()];
-  return d.toLocaleDateString("fr-FR", { month: "short", day: "numeric" });
+    return [
+      t("chat.date.dim"),
+      t("chat.date.lun"),
+      t("chat.date.mar"),
+      t("chat.date.mer"),
+      t("chat.date.jeu"),
+      t("chat.date.ven"),
+      t("chat.date.sam"),
+    ][d.getDay()];
+  var locale = window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR";
+  return d.toLocaleDateString(locale, { month: "short", day: "numeric" });
 }
 
 function saveCurrentConversation() {
@@ -525,7 +545,7 @@ function startNewConversation() {
   saveCurrentConversation();
   var conv = {
     id: Date.now().toString(),
-    title: state.isSearchMode ? "Nouvelle recherche" : "Nouvelle conversation",
+    title: state.isSearchMode ? t("chat.title.newSearch") : t("chat.title.new"),
     messages: [],
     updatedAt: Date.now(),
     pinned: false,
@@ -546,8 +566,8 @@ function startNewConversation() {
   els.emptyState.style.display = "";
   document.body.classList.add("oh-is-new-conv");
   els.chatTitle.textContent = state.isSearchMode
-    ? "Nouvelle recherche"
-    : "Nouvelle conversation";
+    ? t("chat.title.newSearch")
+    : t("chat.title.new");
   renderConvList();
   updateEmptyState();
   updateSendButton();
@@ -704,7 +724,7 @@ function renderProjectUI() {
   // Update the active project name in the pill
   var pill = document.getElementById("activeProjectName");
   if (pill) {
-    pill.textContent = projState.active ? projState.active.name : "Pas de projet";
+    pill.textContent = projState.active ? projState.active.name : t("chat.project.none");
   }
 }
 
@@ -757,21 +777,61 @@ function getReasoningLevels(id) {
   if (!id) return [];
   if (resolveReasoningStyle(id) === "anthropic") {
     return [
-      { id: "none", name: "Aucun", desc: "Désactiver le raisonnement" },
-      { id: "minimal", name: "Minimal", desc: "Raisonnement ultra-rapide" },
-      { id: "low", name: "Bas", desc: "Réponses rapides, raisonnement minimal" },
-      { id: "medium", name: "Moyen", desc: "Bon équilibre vitesse / qualité" },
-      { id: "high", name: "Élevé", desc: "Raisonnement approfondi, plus lent" },
-      { id: "xhigh", name: "Très élevé", desc: "Raisonnement extrêmement poussé" },
-      { id: "max", name: "Maximum", desc: "Raisonnement au maximum" },
+      {
+        id: "none",
+        name: t("chat.reasoning.none.name"),
+        desc: t("chat.reasoning.none.desc"),
+      },
+      {
+        id: "minimal",
+        name: t("chat.reasoning.minimal.name"),
+        desc: t("chat.reasoning.minimal.desc"),
+      },
+      {
+        id: "low",
+        name: t("chat.reasoning.low.name"),
+        desc: t("chat.reasoning.low.desc"),
+      },
+      {
+        id: "medium",
+        name: t("chat.reasoning.medium.name"),
+        desc: t("chat.reasoning.medium.desc"),
+      },
+      {
+        id: "high",
+        name: t("chat.reasoning.high.name"),
+        desc: t("chat.reasoning.high.desc"),
+      },
+      {
+        id: "xhigh",
+        name: t("chat.reasoning.xhigh.name"),
+        desc: t("chat.reasoning.xhigh.desc"),
+      },
+      {
+        id: "max",
+        name: t("chat.reasoning.max.name"),
+        desc: t("chat.reasoning.max.desc"),
+      },
     ];
   }
 
   return [
-    { id: "none", name: "Aucun", desc: "Désactiver le raisonnement" },
-    { id: "low", name: "Bas", desc: "Réponses rapides, raisonnement minimal" },
-    { id: "medium", name: "Moyen", desc: "Bon équilibre vitesse / qualité" },
-    { id: "high", name: "Élevé", desc: "Raisonnement approfondi, plus lent" },
+    {
+      id: "none",
+      name: t("chat.reasoning.none.name"),
+      desc: t("chat.reasoning.none.desc"),
+    },
+    { id: "low", name: t("chat.reasoning.low.name"), desc: t("chat.reasoning.low.desc") },
+    {
+      id: "medium",
+      name: t("chat.reasoning.medium.name"),
+      desc: t("chat.reasoning.medium.desc"),
+    },
+    {
+      id: "high",
+      name: t("chat.reasoning.high.name"),
+      desc: t("chat.reasoning.high.desc"),
+    },
   ];
 }
 async function refreshModels() {
@@ -812,7 +872,7 @@ async function refreshModels() {
   );
   if (state.models.length === 0) {
     state.selectedModel = null;
-    if (els.modelLabel) els.modelLabel.textContent = "Aucun modèle";
+    if (els.modelLabel) els.modelLabel.textContent = t("chat.model.none");
     updateEmptyState();
     return;
   }
@@ -830,7 +890,8 @@ async function refreshModels() {
   }
 
   if (els.modelLabel) {
-    els.modelLabel.textContent = displayModelName(state.selectedModel) || "Prêt";
+    els.modelLabel.textContent =
+      displayModelName(state.selectedModel) || t("chat.model.ready");
   }
   updateReasoningUI();
   updateEmptyState();
@@ -840,18 +901,18 @@ function updateEmptyState() {
   var noModels = state.models.length === 0;
   if (state.isSearchMode) {
     els.emptyTitle.textContent = noModels
-      ? "API Brave manquante"
-      : "Que recherchez-vous ?";
+      ? t("chat.empty.braveMissing")
+      : t("chat.empty.searchTitle");
     els.emptyDesc.textContent = noModels
-      ? "Configurez Brave Search dans Config [o]"
-      : "Posez une question pour explorer le web";
+      ? t("chat.empty.braveDesc")
+      : t("chat.empty.searchDesc");
   } else {
     els.emptyTitle.textContent = noModels
-      ? "Connectez une API pour commencer"
-      : "Comment puis-je vous aider ?";
+      ? t("chat.empty.connectApi")
+      : t("chat.empty.help");
     els.emptyDesc.textContent = noModels
-      ? "Ajoutez une clé dans Config (Anthropic, OpenAI, OpenRouter…)"
-      : "Sélectionnez un modèle et posez votre question";
+      ? t("chat.empty.connectApiDesc")
+      : t("chat.empty.helpDesc");
   }
 }
 
@@ -864,7 +925,9 @@ async function openCatalogModal() {
     '<div class="oh-skel-list"><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:68%"></div><div class="oh-skeleton oh-skel-line" style="width:42%;height:10px"></div></div><div class="oh-skel-badge oh-skeleton"></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:55%"></div><div class="oh-skeleton oh-skel-line" style="width:35%;height:10px"></div></div><div class="oh-skel-badge oh-skeleton"></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:78%"></div><div class="oh-skeleton oh-skel-line" style="width:50%;height:10px"></div></div><div class="oh-skel-badge oh-skeleton"></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:62%"></div><div class="oh-skeleton oh-skel-line" style="width:40%;height:10px"></div></div><div class="oh-skel-badge oh-skeleton"></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:72%"></div><div class="oh-skeleton oh-skel-line" style="width:38%;height:10px"></div></div><div class="oh-skel-badge oh-skeleton"></div></div></div>';
   if (!state.initReady || !state.proxyUrl) {
     list.innerHTML =
-      '<div style="padding:40px;text-align:center;color:var(--error)">Application en cours d\'initialisation, veuillez réessayer…</div>';
+      '<div style="padding:40px;text-align:center;color:var(--error)">' +
+      escapeHtml(t("chat.catalog.initializing")) +
+      "</div>";
     return;
   }
   try {
@@ -880,7 +943,9 @@ async function openCatalogModal() {
     renderCatalogList();
   } catch (err) {
     list.innerHTML =
-      '<div style="padding:40px;text-align:center;color:var(--error)">Erreur de chargement</div>';
+      '<div style="padding:40px;text-align:center;color:var(--error)">' +
+      escapeHtml(t("chat.catalog.loadError")) +
+      "</div>";
   }
 }
 
@@ -900,13 +965,13 @@ function renderCatalogList() {
       selectedGroup.push(m);
     } else {
       var source = m.source || "direct";
-      var p = "Connexion Directe (OpenHub)";
+      var p = t("chat.catalog.group.direct");
       if (source === "openrouter") {
         p = "OpenRouter";
       } else if (source === "local") {
-        p = "Modèles Locaux (Ollama)";
+        p = t("chat.catalog.group.local");
       } else if (source === "workflow") {
-        p = "Workflow Agentique";
+        p = t("chat.catalog.group.workflow");
       }
 
       if (!otherGroups[p]) otherGroups[p] = [];
@@ -951,7 +1016,9 @@ function renderCatalogList() {
     var gDiv = document.createElement("div");
     gDiv.className = "oh-catalog-provider-group";
     gDiv.innerHTML =
-      '<div class="oh-catalog-provider-header" style="color:var(--accent-primary)">Sélectionnés</div>';
+      '<div class="oh-catalog-provider-header" style="color:var(--accent-primary)">' +
+      escapeHtml(t("chat.catalog.group.selected")) +
+      "</div>";
     selectedGroup.forEach(function (m) {
       var item = document.createElement("div");
       item.className = "oh-catalog-item oh-catalog-item--selected";
@@ -1011,7 +1078,7 @@ function renderCatalogList() {
     });
 
   // 3. Show empty state for local models when none are discovered
-  var localGroupLabel = "Modèles Locaux (Ollama)";
+  var localGroupLabel = t("chat.catalog.group.local");
   var hasLocalModels =
     filtered.some(function (m) {
       return m.source === "local";
@@ -1029,20 +1096,16 @@ function renderCatalogList() {
         .ollamaCheckModels()
         .then(function (status) {
           if (!status || !status.running) {
-            msg.textContent =
-              "Ollama n'est pas démarré. Lance-le pour voir tes modèles locaux.";
+            msg.textContent = t("chat.catalog.ollamaStopped");
           } else {
-            msg.textContent =
-              "Aucun modèle local détecté. ollama pull <modèle> pour en ajouter (aucune clé requise).";
+            msg.textContent = t("chat.catalog.ollamaPull");
           }
         })
         .catch(function () {
-          msg.textContent =
-            "Aucun modèle local détecté. Vérifie qu'Ollama est lancé et que des modèles sont installés.";
+          msg.textContent = t("chat.catalog.ollamaNone");
         });
     } else {
-      msg.textContent =
-        "Aucun modèle local détecté. Vérifie qu'Ollama est lancé et que des modèles sont installés.";
+      msg.textContent = t("chat.catalog.ollamaNone");
     }
     gDiv.appendChild(msg);
     container.appendChild(gDiv);
@@ -1050,17 +1113,19 @@ function renderCatalogList() {
 
   if (filtered.length === 0 && !container.hasChildNodes())
     container.innerHTML =
-      '<div style="padding:40px;text-align:center;color:var(--text-muted)">Aucun modèle trouvé</div>';
+      '<div style="padding:40px;text-align:center;color:var(--text-muted)">' +
+      escapeHtml(t("chat.catalog.noModels")) +
+      "</div>";
 }
 
 async function saveCatalogSelections() {
   var btn = $("btnSaveCatalog");
   btn.disabled = true;
-  btn.textContent = "Enregistrement…";
+  btn.textContent = t("chat.catalog.saving");
   if (!state.initReady || !state.proxyUrl) {
-    alert("Application en cours d'initialisation, veuillez réessayer.");
+    alert(t("chat.catalog.initAlert"));
     btn.disabled = false;
-    btn.textContent = "Enregistrer";
+    btn.textContent = t("chat.catalog.save");
     return;
   }
   try {
@@ -1072,14 +1137,14 @@ async function saveCatalogSelections() {
       },
       body: JSON.stringify({ models: catalogState.selectedIds }),
     });
-    if (!res.ok) throw new Error("Erreur de sauvegarde");
+    if (!res.ok) throw new Error(t("chat.catalog.saveFailed"));
     await refreshModels();
     closeModal("modalCatalog");
   } catch (err) {
-    alert("Erreur lors de la sauvegarde : " + err.message);
+    alert(t("chat.catalog.saveError", { msg: err.message }));
   } finally {
     btn.disabled = false;
-    btn.textContent = "Enregistrer";
+    btn.textContent = t("chat.catalog.save");
   }
 }
 
@@ -1178,13 +1243,13 @@ function switchSearchMode(enabled) {
 
   // Update sidebar title
   document.querySelector(".conv-sidebar-title").textContent = enabled
-    ? "RECHERCHES"
-    : "CONVERSATIONS";
+    ? t("chat.sidebar.searchesTitle")
+    : t("chat.sidebar.conversationsTitle");
 
   // Update input placeholder
   els.input.placeholder = enabled
-    ? "Décrivez votre recherche..."
-    : "Envoyer un message...";
+    ? t("chat.input.placeholderSearch")
+    : t("chat.input.placeholderMessage");
 
   // Update empty state icon
   var emptyIcon = document.querySelector(".empty-state-icon");
@@ -1254,7 +1319,7 @@ $("btnSidebarToggle").addEventListener("click", function (e) {
   } else {
     sidebar.classList.toggle("hidden");
     var isHidden = sidebar.classList.contains("hidden");
-    this.title = isHidden ? "Afficher les conversations" : "Masquer les conversations";
+    this.title = isHidden ? t("chat.sidebar.show") : t("chat.sidebar.hide");
     this.setAttribute("aria-label", this.title);
   }
 });
@@ -1400,7 +1465,7 @@ function toggleModelDropdown() {
             break;
           }
         }
-        effortLabel = effortLabel || "Moyen";
+        effortLabel = effortLabel || t("chat.reasoning.medium.name");
         badge +=
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-left:4px;opacity:0.5;flex-shrink:0"><polyline points="9 18 15 12 9 6"></polyline></svg>';
       }
@@ -1416,7 +1481,7 @@ function toggleModelDropdown() {
         "</div>";
 
       if (showReasoning) {
-        item.title = "Niveau de réflexion : " + effortLabel;
+        item.title = t("chat.reasoning.titleWith", { label: effortLabel });
       }
 
       item.addEventListener("click", function (e) {
@@ -1444,7 +1509,7 @@ function toggleModelDropdown() {
       levelsObj[l.id] = l.name;
     });
     var currentEffort = getModelEffort(state.selectedModel);
-    var currentLevelName = levelsObj[currentEffort] || "Moyen";
+    var currentLevelName = levelsObj[currentEffort] || t("chat.reasoning.medium.name");
 
     var reasonBtn = document.createElement("button");
     reasonBtn.className = "dropdown-item";
@@ -1453,7 +1518,9 @@ function toggleModelDropdown() {
     reasonBtn.style.alignItems = "center";
     reasonBtn.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">' +
-      '<div style="font-weight:500;font-size:13px;color:var(--text-primary)">Niveau de réflexion</div>' +
+      '<div style="font-weight:500;font-size:13px;color:var(--text-primary)">' +
+      escapeHtml(t("chat.reasoning.menuTitle")) +
+      "</div>" +
       '<div style="font-size:11px;color:var(--text-muted)">' +
       escapeHtml(currentLevelName) +
       "</div>" +
@@ -1473,7 +1540,8 @@ function toggleModelDropdown() {
   var catBtn = document.createElement("button");
   catBtn.className = "dropdown-item";
   catBtn.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-4.01 2.86-4.01 4.7"></path></svg> Ouvrir le catalogue…';
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-4.01 2.86-4.01 4.7"></path></svg> ' +
+    escapeHtml(t("chat.catalog.open"));
   catBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     dd.style.display = "none";
@@ -1531,7 +1599,9 @@ function showReasoningSubMenu() {
   var back = document.createElement("button");
   back.className = "dropdown-item";
   back.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:6px"><polyline points="15 18 9 12 15 6"/></svg><span>Retour aux modèles</span>';
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:6px"><polyline points="15 18 9 12 15 6"/></svg><span>' +
+    escapeHtml(t("chat.reasoning.back")) +
+    "</span>";
   back.addEventListener("click", function (e) {
     e.stopPropagation();
     dd.innerHTML = "";
@@ -1548,7 +1618,11 @@ function renderProjectModal() {
   var noneItem = document.createElement("div");
   noneItem.className = "modal-item" + (projState.active ? "" : " modal-item--active");
   noneItem.innerHTML =
-    '<div><div class="modal-item-name">Aucun projet</div><div class="modal-item-desc">Pas d\'instructions de projet injectées</div></div>';
+    '<div><div class="modal-item-name">' +
+    escapeHtml(t("chat.project.modal.none")) +
+    '</div><div class="modal-item-desc">' +
+    escapeHtml(t("chat.project.modal.noneDesc")) +
+    "</div></div>";
   noneItem.addEventListener("click", function () {
     activateProject(null);
     closeModal("modalProject");
@@ -1567,7 +1641,7 @@ function renderProjectModal() {
         ? escapeHtml(
             p.instructions.slice(0, 80) + (p.instructions.length > 80 ? "…" : ""),
           )
-        : "Aucune instruction") +
+        : t("chat.project.modal.noInstructions")) +
       "</div></div>";
     item.addEventListener("click", function () {
       activateProject(p.id);
@@ -1581,7 +1655,9 @@ function renderProjectModal() {
   var newBtn = document.createElement("div");
   newBtn.className = "modal-item";
   newBtn.innerHTML =
-    '<div><div class="modal-item-name" style="color:var(--accent-primary)">+ Nouveau projet</div></div>';
+    '<div><div class="modal-item-name" style="color:var(--accent-primary)">' +
+    escapeHtml(t("chat.project.modal.new")) +
+    "</div></div>";
   newBtn.addEventListener("click", function () {
     closeModal("modalProject");
     openProjModal(null);
@@ -1605,7 +1681,9 @@ function openProjModal(proj) {
   hdr.className = "oh-modal-hdr";
   hdr.innerHTML =
     "<h2>" +
-    (isEdit ? "Modifier le projet" : "Nouveau projet") +
+    (isEdit
+      ? escapeHtml(t("chat.project.modal.editTitle"))
+      : escapeHtml(t("chat.project.modal.newTitle"))) +
     '</h2><button class="oh-modal-x">×</button>';
   hdr.querySelector("button").addEventListener("click", function () {
     overlay.remove();
@@ -1613,13 +1691,20 @@ function openProjModal(proj) {
   var nameField = document.createElement("div");
   nameField.className = "oh-modal-field";
   nameField.innerHTML =
-    '<label>Nom du projet</label><input type="text" placeholder="Ex: Assistant Marketing" value="' +
+    "<label>" +
+    escapeHtml(t("chat.project.field.name")) +
+    '</label><input type="text" placeholder="' +
+    escapeHtml(t("chat.project.field.namePlaceholder")) +
+    '" value="' +
     (proj ? escapeHtml(proj.name) : "") +
     '">';
   var nameInput = nameField.querySelector("input");
   var colorField = document.createElement("div");
   colorField.className = "oh-modal-field";
-  colorField.innerHTML = '<label>Couleur</label><div class="oh-color-row"></div>';
+  colorField.innerHTML =
+    "<label>" +
+    escapeHtml(t("chat.project.field.color")) +
+    '</label><div class="oh-color-row"></div>';
   var colorRow = colorField.querySelector(".oh-color-row");
   var selectedColor = proj ? proj.color : PROJ_COLORS[0];
   PROJ_COLORS.forEach(function (c) {
@@ -1638,7 +1723,13 @@ function openProjModal(proj) {
   var instrField = document.createElement("div");
   instrField.className = "oh-modal-field oh-modal-field-grow";
   instrField.innerHTML =
-    '<label>Instructions</label><span class="oh-field-help">Ajoutées automatiquement comme consigne système à chaque message.</span><textarea placeholder="Ex: Tu es un assistant spécialisé en marketing digital. Réponds en français. Sois concis.">' +
+    "<label>" +
+    escapeHtml(t("chat.project.field.instructions")) +
+    '</label><span class="oh-field-help">' +
+    escapeHtml(t("chat.project.field.instructionsHelp")) +
+    '</span><textarea placeholder="' +
+    escapeHtml(t("chat.project.field.instructionsPlaceholder")) +
+    '">' +
     (proj ? escapeHtml(proj.instructions) : "") +
     "</textarea>";
   var instrTA = instrField.querySelector("textarea");
@@ -1647,7 +1738,7 @@ function openProjModal(proj) {
   if (isEdit) {
     var delBtn = document.createElement("button");
     delBtn.className = "oh-btn oh-btn-danger";
-    delBtn.textContent = "Supprimer";
+    delBtn.textContent = t("chat.project.delete");
     delBtn.addEventListener("click", function () {
       removeProject(proj.id);
       overlay.remove();
@@ -1659,14 +1750,14 @@ function openProjModal(proj) {
   ftr.appendChild(spacer);
   var cancelBtn = document.createElement("button");
   cancelBtn.className = "oh-btn oh-btn-ghost";
-  cancelBtn.textContent = "Annuler";
+  cancelBtn.textContent = t("chat.project.cancel");
   cancelBtn.addEventListener("click", function () {
     overlay.remove();
   });
   ftr.appendChild(cancelBtn);
   var saveBtn = document.createElement("button");
   saveBtn.className = "oh-btn oh-btn-primary";
-  saveBtn.textContent = isEdit ? "Enregistrer" : "Créer";
+  saveBtn.textContent = isEdit ? t("chat.project.save") : t("chat.project.create");
   saveBtn.addEventListener("click", function () {
     var name = nameInput.value.trim();
     if (!name) {
@@ -1752,7 +1843,7 @@ function renderSkillsModal() {
         empty.style.color = "var(--text-secondary)";
         empty.style.padding = "20px";
         empty.style.textAlign = "center";
-        empty.textContent = "Aucune compétence.";
+        empty.textContent = t("chat.skills.empty");
         list.appendChild(empty);
       } else {
         skills.forEach(function (s) {
@@ -1778,7 +1869,9 @@ function renderSkillsModal() {
       var newBtn = document.createElement("div");
       newBtn.className = "modal-item";
       newBtn.innerHTML =
-        '<div><div class="modal-item-name" style="color:var(--accent-primary)">+ Nouvelle compétence</div></div>';
+        '<div><div class="modal-item-name" style="color:var(--accent-primary)">' +
+        escapeHtml(t("chat.skills.new")) +
+        "</div></div>";
       newBtn.addEventListener("click", function () {
         closeModal("modalSkills");
         openSkillEditorModal(null);
@@ -1790,7 +1883,7 @@ function renderSkillsModal() {
       var error = document.createElement("div");
       error.style.color = "var(--error)";
       error.style.padding = "20px";
-      error.textContent = "Erreur: " + String(err);
+      error.textContent = t("chat.skills.error", { msg: String(err) });
       list.appendChild(error);
     });
 }
@@ -1811,7 +1904,9 @@ function openSkillEditorModal(skill) {
   hdr.className = "oh-modal-hdr";
   hdr.innerHTML =
     "<h2>" +
-    (isEdit ? "Modifier la compétence" : "Nouvelle compétence") +
+    (isEdit
+      ? escapeHtml(t("chat.skills.editTitle"))
+      : escapeHtml(t("chat.skills.newTitle"))) +
     '</h2><button class="oh-modal-x">×</button>';
   hdr.querySelector("button").addEventListener("click", function () {
     overlay.remove();
@@ -1819,14 +1914,22 @@ function openSkillEditorModal(skill) {
   var titleField = document.createElement("div");
   titleField.className = "oh-modal-field";
   titleField.innerHTML =
-    '<label>Titre</label><input type="text" placeholder="Ex: Déploiement AWS" value="' +
+    "<label>" +
+    escapeHtml(t("chat.skills.field.title")) +
+    '</label><input type="text" placeholder="' +
+    escapeHtml(t("chat.skills.field.titlePlaceholder")) +
+    '" value="' +
     (skill ? escapeHtml(skill.title) : "") +
     '">';
   var titleInput = titleField.querySelector("input");
   var contentField = document.createElement("div");
   contentField.className = "oh-modal-field oh-modal-field-grow";
   contentField.innerHTML =
-    '<label>Contenu (Markdown)</label><textarea placeholder="Ex:\n# Titre\n\nInstructions..." style="height:250px;font-family:monospace;font-size:12px;resize:vertical;">' +
+    "<label>" +
+    escapeHtml(t("chat.skills.field.content")) +
+    '</label><textarea placeholder="' +
+    escapeHtml(t("chat.skills.field.contentPlaceholder")) +
+    '" style="height:250px;font-family:monospace;font-size:12px;resize:vertical;">' +
     (skill ? escapeHtml(skill.content) : "") +
     "</textarea>";
   var contentTA = contentField.querySelector("textarea");
@@ -1835,9 +1938,9 @@ function openSkillEditorModal(skill) {
   if (isEdit) {
     var delBtn = document.createElement("button");
     delBtn.className = "oh-btn oh-btn-danger";
-    delBtn.textContent = "Supprimer";
+    delBtn.textContent = t("chat.skills.delete");
     delBtn.addEventListener("click", function () {
-      if (confirm("Voulez-vous supprimer cette compétence ?")) {
+      if (confirm(t("chat.skills.confirmDelete"))) {
         window.openhub.deleteSkill(skill.filename).then(function () {
           overlay.remove();
           showModal("modalSkills");
@@ -1852,7 +1955,7 @@ function openSkillEditorModal(skill) {
   ftr.appendChild(spacer);
   var cancelBtn = document.createElement("button");
   cancelBtn.className = "oh-btn oh-btn-ghost";
-  cancelBtn.textContent = "Annuler";
+  cancelBtn.textContent = t("chat.skills.cancel");
   cancelBtn.addEventListener("click", function () {
     overlay.remove();
     showModal("modalSkills");
@@ -1861,7 +1964,7 @@ function openSkillEditorModal(skill) {
   ftr.appendChild(cancelBtn);
   var saveBtn = document.createElement("button");
   saveBtn.className = "oh-btn oh-btn-primary";
-  saveBtn.textContent = isEdit ? "Enregistrer" : "Créer";
+  saveBtn.textContent = isEdit ? t("chat.skills.save") : t("chat.skills.create");
   saveBtn.addEventListener("click", function () {
     var title = titleInput.value.trim();
     var content = contentTA.value.trim();
@@ -1881,7 +1984,7 @@ function openSkillEditorModal(skill) {
         renderSkillsModal();
       })
       .catch(function (err) {
-        alert("Erreur: " + String(err));
+        alert(t("chat.skills.saveError", { msg: String(err) }));
       });
   });
   ftr.appendChild(saveBtn);
@@ -1976,9 +2079,9 @@ function renderAttachmentPreview() {
   }
 }
 function formatSize(bytes) {
-  if (bytes < 1024) return bytes + " o";
-  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " Ko";
-  return (bytes / (1024 * 1024)).toFixed(1) + " Mo";
+  if (bytes < 1024) return t("chat.attach.bytes", { n: bytes });
+  if (bytes < 1024 * 1024) return t("chat.attach.kb", { n: Math.round(bytes / 1024) });
+  return t("chat.attach.mb", { n: (bytes / (1024 * 1024)).toFixed(1) });
 }
 
 els.fileInput.addEventListener("change", function () {
@@ -2060,9 +2163,13 @@ function createSearchWidget(query) {
   var widget = document.createElement("div");
   widget.className = "search-widget";
   widget.innerHTML =
-    '<div class="search-widget-container"><div class="search-widget-header"><div class="search-widget-title-area"><span class="search-widget-icon searching"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><span class="search-widget-title">Recherche internet : <em>' +
+    '<div class="search-widget-container"><div class="search-widget-header"><div class="search-widget-title-area"><span class="search-widget-icon searching"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><span class="search-widget-title">' +
+    escapeHtml(t("chat.search.widget.title")) +
+    "<em>" +
     escapeHtml(query) +
-    '</em></span></div><span class="search-widget-status">Recherche en cours…</span></div><div class="search-widget-content"></div></div>';
+    '</em></span></div><span class="search-widget-status">' +
+    escapeHtml(t("chat.search.widget.searching")) +
+    '</span></div><div class="search-widget-content"></div></div>';
   els.messages.appendChild(widget);
   scrollToBottom(true);
   return widget;
@@ -2071,10 +2178,13 @@ function updateSearchWidget(widget, results, errorMsg) {
   var container = widget.querySelector(".search-widget-container");
   widget.querySelector(".search-widget-icon").classList.remove("searching");
   widget.querySelector(".search-widget-status").innerHTML = errorMsg
-    ? 'Erreur <span class="search-widget-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>'
-    : results.length +
-      " résultat" +
-      (results.length > 1 ? "s" : "") +
+    ? escapeHtml(t("chat.search.widget.error")) +
+      ' <span class="search-widget-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>'
+    : escapeHtml(
+        results.length > 1
+          ? t("chat.search.widget.resultsPlural", { n: results.length })
+          : t("chat.search.widget.results", { n: results.length }),
+      ) +
       ' <span class="search-widget-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>';
   container.querySelector(".search-widget-header").addEventListener("click", function () {
     container.classList.toggle("open");
@@ -2090,7 +2200,9 @@ function updateSearchWidget(widget, results, errorMsg) {
   }
   if (results.length === 0) {
     contentDiv.innerHTML =
-      '<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px 0">Aucun résultat trouvé</div>';
+      '<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px 0">' +
+      escapeHtml(t("chat.search.widget.noResults")) +
+      "</div>";
   } else {
     var html = "";
     for (var i = 0; i < results.length; i++) {
@@ -2197,7 +2309,11 @@ async function sendMessage() {
           "[Fin du contexte de recherche. Répondez à la requête de l'utilisateur en vous basant sur ces informations si nécessaire. Citez vos sources avec [1], [2], etc.]\n";
       }
     } catch (err) {
-      updateSearchWidget(searchWidget, [], err.message || "Erreur de recherche");
+      updateSearchWidget(
+        searchWidget,
+        [],
+        err.message || t("chat.search.widget.searchError"),
+      );
     }
   }
   var isAnthropic = state.selectedModel.startsWith("claude-");
@@ -2298,8 +2414,9 @@ async function sendMessage() {
     } else {
       updateAssistantMessage(assistantEls, "");
       assistantEls.bubble.classList.add("msg-bubble--streaming");
-      assistantEls.bubble.querySelector(".msg-body").textContent =
-        "Erreur : " + err.message;
+      assistantEls.bubble.querySelector(".msg-body").textContent = t("chat.msg.error", {
+        msg: err.message,
+      });
     }
   } finally {
     assistantEls.bubble.classList.remove("msg-bubble--streaming");
@@ -2328,10 +2445,14 @@ function renderMessage(role, content, attachments, reasoning) {
   header.className = "msg-group-header";
   if (isUser) {
     header.innerHTML =
-      '<span class="msg-role-name">Vous</span><div class="msg-avatar msg-avatar--user" aria-hidden="true">V</div>';
+      '<span class="msg-role-name">' +
+      escapeHtml(t("chat.msg.you")) +
+      '</span><div class="msg-avatar msg-avatar--user" aria-hidden="true">V</div>';
   } else {
     header.innerHTML =
-      '<div class="msg-avatar" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.7V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"></path></svg></div><span class="msg-role-name">Assistant</span>';
+      '<div class="msg-avatar" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.7V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"></path></svg></div><span class="msg-role-name">' +
+      escapeHtml(t("chat.msg.assistant")) +
+      "</span>";
   }
   group.appendChild(header);
   var bubbles = document.createElement("div");
@@ -2386,7 +2507,7 @@ function renderMessage(role, content, attachments, reasoning) {
   bubbles.appendChild(bubble);
   var copyBtn = document.createElement("button");
   copyBtn.className = "btn-copy-msg";
-  copyBtn.title = "Copier le message";
+  copyBtn.title = t("chat.msg.copy");
   copyBtn.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
   copyBtn.onclick = function () {
@@ -2414,7 +2535,9 @@ function showThinkingIndicator(bubble) {
   indicator.className = "msg-thinking";
   indicator.innerHTML =
     '<svg viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round" opacity="0.25"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/></g></svg>' +
-    '<span class="msg-thinking-label">Réflexion…</span>';
+    '<span class="msg-thinking-label">' +
+    escapeHtml(t("chat.msg.thinking")) +
+    "</span>";
   bubble.querySelector(".msg-body").appendChild(indicator);
 }
 function removeThinkingIndicator(bubble) {
@@ -2431,7 +2554,9 @@ function updateReasoningPanel(elsObj, text, streaming) {
     header.className = "msg-reasoning-header";
     header.innerHTML =
       '<svg viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round" opacity="0.25"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g><g stroke="var(--accent-primary,#14B8A6)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/></g></svg>' +
-      "<span>Réflexion</span>" +
+      "<span>" +
+      escapeHtml(t("chat.msg.reasoning")) +
+      "</span>" +
       '<svg class="msg-reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
     header.onclick = function () {
       panel.classList.toggle("msg-reasoning--collapsed");
@@ -2481,7 +2606,7 @@ function bindCopyButtons(container) {
         navigator.clipboard.writeText(code.textContent).then(
           function () {
             var orig = this.textContent;
-            this.textContent = "Copié !";
+            this.textContent = t("chat.code.copied");
             this.classList.add("btn-copy--copied");
             var btn = this;
             setTimeout(function () {
@@ -2554,7 +2679,7 @@ function detectArtifact(lang, code) {
     return {
       type: "text",
       ext: l === "docx" ? "docx" : "txt",
-      label: l === "docx" ? "DOCX" : "Texte",
+      label: l === "docx" ? "DOCX" : t("chat.artifact.text"),
       badge: "code",
       previewable: true,
       pdfable: true,
@@ -2566,14 +2691,22 @@ function buildArtifactHtml(id, info, code) {
   var actions = "";
   if (info.previewable)
     actions +=
-      '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="preview">Aperçu</button>';
+      '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="preview">' +
+      escapeHtml(t("chat.artifact.preview")) +
+      "</button>";
   if (info.pdfable)
     actions +=
-      '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="pdf">PDF</button>';
+      '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="pdf">' +
+      escapeHtml(t("chat.artifact.pdf")) +
+      "</button>";
   actions +=
-    '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="download">Télécharger</button>';
+    '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="download">' +
+    escapeHtml(t("chat.artifact.download")) +
+    "</button>";
   actions +=
-    '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="copy">Copier</button>';
+    '<button class="btn-copy btn-artifact-action" style="font-size:12px" data-art-action="copy">' +
+    escapeHtml(t("chat.artifact.copy")) +
+    "</button>";
   return (
     '<div class="artifact-card" data-artifact-id="' +
     id +
@@ -2607,7 +2740,7 @@ function toggleArtifactPreview(btn, id) {
     el.innerHTML = el.dataset.original;
     delete el.dataset.preview;
     delete el.dataset.original;
-    if (btn) btn.textContent = "Aperçu";
+    if (btn) btn.textContent = t("chat.artifact.preview");
     return;
   }
   var a = artifacts.find(function (x) {
@@ -2660,7 +2793,7 @@ function toggleArtifactPreview(btn, id) {
       escapeHtml(a.code) +
       "</div>";
   }
-  if (btn) btn.textContent = "Code";
+  if (btn) btn.textContent = t("chat.artifact.code");
 }
 function downloadArtifact(id) {
   var a = artifacts.find(function (x) {
@@ -2693,7 +2826,7 @@ function copyArtifact(btn, id) {
   navigator.clipboard.writeText(a.code).then(function () {
     if (btn) {
       var orig = btn.textContent;
-      btn.textContent = "Copié !";
+      btn.textContent = t("chat.artifact.copied");
       btn.classList.add("btn-copy--copied");
       setTimeout(function () {
         btn.textContent = orig;
@@ -2775,7 +2908,7 @@ function wrapInHtmlDoc(title, body) {
 }
 function buildCsvHtml(text) {
   var rows = parseCsv(text);
-  if (rows.length === 0) return "<p>Aucune donnée</p>";
+  if (rows.length === 0) return "<p>" + escapeHtml(t("chat.csv.noData")) + "</p>";
   var html = "<table><thead><tr>";
   for (var h = 0; h < rows[0].length; h++)
     html += "<th>" + escapeHtml(rows[0][h]) + "</th>";
@@ -2851,7 +2984,9 @@ function renderMarkdown(text) {
       var header =
         '<div class="code-header"><span>' +
         escapeHtml(lang || "text") +
-        '</span><button class="btn-copy">Copier</button></div>';
+        '</span><button class="btn-copy">' +
+        escapeHtml(t("chat.code.copy")) +
+        "</button></div>";
       codeBlocks.push("<pre>" + header + "<code>" + escaped + "</code></pre>");
     }
     return "\x00CB" + idx + "\x00";
@@ -3114,15 +3249,18 @@ var hubSelectMode = false;
 var hubSelectedIds = new Set();
 var hubViewMode = "grid";
 
-var HUB_TYPE_LABELS = {
-  assistant: "Assistant",
-  code: "Code",
-  design: "Design",
-  work: "Work",
-  orchestrator: "Orchestrateur",
-  verifier: "Vérificateur",
-  recherche: "Recherche",
-};
+function hubTypeLabel(type) {
+  var labels = {
+    assistant: t("chat.hubType.assistant"),
+    code: t("chat.hubType.code"),
+    design: t("chat.hubType.design"),
+    work: t("chat.hubType.work"),
+    orchestrator: t("chat.hubType.orchestrator"),
+    verifier: t("chat.hubType.verifier"),
+    recherche: t("chat.hubType.recherche"),
+  };
+  return labels[type];
+}
 /* HUB_TYPE_COLORS retiré (v2 : accent unique + différenciation par icône via HUB_TYPE_ICONS) */
 var HUB_TYPE_ICONS = {
   assistant: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
@@ -3136,16 +3274,18 @@ var HUB_TYPE_ICONS = {
     '<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/>',
   recherche: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>',
 };
-var HUB_FILTER_TYPES = [
-  { key: "all", label: "Tous" },
-  { key: "assistant", label: "Assistant", dot: "#85B7EB" },
-  { key: "orchestrator", label: "Orchestrateur", dot: "#5DCAA5" },
-  { key: "code", label: "Code", dot: "#97C459" },
-  { key: "design", label: "Design", dot: "#ED93B1" },
-  { key: "work", label: "Work", dot: "#F0997B" },
-  { key: "recherche", label: "Recherche", dot: "#AFA9EC" },
-  { key: "verifier", label: "Vérificateur", dot: "#FAC775" },
-];
+function hubFilterTypes() {
+  return [
+    { key: "all", label: t("chat.hubFilter.all") },
+    { key: "assistant", label: t("chat.hubType.assistant"), dot: "#85B7EB" },
+    { key: "orchestrator", label: t("chat.hubType.orchestrator"), dot: "#5DCAA5" },
+    { key: "code", label: t("chat.hubType.code"), dot: "#97C459" },
+    { key: "design", label: t("chat.hubType.design"), dot: "#ED93B1" },
+    { key: "work", label: t("chat.hubType.work"), dot: "#F0997B" },
+    { key: "recherche", label: t("chat.hubType.recherche"), dot: "#AFA9EC" },
+    { key: "verifier", label: t("chat.hubType.verifier"), dot: "#FAC775" },
+  ];
+}
 
 function hubRelativeDate(ts) {
   if (!ts) return "";
@@ -3155,9 +3295,10 @@ function hubRelativeDate(ts) {
   today.setHours(0, 0, 0, 0);
   var yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (d >= today) return "Aujourd'hui";
-  if (d >= yesterday) return "Hier";
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  if (d >= today) return t("chat.date.today");
+  if (d >= yesterday) return t("chat.date.yesterday");
+  var locale = window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR";
+  return d.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
 
 function hubGetProjectType(p) {
@@ -3186,7 +3327,9 @@ function hubMatchesSearch(p, q) {
   if (!q) return true;
   var low = q.toLowerCase();
   var name = (p.name || "").toLowerCase();
-  var type = (HUB_TYPE_LABELS[hubGetProjectType(p)] || "Assistant").toLowerCase();
+  var type = (
+    hubTypeLabel(hubGetProjectType(p)) || t("chat.hubType.assistant")
+  ).toLowerCase();
   return name.indexOf(low) !== -1 || type.indexOf(low) !== -1;
 }
 
@@ -3220,7 +3363,7 @@ function hubCountChats(projectId) {
 function hubBuildCard(p, opts) {
   opts = opts || {};
   var type = hubGetProjectType(p);
-  var typeLabel = HUB_TYPE_LABELS[type] || "Assistant";
+  var typeLabel = hubTypeLabel(type) || t("chat.hubType.assistant");
   var typeColor = "#14b8a6";
   var iconSvg = HUB_TYPE_ICONS[type] || HUB_TYPE_ICONS.recherche;
   var bgAlpha = (p.color || typeColor).replace("#", "");
@@ -3248,14 +3391,14 @@ function hubBuildCard(p, opts) {
     card.setAttribute("aria-checked", isSelected ? "true" : "false");
     card.setAttribute(
       "aria-label",
-      (p.name || "") + (isSelected ? " (sélectionné)" : ""),
+      (p.name || "") + (isSelected ? t("chat.card.selectedSuffix") : ""),
     );
   } else {
     card.setAttribute("role", "button");
   }
   card.setAttribute(
     "aria-label",
-    "Projet " + (p.name || "") + ", " + typeLabel + ", modifié " + dateStr,
+    t("chat.card.aria", { name: p.name || "", type: typeLabel, date: dateStr }),
   );
   card.dataset.projectId = p.id;
 
@@ -3294,8 +3437,8 @@ function hubBuildCard(p, opts) {
       "</svg>" +
       "</div>" +
       (!hubSelectMode
-        ? '<button class="p-card-menu" aria-label="Actions pour ' +
-          escapeHtml(p.name) +
+        ? '<button class="p-card-menu" aria-label="' +
+          t("chat.card.menuAria", { name: escapeHtml(p.name) }) +
           '" aria-haspopup="menu" data-pid="' +
           p.id +
           '">' +
@@ -3317,7 +3460,9 @@ function hubBuildCard(p, opts) {
       (chatCount > 0
         ? '<span class="p-card-chats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span class="sr-only">' +
           chatCount +
-          " conversations</span>" +
+          " " +
+          escapeHtml(t("chat.card.conversations")) +
+          "</span>" +
           chatCount +
           "</span>"
         : "") +
@@ -3379,29 +3524,43 @@ function hubShowCtxMenu(project, anchorEl) {
   });
   if (project.folder) {
     folderItems +=
-      '<button class="hub-ctx-item" data-action="remove-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6l-.75 3h-4.5z"/><path d="M4 6h16"/><path d="M6 6v12a2 2 0 002 2h8a2 2 0 002-2V6"/></svg>Retirer du dossier</button>';
+      '<button class="hub-ctx-item" data-action="remove-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6l-.75 3h-4.5z"/><path d="M4 6h16"/><path d="M6 6v12a2 2 0 002 2h8a2 2 0 002-2V6"/></svg>' +
+      t("chat.ctx.removeFolder") +
+      "</button>";
   }
   folderItems +=
     '<div class="hub-ctx-sep"></div>' +
-    '<button class="hub-ctx-item" data-action="new-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Nouveau dossier…</button>';
+    '<button class="hub-ctx-item" data-action="new-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
+    t("chat.ctx.newFolder") +
+    "</button>";
 
   menu.innerHTML =
-    '<button class="hub-ctx-item" data-action="open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Ouvrir</button>' +
-    '<button class="hub-ctx-item" data-action="rename"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z"/></svg>Renommer</button>' +
+    '<button class="hub-ctx-item" data-action="open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+    t("chat.ctx.open") +
+    "</button>" +
+    '<button class="hub-ctx-item" data-action="rename"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z"/></svg>' +
+    t("chat.ctx.rename") +
+    "</button>" +
     '<button class="hub-ctx-item" data-action="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 2h6l-1.5 5h-3z"/><path d="M6.5 7h11l-1 5H7.5z"/></svg>' +
-    (isPinned ? "Désépingler" : "Épingler") +
+    (isPinned ? t("chat.ctx.unpin") : t("chat.ctx.pin")) +
     "</button>" +
     '<div class="hub-ctx-sep"></div>' +
-    '<div class="hub-ctx-sub"><button class="hub-ctx-item" data-action="toggle-move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 002-2V8a2 2 0 00-2-2h-7.93a2 2 0 01-1.66-.9l-.82-1.2A2 2 0 007.93 3H4a2 2 0 00-2 2v13c0 1.1.9 2 2 2Z"/></svg>Déplacer dans… <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-left:auto;"><polyline points="9 6 15 12 9 18"/></svg></button>' +
+    '<div class="hub-ctx-sub"><button class="hub-ctx-item" data-action="toggle-move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 002-2V8a2 2 0 00-2-2h-7.93a2 2 0 01-1.66-.9l-.82-1.2A2 2 0 007.93 3H4a2 2 0 00-2 2v13c0 1.1.9 2 2 2Z"/></svg>' +
+    t("chat.ctx.moveTo") +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-left:auto;"><polyline points="9 6 15 12 9 18"/></svg></button>' +
     '<div class="hub-ctx-submenu" id="hubCtxSubmenuMove">' +
     folderItems +
     "</div></div>" +
     '<button class="hub-ctx-item" data-action="archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 002 2h12a2 2 0 002-2V8"/><path d="M10 12h4"/></svg>' +
-    (isArchived ? "Désarchiver" : "Archiver") +
+    (isArchived ? t("chat.ctx.unarchive") : t("chat.ctx.archive")) +
     "</button>" +
-    '<button class="hub-ctx-item" data-action="duplicate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Dupliquer</button>' +
+    '<button class="hub-ctx-item" data-action="duplicate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+    t("chat.ctx.duplicate") +
+    "</button>" +
     '<div class="hub-ctx-sep"></div>' +
-    '<button class="hub-ctx-item hub-ctx-item-danger" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Supprimer</button>';
+    '<button class="hub-ctx-item hub-ctx-item-danger" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+    t("chat.ctx.delete") +
+    "</button>";
 
   menu.querySelectorAll(".hub-ctx-item").forEach(function (item) {
     item.setAttribute("role", "menuitem");
@@ -3478,10 +3637,10 @@ function hubHandleCtxAction(action) {
   if (action === "open") {
     openProjectDetails(p.id);
   } else if (action === "rename") {
-    var newName = prompt("Nouveau nom :", p.name);
+    var newName = prompt(t("chat.prompt.renameProject"), p.name);
     if (newName && newName.trim()) {
       window.openhub.saveProject({ id: p.id, name: newName.trim() }).then(function () {
-        showToast("Projet renommé", "success");
+        showToast(t("chat.toast.projectRenamed"), "success");
         loadProjects();
       });
     }
@@ -3490,19 +3649,22 @@ function hubHandleCtxAction(action) {
     window.openhub
       .saveProject({ id: p.id, name: p.name, pinned: !wasPinned })
       .then(function () {
-        showToast(wasPinned ? "Projet désépinglé" : "Projet épinglé", "success");
+        showToast(
+          wasPinned ? t("chat.toast.projectUnpinned") : t("chat.toast.projectPinned"),
+          "success",
+        );
         loadProjects();
       });
   } else if (action === "duplicate") {
     window.openhub
       .saveProject({
-        name: p.name + " (copie)",
+        name: p.name + t("chat.project.copySuffix"),
         instructions: p.instructions || "",
         color: p.color || "",
         type: p.type,
       })
       .then(function () {
-        showToast("Projet dupliqué", "success");
+        showToast(t("chat.toast.projectDuplicated"), "success");
         loadProjects();
       });
   } else if (action === "archive") {
@@ -3515,7 +3677,12 @@ function hubHandleCtxAction(action) {
         pinned: wasArchived ? p.pinned : false,
       })
       .then(function () {
-        showToast(wasArchived ? "Projet désarchivé" : "Projet archivé", "success");
+        showToast(
+          wasArchived
+            ? t("chat.toast.projectUnarchived")
+            : t("chat.toast.projectArchived"),
+          "success",
+        );
         loadProjects().then(function () {
           window.renderProjectsHub();
         });
@@ -3524,13 +3691,13 @@ function hubHandleCtxAction(action) {
     return;
   } else if (action === "remove-folder") {
     window.openhub.saveProject({ id: p.id, name: p.name, folder: "" }).then(function () {
-      showToast("Retiré du dossier", "success");
+      showToast(t("chat.toast.removedFromFolder"), "success");
       loadProjects().then(function () {
         window.renderProjectsHub();
       });
     });
   } else if (action === "new-folder") {
-    var folderName = prompt("Nom du nouveau dossier :");
+    var folderName = prompt(t("chat.prompt.newFolder"));
     if (folderName && folderName.trim()) {
       window.openhub
         .createFolder(folderName.trim())
@@ -3542,16 +3709,16 @@ function hubHandleCtxAction(action) {
           });
         })
         .then(function () {
-          showToast('Déplacé dans "' + folderName.trim() + '"', "success");
+          showToast(t("chat.toast.movedTo", { name: folderName.trim() }), "success");
           loadProjects().then(function () {
             window.renderProjectsHub();
           });
         });
     }
   } else if (action === "delete") {
-    if (confirm('Supprimer définitivement le projet "' + p.name + '" ?')) {
+    if (confirm(t("chat.confirm.deleteProject", { name: p.name }))) {
       removeProject(p.id).then(function () {
-        showToast("Projet supprimé", "success");
+        showToast(t("chat.toast.projectDeleted"), "success");
       });
     }
   }
@@ -3564,7 +3731,7 @@ function hubHandleMoveToFolder(folderName) {
   window.openhub
     .saveProject({ id: p.id, name: p.name, folder: folderName })
     .then(function () {
-      showToast('Déplacé dans "' + folderName + '"', "success");
+      showToast(t("chat.toast.movedTo", { name: folderName }), "success");
       loadProjects().then(function () {
         window.renderProjectsHub();
       });
@@ -3603,9 +3770,12 @@ function hubUpdateSelectCount() {
   var n = hubSelectedIds.size;
   var countEl = document.getElementById("hubSelectCount");
   var delBtn = document.getElementById("btnDeleteSelected");
-  if (countEl) countEl.textContent = n + " sélectionné" + (n > 1 ? "s" : "");
+  if (countEl)
+    countEl.textContent = t(n > 1 ? "chat.select.countPlural" : "chat.select.count", {
+      n: n,
+    });
   if (delBtn) {
-    delBtn.textContent = "Supprimer (" + n + ")";
+    delBtn.textContent = t("chat.select.deleteCount", { n: n });
     delBtn.disabled = n === 0;
   }
 }
@@ -3613,7 +3783,13 @@ function hubUpdateSelectCount() {
 function hubDeleteSelected() {
   var n = hubSelectedIds.size;
   if (n === 0) return;
-  if (!confirm("Supprimer " + n + " projet" + (n > 1 ? "s" : "") + " définitivement ?"))
+  if (
+    !confirm(
+      t(n > 1 ? "chat.select.confirmDeletePlural" : "chat.select.confirmDelete", {
+        n: n,
+      }),
+    )
+  )
     return;
   var ids = Array.from(hubSelectedIds);
   var chain = Promise.resolve();
@@ -3624,7 +3800,7 @@ function hubDeleteSelected() {
   });
   chain.then(function () {
     showToast(
-      n + " projet" + (n > 1 ? "s" : "") + " supprimé" + (n > 1 ? "s" : ""),
+      t(n > 1 ? "chat.select.deletedPlural" : "chat.select.deleted", { n: n }),
       "success",
     );
     hubExitSelectMode();
@@ -3646,7 +3822,7 @@ function hubRenderFilters() {
   var bar = document.getElementById("hubFilters");
   if (!bar) return;
   bar.innerHTML = "";
-  HUB_FILTER_TYPES.forEach(function (f) {
+  hubFilterTypes().forEach(function (f) {
     var btn = document.createElement("button");
     btn.className = "hub-chip" + (hubFilter === f.key ? " hub-chip-active" : "");
     btn.setAttribute("role", "radio");
@@ -3656,7 +3832,7 @@ function hubRenderFilters() {
       hubFilter = f.key;
       hubRenderFilters();
       hubRenderContent();
-      hubAnnounce("Filtre : " + f.label);
+      hubAnnounce(t("chat.announce.filter", { label: f.label }));
     });
     bar.appendChild(btn);
   });
@@ -3738,7 +3914,7 @@ function hubRenderContent() {
     if (pinned.length > 0) {
       hubRenderSection(
         pinnedEl,
-        "Épinglés",
+        t("chat.section.pinned"),
         '<path d="M12 17v5"/><path d="M9 2h6l-1.5 5h-3z"/><path d="M6.5 7h11l-1 5H7.5z"/>',
         pinned,
       );
@@ -3760,7 +3936,7 @@ function hubRenderContent() {
       toggle.tabIndex = 0;
       toggle.setAttribute("role", "button");
       toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      toggle.setAttribute("aria-label", "Dossier " + fname);
+      toggle.setAttribute("aria-label", t("chat.section.folderAria", { name: fname }));
       var folderId = hubFolders.find(function (f) {
         return f.name === fname;
       });
@@ -3776,8 +3952,12 @@ function hubRenderContent() {
         folders[fname].length +
         "</span>" +
         '<span class="hub-folder-actions">' +
-        '<button class="hub-folder-btn" data-folder-action="rename" title="Renommer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z"/></svg></button>' +
-        '<button class="hub-folder-btn hub-folder-btn-danger" data-folder-action="delete" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+        '<button class="hub-folder-btn" data-folder-action="rename" title="' +
+        t("chat.folder.renameTitle") +
+        '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z"/></svg></button>' +
+        '<button class="hub-folder-btn hub-folder-btn-danger" data-folder-action="delete" title="' +
+        t("chat.folder.deleteTitle") +
+        '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
         "</span>";
       toggle.addEventListener("click", function (e) {
         if (e.target.closest(".hub-folder-btn")) return;
@@ -3797,23 +3977,19 @@ function hubRenderContent() {
           e.stopPropagation();
           var act = btn.dataset.folderAction;
           if (act === "rename" && folderId) {
-            var newName = prompt("Renommer le dossier :", fname);
+            var newName = prompt(t("chat.prompt.renameFolder"), fname);
             if (newName && newName.trim() && newName.trim() !== fname) {
               window.openhub.renameFolder(folderId.id, newName.trim()).then(function () {
-                showToast("Dossier renommé", "success");
+                showToast(t("chat.toast.folderRenamed"), "success");
                 loadProjects().then(function () {
                   window.renderProjectsHub();
                 });
               });
             }
           } else if (act === "delete" && folderId) {
-            if (
-              confirm(
-                'Supprimer le dossier "' + fname + '" ? Les projets seront conservés.',
-              )
-            ) {
+            if (confirm(t("chat.confirm.deleteFolder", { name: fname }))) {
               window.openhub.deleteFolder(folderId.id).then(function () {
-                showToast("Dossier supprimé", "success");
+                showToast(t("chat.toast.folderDeleted"), "success");
                 loadProjects().then(function () {
                   window.renderProjectsHub();
                 });
@@ -3849,7 +4025,9 @@ function hubRenderContent() {
       var listActive = hubViewMode === "list" ? " hub-view-btn-active" : "";
       header.innerHTML =
         '<div style="display:flex;align-items:center;gap:6px;">' +
-        '<span class="hub-section-label">Tous les projets</span>' +
+        '<span class="hub-section-label">' +
+        t("chat.section.allProjects") +
+        "</span>" +
         '<span class="hub-section-count">' +
         noFolder.length +
         "</span>" +
@@ -3857,12 +4035,20 @@ function hubRenderContent() {
         '<div class="hub-view-btns">' +
         '<button class="hub-view-btn' +
         gridActive +
-        '" data-view="grid" aria-label="Affichage grille" title="Grille">' +
+        '" data-view="grid" aria-label="' +
+        t("chat.view.gridAria") +
+        '" title="' +
+        t("chat.view.gridTitle") +
+        '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>' +
         "</button>" +
         '<button class="hub-view-btn' +
         listActive +
-        '" data-view="list" aria-label="Affichage liste" title="Liste">' +
+        '" data-view="list" aria-label="' +
+        t("chat.view.listAria") +
+        '" title="' +
+        t("chat.view.listTitle") +
+        '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>' +
         "</button>" +
         "</div>";
@@ -3877,8 +4063,7 @@ function hubRenderContent() {
       if (noFolder.length === 0) {
         var empty = document.createElement("div");
         empty.style.cssText = "text-align:center;padding:48px;color:var(--text-muted);";
-        empty.innerHTML =
-          'Aucun projet trouvé. <button style="background:none;border:none;color:var(--accent-primary);cursor:pointer;font-family:inherit;font-size:inherit;text-decoration:underline;" id="hubEmptyCreate">Créer un projet</button>';
+        empty.innerHTML = t("chat.hub.emptyCreate");
         allEl.appendChild(empty);
       } else {
         var grid = document.createElement("div");
@@ -3903,13 +4088,15 @@ function hubRenderContent() {
       archToggle.tabIndex = 0;
       archToggle.setAttribute("role", "button");
       archToggle.setAttribute("aria-expanded", hubArchivedOpen ? "true" : "false");
-      archToggle.setAttribute("aria-label", "Projets archivés");
+      archToggle.setAttribute("aria-label", t("chat.hub.archivedAria"));
       archToggle.innerHTML =
         '<svg class="hub-section-chevron" style="transform:rotate(' +
         (hubArchivedOpen ? "0" : "-90") +
         'deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
         '<svg class="hub-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 002 2h12a2 2 0 002-2V8"/><path d="M10 12h4"/></svg>' +
-        '<span class="hub-section-label">Archivés</span>' +
+        '<span class="hub-section-label">' +
+        t("chat.section.archived") +
+        "</span>" +
         '<span class="hub-section-count">' +
         archived.length +
         "</span>";
@@ -3949,13 +4136,15 @@ function hubRenderContent() {
       toggle.tabIndex = 0;
       toggle.setAttribute("role", "button");
       toggle.setAttribute("aria-expanded", hubGenOpen ? "true" : "false");
-      toggle.setAttribute("aria-label", "Projets de l'orchestrateur");
+      toggle.setAttribute("aria-label", t("chat.hub.generatedAria"));
       toggle.innerHTML =
         '<svg class="hub-section-chevron" style="transform:rotate(' +
         (hubGenOpen ? "0" : "-90") +
         'deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
         '<svg class="hub-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="m2 14 6-6 6 6"/></svg>' +
-        '<span class="hub-section-label">Projets de l\'orchestrateur</span>' +
+        '<span class="hub-section-label">' +
+        t("chat.section.generated") +
+        "</span>" +
         '<span class="hub-section-count">' +
         generated.length +
         "</span>";
@@ -4026,7 +4215,9 @@ function renderProjectConversations(projectId) {
 
   if (filtered.length === 0) {
     list.innerHTML =
-      '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Aucun chat dans ce projet.</div>';
+      '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">' +
+      escapeHtml(t("chat.detail.noChats")) +
+      "</div>";
     return;
   }
 
@@ -4034,7 +4225,9 @@ function renderProjectConversations(projectId) {
     var item = document.createElement("div");
     item.className = "conv-item";
     item.innerHTML =
-      '<div class="conv-item-title">' + escapeHtml(c.title || "Sans titre") + "</div>";
+      '<div class="conv-item-title">' +
+      escapeHtml(c.title || t("chat.conv.untitled")) +
+      "</div>";
     item.onclick = function () {
       switchToConversation(c.id);
       window.switchMainView("chatView");
@@ -4097,7 +4290,7 @@ function initProjectsLogic() {
           name: p.name,
           instructions: instructions,
         });
-        showToast("Instructions enregistrées", "success");
+        showToast(t("chat.toast.instructionsSaved"), "success");
         loadProjects();
       }
     };
@@ -4139,9 +4332,9 @@ function initProjectsLogic() {
       var p = projState.projects.find(function (x) {
         return x.id === id;
       });
-      if (p && confirm('Supprimer définitivement le projet "' + p.name + '" ?')) {
+      if (p && confirm(t("chat.confirm.deleteProject", { name: p.name }))) {
         removeProject(p.id).then(function () {
-          showToast("Projet supprimé", "success");
+          showToast(t("chat.toast.projectDeleted"), "success");
           window.switchMainView("projectsHubView");
           window.renderProjectsHub();
         });
@@ -4166,11 +4359,9 @@ function initProjectsLogic() {
           );
         });
         hubAnnounce(
-          visible.length +
-            " projet" +
-            (visible.length > 1 ? "s" : "") +
-            " trouvé" +
-            (visible.length > 1 ? "s" : ""),
+          t(visible.length > 1 ? "chat.announce.foundPlural" : "chat.announce.found", {
+            n: visible.length,
+          }),
         );
       }, 150);
     });
@@ -4189,8 +4380,12 @@ function initProjectsLogic() {
     sortSelect.addEventListener("change", function () {
       hubSort = sortSelect.value;
       hubRenderContent();
-      var labels = { recent: "Récents", az: "A à Z", type: "Type" };
-      hubAnnounce("Tri : " + (labels[hubSort] || hubSort));
+      var labels = {
+        recent: t("chat.sort.recent"),
+        az: t("chat.sort.az"),
+        type: t("chat.sort.type"),
+      };
+      hubAnnounce(t("chat.announce.sort", { label: labels[hubSort] || hubSort }));
     });
   }
 
@@ -4293,3 +4488,37 @@ document.addEventListener("DOMContentLoaded", function () {
   // Fire init — everything runs in background, UI stays responsive
   init();
 });
+
+// Re-render JS-built chrome on live language change. The runtime auto-reapplies
+// [data-i18n] markup; here we refresh only the labels our JS injects dynamically.
+if (window.I18N && window.I18N.onChange) {
+  window.I18N.onChange(function () {
+    try {
+      if (typeof renderConvList === "function") renderConvList();
+      if (typeof updateEmptyState === "function") updateEmptyState();
+      if (typeof updateReasoningUI === "function") updateReasoningUI();
+      if (typeof renderProjectUI === "function") renderProjectUI();
+      if (els && els.modelLabel && state && state.models) {
+        els.modelLabel.textContent =
+          state.models.length === 0
+            ? t("chat.model.none")
+            : displayModelName(state.selectedModel) || t("chat.model.ready");
+      }
+      var hubView = document.getElementById("projectsHubView");
+      if (hubView && !hubView.classList.contains("hidden")) {
+        if (typeof hubRenderFilters === "function") hubRenderFilters();
+        if (typeof hubRenderContent === "function") hubRenderContent();
+        if (typeof hubUpdateSelectCount === "function" && hubSelectMode)
+          hubUpdateSelectCount();
+      }
+      var detailView = document.getElementById("projectDetailsView");
+      if (detailView && !detailView.classList.contains("hidden")) {
+        var pid = detailView.dataset.activeProjectId;
+        if (pid && typeof renderProjectConversations === "function")
+          renderProjectConversations(pid);
+      }
+    } catch (e) {
+      /* a refresh failure must never break the language switch */
+    }
+  });
+}
