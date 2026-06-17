@@ -27,7 +27,6 @@ var state = {
   initReady: false,
   isSearchMode: false,
 };
-console.log("[DIAG] state initialized, openhub available:", !!window.openhub);
 
 function getModelEffort(modelId) {
   if (!modelId) return "medium";
@@ -95,7 +94,6 @@ async function restoreFromBackup() {
       return c && typeof c === "object" && c.id && Array.isArray(c.messages);
     });
     if (valid.length === 0) return null;
-    console.log("[chat] Read " + valid.length + " conversations from file backup");
     return valid;
   } catch (_) {
     console.warn("[chat] Backup restore failed:", _);
@@ -117,7 +115,6 @@ async function writeBackup() {
     if (state.isSearchMode) return; // Skip search backup for now
 
     await window.openhub.writeChatBackup(JSON.stringify(toSave));
-    console.log("[chat] writeBackup success: " + toSave.length + " convs");
   } catch (_) {
     console.warn("[chat] File backup write failed:", _);
   }
@@ -125,7 +122,6 @@ async function writeBackup() {
 
 /* ── Conversations ── */
 async function loadConversations() {
-  console.log("[DEBUG] loadConversations started");
   try {
     // Read localStorage FIRST before restoreFromBackup can be called
     var data = localStorage.getItem(getHistoryKey());
@@ -148,13 +144,8 @@ async function loadConversations() {
     var restoredCount = (restored && restored.length) || 0;
     var localCount = localConvs.length;
 
-    console.log(
-      "[DEBUG] History sources: File=" + restoredCount + " vs Local=" + localCount,
-    );
-
     // We pick the source with more conversations to ensure no data loss
     if (restoredCount > localCount) {
-      console.log("[DEBUG] Picked File history (more conversations)");
       try {
         localStorage.setItem(getHistoryKey(), JSON.stringify(restored));
       } catch (e) {
@@ -162,7 +153,6 @@ async function loadConversations() {
       }
       return restored;
     } else {
-      console.log("[DEBUG] Picked Local history");
       return localConvs;
     }
   } catch (_) {
@@ -187,7 +177,6 @@ function persistConversations() {
 
     var json = JSON.stringify(toSave);
     localStorage.setItem(getHistoryKey(), json);
-    console.log("[chat] Saved to storage (" + toSave.length + " convs)");
     writeBackup();
   } catch (_) {
     console.error("[chat] persist error:", _);
@@ -325,12 +314,6 @@ function showConvMenu(e, conv) {
 }
 
 function renderConvList(filter) {
-  console.log(
-    "[DEBUG] renderConvList started, filter:",
-    filter,
-    "total conversations:",
-    conversations.length,
-  );
   var list = els.convList;
   if (!list) {
     console.error("[DEBUG] els.convList is missing!");
@@ -377,7 +360,6 @@ function renderConvList(filter) {
   for (var i = 0; i < sorted.length; i++) {
     (function (conv) {
       if (!conv || !conv.id) return;
-      console.log("[chat] rendering conv: " + conv.id + " title: " + conv.title);
       var item = document.createElement("div");
       item.className =
         "conv-item" +
@@ -411,7 +393,6 @@ function renderConvList(filter) {
         startRenaming(conv.id);
       });
       list.appendChild(item);
-      console.log("[chat] Appended item to list");
     })(sorted[i]);
   }
   list.scrollTop = savedScrollTop;
@@ -575,22 +556,11 @@ function startNewConversation() {
 
 /* ── Init ── */
 async function init() {
-  console.log(
-    "[DIAG] init() STARTED, state.initReady before:",
-    state.initReady,
-    "state.proxyUrl:",
-    state.proxyUrl,
-    "window.openhub:",
-    !!window.openhub,
-    "token:",
-    state.token,
-  );
   // ═══ IMMEDIATE DEFAULTS — UI responsive instantly ═══
   state.initReady = true;
   state.proxyUrl = "http://127.0.0.1:9999";
   // Real per-session token is loaded from getChatConfig() below; no static fallback.
   state.token = "";
-  console.log("[chat] init start — UI unblocked, loading data...");
 
   // ═══ LOAD CONVERSATIONS (sync from localStorage first) ═══
   var convs = [];
@@ -619,7 +589,6 @@ async function init() {
           });
           if (convs.length > 0) {
             localStorage.setItem(getHistoryKey(), backupRaw);
-            console.log("[chat] Restored " + convs.length + " convs from file backup");
           }
         }
       }
@@ -632,21 +601,11 @@ async function init() {
 
   // Always start with a fresh conversation
   startNewConversation();
-  console.log(
-    "[chat] Started new conversation (" + conversations.length + " in history)",
-  );
 
   // ═══ BACKGROUND — config, models, projects ═══
-  console.log("[DIAG] init() about to call getChatConfig...");
   window.openhub
     .getChatConfig()
     .then(function (c) {
-      console.log(
-        "[DIAG] getChatConfig resolved, config:",
-        c ? "ok" : "null",
-        "proxyUrl:",
-        c?.proxyUrl,
-      );
       if (c && c.proxyUrl) {
         state.proxyUrl = c.proxyUrl;
         state.token = c.token || "";
@@ -667,7 +626,6 @@ async function init() {
 
   setInterval(syncProjects, 5000);
   setInterval(writeBackup, 60000);
-  console.log("[DIAG] init() COMPLETED");
 }
 
 /* ── Projects ── */
@@ -835,15 +793,6 @@ function getReasoningLevels(id) {
   ];
 }
 async function refreshModels() {
-  console.log(
-    "[DIAG] refreshModels() called, proxyUrl:",
-    state.proxyUrl,
-    "token:",
-    state.token,
-    "modelLabel exists:",
-    !!els.modelLabel,
-  );
-  console.log("[chat] refreshModels start");
   try {
     var res = await fetchWithTimeout(
       state.proxyUrl + "/v1/models",
@@ -856,20 +805,12 @@ async function refreshModels() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     var data = await res.json();
     state.models = data.data || [];
-    console.log("[chat] Found " + state.models.length + " models");
   } catch (e) {
     console.error("[chat] refreshModels failed:", e);
-    console.log("[DIAG] refreshModels catch - setting models to []");
     if (!state.models) state.models = [];
   }
 
   var prevModel = state.selectedModel;
-  console.log(
-    "[DIAG] refreshModels after fetch, models count:",
-    state.models.length,
-    "prevModel:",
-    prevModel,
-  );
   if (state.models.length === 0) {
     state.selectedModel = null;
     if (els.modelLabel) els.modelLabel.textContent = t("chat.model.none");
@@ -3191,7 +3132,6 @@ if (window.openhub.onApiKeysUpdated) {
 /* ── Start ── */
 /* ── Navigation Projets ── */
 window.switchMainView = function (viewId) {
-  console.log("[chat] Switching to:", viewId);
   var chat = document.getElementById("chatView");
   var hub = document.getElementById("projectsHubView");
   var details = document.getElementById("projectDetailsView");
@@ -3203,7 +3143,6 @@ window.switchMainView = function (viewId) {
   var target = document.getElementById(viewId);
   if (target) {
     target.classList.remove("hidden");
-    console.log("[chat] Success: " + viewId + " is now visible");
   } else {
     console.error("[chat] Target view not found: " + viewId);
   }
@@ -4468,16 +4407,6 @@ function initProjectsLogic() {
 
 /* ── Start ── */
 document.addEventListener("DOMContentLoaded", function () {
-  console.log(
-    "[DIAG] DOMContentLoaded fired, els.messages:",
-    !!els.messages,
-    "els.modelLabel:",
-    !!els.modelLabel,
-    "els.convList:",
-    !!els.convList,
-    "window.openhub:",
-    !!window.openhub,
-  );
   initProjectsLogic();
 
   // Unblock UI instantly — never wait for init
