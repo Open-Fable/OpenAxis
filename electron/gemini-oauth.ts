@@ -8,6 +8,9 @@ import { createHash, randomBytes } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import { homedir, platform, arch } from "os";
+// Gemini CLI "installed app" credentials — supplied via env only (see
+// ./gemini-credentials and .env.example). Login is disabled when unset.
+import { GEMINI_CLIENT_ID, GEMINI_CLIENT_SECRET } from "./gemini-credentials.js";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -24,12 +27,6 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
-
-// Gemini CLI "installed app" credentials. Provided only via env vars at spawn
-// time (see .env.example) — never hardcoded in source. The OAuth login is
-// disabled unless both are present, mirroring the proxy's guard.
-const GEMINI_CLIENT_ID = process.env.GEMINI_CLIENT_ID ?? "";
-const GEMINI_CLIENT_SECRET = process.env.GEMINI_CLIENT_SECRET ?? "";
 
 const AUTH_DIR = path.join(homedir(), ".local", "share", "opencode");
 const AUTH_JSON_PATH = path.join(AUTH_DIR, "auth.json");

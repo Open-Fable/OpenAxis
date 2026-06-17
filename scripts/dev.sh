@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Load local env vars (secrets/credentials) so dev matches the packaged build.
+if [ -f .env ]; then
+  echo "Loading .env..."
+  set -a && . ./.env && set +a
+fi
+
 echo "Compiling TypeScript (main)..."
 npx tsc
 

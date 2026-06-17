@@ -39,7 +39,8 @@ export interface UpdaterDeps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const GITHUB_RELEASES_URL = "https://api.github.com/repos/1zalt/OpenHub/releases/latest";
+const GITHUB_RELEASES_URL =
+  "https://api.github.com/repos/Open-Fable/OpenHub/releases/latest";
 
 const ALLOWED_HOSTS = new Set(["github.com", "objects.githubusercontent.com"]);
 
@@ -163,16 +164,13 @@ async function fetchLatestRelease(): Promise<UpdateInfo | null> {
   const assets = data.assets;
   if (!Array.isArray(assets)) return null;
 
-  // Find the single .zip (exclude .blockmap / .dmg / .sha256)
-  const zipAsset = assets.find(
-    (a) =>
-      a.name.endsWith(".zip") &&
-      !a.name.endsWith(".blockmap") &&
-      !a.name.endsWith(".sha256"),
-  );
+  // Anchor the asset name to a strict product+version pattern
+  const version = tagName.replace(/^v/, "");
+  const expectedZipName = `OpenHub-${version}-mac.zip`;
+  const zipAsset = assets.find((a) => a.name === expectedZipName);
   if (!zipAsset) return null;
 
-  const shaAsset = assets.find((a) => a.name === `${zipAsset.name}.sha256`);
+  const shaAsset = assets.find((a) => a.name === `${expectedZipName}.sha256`);
   if (!shaAsset) return null;
 
   // U3: only allow known hosts
@@ -245,10 +243,10 @@ async function downloadAndStage(
   await fs.mkdir(extractDir, { recursive: true });
   await execPromise("ditto", ["-x", "-k", zipPath, extractDir]);
 
-  // Locate the .app inside the extracted folder
+  // Locate OpenHub.app inside the extracted folder (anchored name)
   const entries = await fs.readdir(extractDir);
-  const appEntry = entries.find((e) => e.endsWith(".app"));
-  if (!appEntry) throw new Error("No .app found in zip");
+  const appEntry = entries.find((e) => e === "OpenHub.app");
+  if (!appEntry) throw new Error("No OpenHub.app found in zip");
 
   setStatus({ stage: "ready", version: info.version });
   return path.join(extractDir, appEntry);
@@ -277,7 +275,7 @@ async function applyAndRelaunch(newAppPath: string): Promise<void> {
     await fs.access(parentDir, fsConstants.W_OK);
   } catch {
     // Fallback: open the Releases page in the browser
-    shell.openExternal("https://github.com/1zalt/OpenHub/releases/latest");
+    shell.openExternal("https://github.com/Open-Fable/OpenHub/releases/latest");
     throw new Error(
       "Le dossier contenant OpenHub n'est pas modifiable. " +
         "La page des téléchargements a été ouverte dans votre navigateur.",

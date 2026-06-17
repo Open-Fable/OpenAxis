@@ -5,6 +5,7 @@ import { homedir, platform, arch } from "os";
 import { promises as fs } from "fs";
 import path from "path";
 import { readAllApiKeys, isSafeOllamaUrl } from "../keychain.js";
+import { GEMINI_CLIENT_ID, GEMINI_CLIENT_SECRET } from "../gemini-credentials.js";
 import { getActiveProject, getProjectById } from "../project-store.js";
 import {
   buildMemoryBlock,
@@ -665,8 +666,7 @@ Règles pour les questions :
 - Si l'utilisateur répond "Je ne sais pas", prend une décision raisonnable à sa place
 - Les questions doivent être simples, avec des mots de tous les jours
 - Après chaque réponse de l'utilisateur, VÉRIFIE s'il reste des informations manquantes. Si oui et qu'il te reste des vagues disponibles (${MAX_QUESTION_ROUNDS - questionRounds} restante(s)), pose un NOUVEAU bloc de questions ciblées sur ce qui manque encore. Ne propose des projets que quand tu as assez d'informations OU que tu as épuisé tes ${MAX_QUESTION_ROUNDS} vagues
-- QUESTION OBLIGATOIRE — MODÈLE IA : Dans CHAQUE bloc de questions, inclus TOUJOURS une question sur le modèle d'IA à utiliser pour le projet. Propose UNIQUEMENT les modèles disponibles dans le catalogue ci-dessous. Utilise des noms simplifiés pour les options (pas les identifiants techniques). Ajoute l'option "Je ne sais pas, choisis pour moi" pour les utilisateurs qui ne connaissent pas les modèles.
-  Modèles disponibles : ${availableModels.length > 0 ? availableModels.join(", ") : "aucun modèle configuré"}
+- NE POSE JAMAIS de question sur le modèle d'IA. Le choix du modèle se fait dans l'interface (un modèle global "pour tous les agents" + un réglage par agent). Tu ne demandes le modèle que si l'utilisateur aborde le sujet de lui-même.
 
 QUAND TU PROPOSES DES PROJETS :
 - Donne-leur des noms que tout le monde comprend, comme "Gestion des comptes" au lieu de "API Authentification".
@@ -727,9 +727,9 @@ Créer un agent et le lier au workflow actif :
 
 RÈGLE MODÈLE À LA CRÉATION :
 - Le champ "model" est OPTIONNEL dans create_project
-- Si l'utilisateur a choisi un modèle lors des questions, ajoute "model" à CHAQUE create_project avec l'identifiant exact du modèle choisi
-- Si l'utilisateur n'a pas encore choisi de modèle, ne mets pas le champ "model" — il pourra être défini plus tard avec set_model
-- Quand l'utilisateur demande de "changer le modèle de tous les agents", utilise set_model avec target "all"
+- NE mets PAS le champ "model" par défaut. Le modèle est géré dans l'interface (modèle global + réglage par agent) ; un agent sans "model" hérite automatiquement du modèle global.
+- N'ajoute "model" QUE si l'utilisateur a demandé explicitement un modèle précis pour un agent, avec l'identifiant exact de la liste des modèles disponibles
+- Quand l'utilisateur demande explicitement de "changer le modèle de tous les agents", utilise set_model avec target "all"
 
 RÈGLE CRITIQUE — TOUJOURS RELIER LES AGENTS (dependencies) :
 Le champ "dependencies" liste les agents qui doivent TERMINER leur travail AVANT que cet agent démarre.
@@ -758,8 +758,7 @@ Changer le modèle d'IA de TOUS les agents du workflow actif d'un coup :
 {"type": "set_model", "model": "identifiant-du-modele", "target": "all", "auto": true}
 \`\`\`
 
-RÈGLE MODÈLE — Utilise UNIQUEMENT les identifiants exacts de la liste des modèles disponibles (voir contexte en bas). Quand l'utilisateur choisit un modèle par son nom simplifié lors d'une question, fais correspondre sa réponse à l'identifiant exact.
-Quand l'utilisateur répond à la question sur le modèle, génère automatiquement l'action set_model correspondante avec target "all" (sauf s'il a précisé un agent spécifique).
+RÈGLE MODÈLE — N'utilise set_model QUE sur demande explicite de l'utilisateur. Utilise UNIQUEMENT les identifiants exacts de la liste des modèles disponibles (voir contexte en bas) ; si l'utilisateur cite un nom simplifié, fais-le correspondre à l'identifiant exact. Sans demande explicite, ne touche jamais au modèle : l'interface s'en charge.
 
 Les valeurs possibles de agentType (OBLIGATOIRE pour chaque projet) :
 - "code" → programme, API, logique serveur, base de données
@@ -1894,11 +1893,6 @@ function createActivityRequestId(): string {
 type GoogleAuth = { accessToken: string; managedProjectId: string } | null;
 
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
-// Gemini CLI "installed app" OAuth credentials. Provided only via env vars at
-// spawn time (see .env.example) — never hardcoded in source. The Gemini OAuth
-// route stays disabled (guard below) unless both are present.
-const GEMINI_CLIENT_ID = process.env.GEMINI_CLIENT_ID ?? "";
-const GEMINI_CLIENT_SECRET = process.env.GEMINI_CLIENT_SECRET ?? "";
 const AUTH_JSON_PATH = path.join(homedir(), ".local", "share", "opencode", "auth.json");
 const ACCOUNT_JSON_PATH = path.join(
   homedir(),

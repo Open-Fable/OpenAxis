@@ -100,6 +100,12 @@ const SLOT_URLS: Record<Exclude<SlotName, "config" | "chat" | "projects">, strin
 
 const SPLASH_MIN_MS = 1200;
 
+// Delay before warming slot pages in hidden views — lets the sidebar + chat
+// paint first so a launch-time compile burst doesn't starve them.
+const WARM_DELAY_MS = 1500;
+
+type RemoteSlot = Exclude<SlotName, "config" | "chat" | "projects">;
+
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let splashShownAt = 0;
@@ -337,20 +343,94 @@ async function loadViewUrl(view: WebContentsView, url: string): Promise<void> {
   }
 }
 
+// Ensures a slot view exists, is a child of the window, and is in the `views`
+// Map. Returns the view. Does NOT change activeSlot or visibility. Callers
+// guarantee mainWindow is non-null (switchSlot/preloadSlot both guard first).
+function ensureSlotView(slot: RemoteSlot): WebContentsView {
+  const existing = views.get(slot);
+  if (existing) {
+    mainWindow!.contentView.addChildView(existing); // bring to front
+    return existing;
+  }
+  const view = createSlotView(slot);
+  view.setBackgroundColor("#18181E");
+  mainWindow!.contentView.addChildView(view);
+  views.set(slot, view);
+  return view;
+}
+
+// Deduplicates concurrent loads of the same slot: a click and a background warm
+// can target one view at once, and two parallel loadURL() retry loops on the
+// same webContents cancel each other. Callers share the single in-flight load.
+const slotLoads = new Map<RemoteSlot, Promise<void>>();
+
+function loadSlotOnce(
+  view: WebContentsView,
+  slot: RemoteSlot,
+  url: string,
+): Promise<void> {
+  const inFlight = slotLoads.get(slot);
+  if (inFlight) return inFlight;
+  const cur = view.webContents.getURL();
+  const alreadyLoaded =
+    cur !== "" && cur !== "about:blank" && !cur.startsWith("chrome-error://");
+  if (alreadyLoaded) return Promise.resolve();
+  const p = loadViewUrl(view, url).finally(() => slotLoads.delete(slot));
+  slotLoads.set(slot, p);
+  return p;
+}
+
+// Warms a slot in the background: creates its hidden view and loads the URL so
+// Turbopack/Vite compiles the route before the user ever clicks the slot. Never
+// changes activeSlot; the view stays hidden via repositionViews().
+async function preloadSlot(slot: RemoteSlot, url: string): Promise<void> {
+  if (!mainWindow || !url) return;
+  const view = ensureSlotView(slot);
+  const [width, height] = mainWindow.getContentSize();
+  view.setBounds({ x: 0, y: headerHeight, width, height: height - headerHeight });
+  view.setVisible(false); // must never paint over the active slot
+  await loadSlotOnce(view, slot, url);
+}
+
+// Warms work/code/design once each service is healthy. Mirrors switchSlot's
+// port→SLOT_URLS capture; allSettled so one slow/failed service never blocks
+// the others.
+async function warmSlots(starts: {
+  startCode: Promise<number | null>;
+  startWork: Promise<number | null>;
+  startDesign: Promise<number | null>;
+}): Promise<void> {
+  await Promise.allSettled([
+    starts.startWork.then((port) =>
+      preloadSlot("work", port !== null ? SLOT_URLS.work : ""),
+    ),
+    starts.startCode.then((port) => {
+      if (port !== null) SLOT_URLS.code = `http://127.0.0.1:${port}`;
+      return preloadSlot("code", port !== null ? SLOT_URLS.code : "");
+    }),
+    starts.startDesign.then((port) => {
+      if (port !== null) SLOT_URLS.design = `http://localhost:${port}`;
+      return preloadSlot("design", port !== null ? SLOT_URLS.design : "");
+    }),
+  ]);
+}
+
 let configOpen = false;
+let onboardingOpen = false;
 
 function repositionViews(): void {
   if (!mainWindow) return;
   const [width, height] = mainWindow.getContentSize();
   const contentY = headerHeight;
   const contentHeight = height - headerHeight;
+  const bounds = { x: 0, y: contentY, width: width, height: contentHeight };
 
   for (const [slot, view] of views) {
     const isActive = slot === activeSlot;
-    view.setVisible(isActive && !configOpen);
-    if (isActive) {
-      view.setBounds({ x: 0, y: contentY, width: width, height: contentHeight });
-    }
+    view.setVisible(isActive && !configOpen && !onboardingOpen);
+    // Lay out hidden views too so they render at the right size (xterm/lexical
+    // mis-measure at 0×0) — no reflow flash when later revealed.
+    view.setBounds(bounds);
   }
 }
 
@@ -494,6 +574,8 @@ ipcOn("nav-popup-select", (_e, slot: SlotName) => {
 async function switchSlot(slot: SlotName): Promise<void> {
   console.warn(`\n[main] ── switchSlot("${slot}") ──`);
 
+  if (onboardingOpen) return;
+
   if (slot === "config") {
     console.warn(`[main] opening config panel`);
     mainWindow?.webContents.send("show-config");
@@ -586,49 +668,10 @@ async function switchSlot(slot: SlotName): Promise<void> {
     return;
   }
 
-  // Start the service (or reuse if already running)
-  if (processManager) {
-    console.warn(`[main] ensureRunning("${slot}")...`);
-    const port = await processManager.ensureRunning(slot);
-    console.warn(`[main] ensureRunning("${slot}") → port ${port}`);
-    if (port !== null && slot === "design") {
-      SLOT_URLS[slot] = `http://localhost:${port}`;
-    } else if (port !== null && slot === "code") {
-      // opencode binds to 127.0.0.1 (IPv4) — use explicit IP so Chromium doesn't try ::1
-      SLOT_URLS[slot] = `http://127.0.0.1:${port}`;
-    }
-  }
-
-  const url = SLOT_URLS[slot];
-  console.warn(`[main] slot url: ${url || "(empty)"}`);
-
-  if (!views.has(slot)) {
-    console.warn(`[main] creating new WebContentsView for "${slot}"`);
-    const view = createSlotView(slot);
-    mainWindow.contentView.addChildView(view);
-    views.set(slot, view);
-
-    if (url) {
-      await loadViewUrl(view, url);
-    }
-  } else {
-    const view = views.get(slot)!;
-    const currentUrl = view.webContents.getURL();
-    console.warn(`[main] existing view current url: "${currentUrl}"`);
-
-    // Re-add to bring to front (Electron stacks views in add order)
-    mainWindow.contentView.addChildView(view);
-
-    const needsLoad =
-      !currentUrl ||
-      currentUrl === "about:blank" ||
-      currentUrl.startsWith("chrome-error://");
-    if (needsLoad && url) await loadViewUrl(view, url);
-  }
-
-  activeSlot = slot;
-  repositionViews();
-  mainWindow.webContents.send("slot-changed", slot);
+  // 1. Create/show the view IMMEDIATELY so the user sees feedback right away,
+  //    even before the backend service is healthy (warming may have created it
+  //    already, in which case ensureSlotView just brings it to front).
+  const view = ensureSlotView(slot);
 
   const slotTitles: Record<string, string> = {
     work: "OpenHub — Work",
@@ -636,7 +679,29 @@ async function switchSlot(slot: SlotName): Promise<void> {
     design: "OpenHub — Design",
     chat: "OpenHub — Chat",
   };
+  activeSlot = slot;
+  repositionViews();
+  mainWindow.webContents.send("slot-changed", slot);
   mainWindow.setTitle(slotTitles[slot] ?? "OpenHub");
+
+  // 2. Start the service (or reuse if already running). The view is already
+  //    visible with a dark background, so a long startup no longer looks frozen.
+  if (processManager) {
+    console.warn(`[main] ensureRunning("${slot}")...`);
+    const port = await processManager.ensureRunning(slot);
+    console.warn(`[main] ensureRunning("${slot}") → port ${port}`);
+    if (port !== null && slot === "design") {
+      SLOT_URLS[slot] = `http://localhost:${port}`;
+    } else if (port !== null && slot === "code") {
+      SLOT_URLS[slot] = `http://127.0.0.1:${port}`;
+    }
+  }
+
+  // 3. Load the URL — shared with any in-flight background warm via loadSlotOnce,
+  //    and skipped if the view already shows the right page.
+  const url = SLOT_URLS[slot];
+  console.warn(`[main] slot url: ${url || "(empty)"}`);
+  if (url) await loadSlotOnce(view, slot, url);
 
   console.warn(`[main] ── switchSlot("${slot}") done ──\n`);
 }
@@ -1707,7 +1772,23 @@ let aiWorkflowFlashModel = "deepseek/deepseek-v4-flash";
 let aiClassifierModel = "deepseek/deepseek-v4-flash";
 let notifyMode: NotifyMode = DEFAULT_NOTIFY_MODE;
 let notifySources: NotifySources = defaultNotifySources();
+type AppLanguage = "fr" | "en";
+let language: AppLanguage = "fr";
+let onboardingCompleted = false;
 const SETTINGS_PATH = path.join(homedir(), ".config", "openhub", "settings.json");
+
+// First-run default: follow the macOS UI language, French otherwise.
+function detectDefaultLanguage(): AppLanguage {
+  try {
+    return app.getLocale().toLowerCase().startsWith("fr") ? "fr" : "en";
+  } catch {
+    return "fr";
+  }
+}
+
+function parseLanguage(raw: unknown): AppLanguage {
+  return raw === "en" || raw === "fr" ? raw : detectDefaultLanguage();
+}
 
 const notifier = createNotifier({
   getWindow: () => mainWindow,
@@ -1751,6 +1832,9 @@ async function loadSettings(): Promise<void> {
       ? parsed.notifyMode
       : DEFAULT_NOTIFY_MODE;
     notifySources = parseNotifySources(parsed.notifySources);
+    language = parseLanguage(parsed.language);
+    onboardingCompleted =
+      parsed.onboardingCompleted !== undefined ? !!parsed.onboardingCompleted : true; // existing settings file without the flag → existing user, skip onboarding
   } catch {
     navMode = "topbar";
     headerHeight = HEADER_HEIGHT_TOPBAR;
@@ -1765,6 +1849,8 @@ async function loadSettings(): Promise<void> {
     aiClassifierModel = "deepseek/deepseek-v4-flash";
     notifyMode = DEFAULT_NOTIFY_MODE;
     notifySources = defaultNotifySources();
+    language = detectDefaultLanguage();
+    onboardingCompleted = false;
   }
 }
 
@@ -1787,6 +1873,8 @@ async function saveSettings(): Promise<void> {
           aiClassifierModel,
           notifyMode,
           notifySources,
+          language,
+          onboardingCompleted,
         },
         null,
         2,
@@ -1808,6 +1896,49 @@ ipcHandle("set-nav-mode", async (_e, mode: string) => {
 ipcHandle("get-auto-update", () => autoUpdateEnabled);
 ipcHandle("set-auto-update", async (_e, enabled: boolean) => {
   autoUpdateEnabled = enabled;
+  await saveSettings();
+});
+
+// ── UI language ──────────────────────────────────────────────────────────
+// Broadcast a language change to every native renderer so they re-translate
+// live (third-party app views have no listener and simply ignore it).
+function broadcastLanguage(): void {
+  mainWindow?.webContents.send("language-changed", language);
+  for (const view of views.values()) {
+    view.webContents.send("language-changed", language);
+  }
+}
+
+// Synchronous read so each surface can translate its first paint without FOUC.
+ipcOn("get-language-sync", (e) => {
+  e.returnValue = language;
+});
+ipcHandle("get-language", () => language);
+ipcHandle("set-language", async (_e, lang: string) => {
+  language = lang === "en" ? "en" : "fr";
+  await saveSettings();
+  broadcastLanguage();
+});
+
+// ── Onboarding ──────────────────────────────────────────────────────────
+ipcOn("onboarding-pending-sync", (e) => {
+  e.returnValue = !onboardingCompleted;
+});
+
+ipcOn("onboarding-visibility", (_e, open: boolean) => {
+  onboardingOpen = open;
+  repositionViews();
+});
+
+ipcHandle("complete-onboarding", async () => {
+  onboardingCompleted = true;
+  onboardingOpen = false;
+  await saveSettings();
+  repositionViews();
+});
+
+ipcHandle("reset-onboarding", async () => {
+  onboardingCompleted = false;
   await saveSettings();
 });
 
@@ -1997,6 +2128,18 @@ ipcHandle("get-vision-detail-level", () => visionDetailLevel);
 ipcHandle("set-vision-detail-level", async (_e, level: string) => {
   visionDetailLevel = level;
   await saveSettings();
+});
+
+ipcHandle("get-available-models", async () => {
+  const { readAllApiKeys } = await import("./keychain.js");
+  const { buildModelList } = await import("./proxy/index.js");
+  const { getGeminiAuthStatus } = await import("./gemini-oauth.js");
+  const keys = await readAllApiKeys();
+  const models = await buildModelList(keys);
+  const geminiAuth = await getGeminiAuthStatus();
+  return models
+    .filter((m) => m.source !== "gemini" || geminiAuth.connected)
+    .map((m) => ({ id: m.id, source: m.source }));
 });
 
 // AI Intelligence Settings
@@ -2265,10 +2408,12 @@ app
       console.error("[main] background binary sync failed:", err);
     });
 
-    // Sync remote overrides (OTA patches) in background
-    syncRemoteOverrides().catch((err) => {
-      console.warn("[main] remote overrides sync failed:", err);
-    });
+    // Sync remote overrides (OTA patches) in background — packaged builds only
+    if (app.isPackaged) {
+      syncRemoteOverrides().catch((err) => {
+        console.warn("[main] remote overrides sync failed:", err);
+      });
+    }
 
     // Initialize the self-updater (Partie 2 — packaged mode only)
     initUpdater({
@@ -2284,13 +2429,30 @@ app
 
     await generateOpenCodeConfig({ proxyToken, anthropicKey, openaiKey, openrouterKey });
 
-    // Start opencode in the background — Work slot needs the opencode engine
-    // for workspace sessions. Don't await: let it start while window loads.
-    processManager.ensureRunning("code").catch((err) => {
-      console.warn("[main] background opencode start failed:", err);
-    });
+    // Pre-start all 3 services in the background so slot switches are instant.
+    // Don't await: let them start while the window loads.
+    const startCode = processManager.ensureRunning("code");
+    const startWork = processManager.ensureRunning("work");
+    const startDesign = processManager.ensureRunning("design");
+    startCode.catch((err) =>
+      console.warn("[main] background opencode start failed:", err),
+    );
+    startWork.catch((err) =>
+      console.warn("[main] background openwork start failed:", err),
+    );
+    startDesign.catch((err) =>
+      console.warn("[main] background open-design start failed:", err),
+    );
 
     await createWindow();
+
+    // Warm each slot's page in a hidden view so Turbopack/Vite compiles the
+    // route before the user clicks (the 20-40s black screen is that first
+    // compile). Deferred + off the critical path so the sidebar/chat paint first.
+    setTimeout(
+      () => void warmSlots({ startCode, startWork, startDesign }),
+      WARM_DELAY_MS,
+    );
 
     // Background self-update check (U4: only when packaged, best-effort)
     if (app.isPackaged && autoUpdateEnabled) {

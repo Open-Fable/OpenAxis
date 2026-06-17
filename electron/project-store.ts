@@ -20,6 +20,9 @@ export interface Project {
     readonly checkCoherence: boolean;
     readonly relaunchOnError: boolean;
     readonly adaptToWeakModel?: boolean;
+    // Independent nodes in the same DAG wave run concurrently (pure-LLM lane).
+    // Clamped to [1, MAX_PARALLEL_NODES_CAP]; 1 = legacy strictly-sequential.
+    readonly maxParallelNodes?: number;
   };
   readonly bypassMemory?: boolean;
   readonly maxRetries?: number;

@@ -63,10 +63,6 @@ export class ProcessManager {
       userDataDir: os.tmpdir(),
     };
 
-    // Bundled opencode binary (packaged) vs system install (dev). The shim prefers
-    // the bundled binary so a distributed .dmg never depends on ~/.opencode.
-    const bundledOpencode = path.join(this.ctx.resourcesPath, "bin", "opencode");
-    const fallbackOpencode = path.join(os.homedir(), ".opencode", "bin", "opencode");
     // S2: only auto-inject --dangerously-skip-permissions in DEV. A distributed
     // build must let opencode prompt the user before running shell/file actions.
     const skipPermsBlock = this.ctx.isPackaged
@@ -88,10 +84,13 @@ fi`;
       const shimContent = `#!/bin/bash
 # Prefer the bundled opencode binary, then the next one in PATH (excluding this
 # shim), then the standard ~/.opencode install location.
+# Paths injected via env vars to avoid shell metacharacter injection.
 SHIM_DIR="\$(dirname "\$0")"
+BUNDLED="\${OPENHUB_BUNDLED_OPENCODE:-}"
+FALLBACK="\${OPENHUB_FALLBACK_OPENCODE:-}"
 REAL_PATH=""
-if [ -x "${bundledOpencode}" ]; then
-  REAL_PATH="${bundledOpencode}"
+if [ -n "\$BUNDLED" ] && [ -x "\$BUNDLED" ]; then
+  REAL_PATH="\$BUNDLED"
 fi
 
 if [ -z "\$REAL_PATH" ]; then
@@ -99,7 +98,9 @@ if [ -z "\$REAL_PATH" ]; then
 fi
 
 if [ -z "\$REAL_PATH" ]; then
-  REAL_PATH="${fallbackOpencode}"
+  if [ -n "\$FALLBACK" ] && [ -x "\$FALLBACK" ]; then
+    REAL_PATH="\$FALLBACK"
+  fi
 fi
 
 args=()
@@ -220,11 +221,43 @@ exec "\$REAL_PATH" "\${args[@]}"
     this.running.clear();
   }
 
+  private static readonly ENV_ALLOWLIST = [
+    "PATH",
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TMPDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_CACHE_HOME",
+    "TERM",
+    "TERM_PROGRAM",
+    "COLORTERM",
+    "SSH_AUTH_SOCK",
+    "NO_PROXY",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "ELECTRON_RUN_AS_NODE",
+  ] as const;
+
   private sharedEnv(): NodeJS.ProcessEnv {
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      OPENHUB_TOKEN: this.proxyToken,
-    };
+    const env: NodeJS.ProcessEnv = {};
+    for (const key of ProcessManager.ENV_ALLOWLIST) {
+      if (process.env[key] !== undefined) env[key] = process.env[key];
+    }
+    env.OPENHUB_TOKEN = this.proxyToken;
+    env.OPENHUB_BUNDLED_OPENCODE = path.join(this.ctx.resourcesPath, "bin", "opencode");
+    env.OPENHUB_FALLBACK_OPENCODE = path.join(
+      os.homedir(),
+      ".opencode",
+      "bin",
+      "opencode",
+    );
     if (
       this.apiKeys.googleAiKey !== null &&
       this.apiKeys.googleAiKey !== undefined &&
@@ -232,9 +265,8 @@ exec "\$REAL_PATH" "\${args[@]}"
     ) {
       env.GOOGLE_GENERATIVE_AI_API_KEY = this.apiKeys.googleAiKey;
     }
-    const pathDelimiter = path.delimiter;
-    const existingPath = process.env.PATH !== undefined ? process.env.PATH : "";
-    env.PATH = this.shimDir + pathDelimiter + existingPath;
+    const existingPath = process.env.PATH ?? "";
+    env.PATH = this.shimDir + path.delimiter + existingPath;
     return env;
   }
 

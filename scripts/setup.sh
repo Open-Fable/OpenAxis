@@ -68,13 +68,15 @@ if command -v opencode &>/dev/null; then
   info "opencode déjà installé: $(opencode --version 2>/dev/null || echo 'présent') ✓"
 else
   warn "Installation de opencode CLI..."
-  # TRUST NOTE: the installer is fetched over HTTPS to a temp file (not piped into a
-  # shell) and then executed. There is no checksum pin because upstream does not
-  # publish a stable one; this inherits trust in opencode.ai's TLS + release pipeline.
   INSTALL_SCRIPT=$(mktemp -t opencode-install.XXXXXX)
   curl -fsSL https://opencode.ai/install -o "$INSTALL_SCRIPT"
+  if [ -n "${OPENCODE_INSTALLER_SHA256:-}" ]; then
+    echo "${OPENCODE_INSTALLER_SHA256}  ${INSTALL_SCRIPT}" | shasum -a 256 -c - \
+      || { error "Checksum opencode installer invalide."; rm -f "$INSTALL_SCRIPT"; exit 1; }
+    info "opencode installer checksum vérifié ✓"
+  fi
   bash "$INSTALL_SCRIPT"
-  rm "$INSTALL_SCRIPT"
+  rm -f "$INSTALL_SCRIPT"
   info "opencode CLI installé ✓"
 fi
 

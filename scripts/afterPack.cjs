@@ -18,10 +18,12 @@ exports.default = async function afterPack(context) {
     `${context.packager.appInfo.productFilename}.app`,
   );
 
-  console.log(`[afterPack] Ad-hoc signing ${appPath} …`);
-  execSync(`codesign --force --deep --sign - '${appPath.replace(/'/g, "'\\''")}'`, {
-    stdio: "inherit",
-  });
+  const entitlements = path.join(__dirname, "..", "build", "entitlements.mac.plist");
+  console.log(`[afterPack] Ad-hoc signing ${appPath} (hardened runtime) …`);
+  execSync(
+    `codesign --force --deep --sign - --options runtime --entitlements '${entitlements.replace(/'/g, "'\\''")}' '${appPath.replace(/'/g, "'\\''")}'`,
+    { stdio: "inherit" },
+  );
 
   console.log("[afterPack] Verifying …");
   execSync(

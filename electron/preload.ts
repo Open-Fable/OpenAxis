@@ -56,6 +56,17 @@ contextBridge.exposeInMainWorld("openhub", {
     return () => ipcRenderer.removeListener("nav-mode-changed", handler);
   },
 
+  // UI language ("fr" | "en"). `language` is read synchronously so the i18n
+  // runtime can translate the first paint without a flash of untranslated text.
+  language: ipcRenderer.sendSync("get-language-sync"),
+  getLanguage: () => ipcRenderer.invoke("get-language"),
+  setLanguage: (lang: string) => ipcRenderer.invoke("set-language", lang),
+  onLanguageChanged: (cb: (lang: string) => void) => {
+    const handler = (_e: unknown, lang: string) => cb(lang);
+    ipcRenderer.on("language-changed", handler);
+    return () => ipcRenderer.removeListener("language-changed", handler);
+  },
+
   openworkDesktopInvoke: (command: string, ...args: unknown[]) =>
     ipcRenderer.invoke("openwork-desktop-invoke", command, ...args),
 
@@ -269,6 +280,17 @@ contextBridge.exposeInMainWorld("openhub", {
     ipcRenderer.on("ollama-pull-progress", handler);
     return () => ipcRenderer.removeListener("ollama-pull-progress", handler);
   },
+
+  onboardingPending: () => ipcRenderer.sendSync("onboarding-pending-sync") as boolean,
+  notifyOnboardingVisibility: (open: boolean) =>
+    ipcRenderer.send("onboarding-visibility", open),
+  completeOnboarding: () => ipcRenderer.invoke("complete-onboarding"),
+  resetOnboarding: () => ipcRenderer.invoke("reset-onboarding"),
+  openExternal: (url: string) => ipcRenderer.invoke("od-shell:open-external", url),
+  getAvailableModels: () =>
+    ipcRenderer.invoke("get-available-models") as Promise<
+      Array<{ id: string; source: string }>
+    >,
 });
 
 type ProjectImportResult =

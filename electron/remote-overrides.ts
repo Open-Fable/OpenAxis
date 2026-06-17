@@ -21,13 +21,19 @@ interface RemoteManifest {
 // Constants
 // ---------------------------------------------------------------------------
 
-const BASE_URL = "https://raw.githubusercontent.com/1zalt/OpenHub/remote-overrides";
+const BASE_URL = "https://raw.githubusercontent.com/Open-Fable/OpenHub/remote-overrides";
 
 const CACHE_DIR = path.join(os.homedir(), ".config", "openhub", "remote-overrides");
 
 const MANIFEST_FILENAME = "manifest.json";
 const FETCH_TIMEOUT_MS = 10_000;
 const FILE_TIMEOUT_MS = 15_000;
+
+const ALLOWED_APP_DIRS = new Set(["global", "openwork", "opencode", "open-design"]);
+const OVERRIDE_NAME_RE = /^[a-z0-9_-]+$/i;
+const SHA256_HEX_RE = /^[a-f0-9]{64}$/;
+const ALLOWED_TYPES = new Set<string>(["css", "js"]);
+const MAX_MANIFEST_BYTES = 256 * 1024;
 
 // ---------------------------------------------------------------------------
 // Module state
@@ -74,7 +80,8 @@ export async function loadRemoteOverrides(
 
   for (const [name, entry] of Object.entries(section)) {
     if (!entry.types.includes(type)) continue;
-    const filePath = path.join(CACHE_DIR, appDir, `${name}.${type}`);
+    const filePath = safeRemotePath(appDir, name, type);
+    if (!filePath) continue;
     try {
       results.push(await fs.readFile(filePath, "utf-8"));
     } catch {
@@ -91,26 +98,76 @@ export async function clearRemoteCache(): Promise<void> {
 }
 
 // Exposed for testing
-export { CACHE_DIR, BASE_URL };
+export { CACHE_DIR, BASE_URL, ALLOWED_APP_DIRS, SHA256_HEX_RE, validateManifest };
 
 // ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
+
+function safeRemotePath(appDir: string, name: string, type: string): string | null {
+  if (!ALLOWED_APP_DIRS.has(appDir)) return null;
+  if (!OVERRIDE_NAME_RE.test(name)) return null;
+  if (!ALLOWED_TYPES.has(type)) return null;
+  const full = path.resolve(CACHE_DIR, appDir, `${name}.${type}`);
+  return full.startsWith(path.resolve(CACHE_DIR) + path.sep) ? full : null;
+}
+
+function validateManifest(data: unknown): RemoteManifest | null {
+  if (typeof data !== "object" || data === null) return null;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.version !== "number") return null;
+  if (typeof obj.overrides !== "object" || obj.overrides === null) return null;
+
+  const overrides = obj.overrides as Record<string, unknown>;
+  const validated: Record<string, Record<string, RemoteOverrideEntry>> = {};
+
+  for (const [appDir, entries] of Object.entries(overrides)) {
+    if (!ALLOWED_APP_DIRS.has(appDir)) continue;
+    if (typeof entries !== "object" || entries === null) continue;
+
+    const section: Record<string, RemoteOverrideEntry> = {};
+    for (const [name, entry] of Object.entries(entries as Record<string, unknown>)) {
+      if (!OVERRIDE_NAME_RE.test(name)) continue;
+      if (typeof entry !== "object" || entry === null) continue;
+      const e = entry as Record<string, unknown>;
+      if (typeof e.hash !== "string" || !SHA256_HEX_RE.test(e.hash)) continue;
+      if (!Array.isArray(e.types)) continue;
+      const types = (e.types as unknown[]).filter(
+        (t): t is "css" | "js" => typeof t === "string" && ALLOWED_TYPES.has(t),
+      );
+      if (types.length === 0) continue;
+      section[name] = { hash: e.hash, types };
+    }
+    if (Object.keys(section).length > 0) validated[appDir] = section;
+  }
+
+  return { version: obj.version as number, overrides: validated };
+}
 
 async function fetchManifest(): Promise<RemoteManifest | null> {
   const url = `${BASE_URL}/${MANIFEST_FILENAME}`;
   const resp = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!resp.ok) return null;
 
-  const data = (await resp.json()) as RemoteManifest;
-  if (typeof data.version !== "number" || !data.overrides) return null;
-  return data;
+  const lengthHeader = resp.headers.get("content-length");
+  if (lengthHeader && parseInt(lengthHeader, 10) > MAX_MANIFEST_BYTES) return null;
+
+  const text = await resp.text();
+  if (text.length > MAX_MANIFEST_BYTES) return null;
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  return validateManifest(raw);
 }
 
 async function readCachedManifest(): Promise<RemoteManifest | null> {
   try {
     const raw = await fs.readFile(path.join(CACHE_DIR, MANIFEST_FILENAME), "utf-8");
-    return JSON.parse(raw) as RemoteManifest;
+    return validateManifest(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -118,7 +175,9 @@ async function readCachedManifest(): Promise<RemoteManifest | null> {
 
 async function syncFiles(manifest: RemoteManifest): Promise<void> {
   for (const [appDir, entries] of Object.entries(manifest.overrides)) {
-    const dir = path.join(CACHE_DIR, appDir);
+    if (!ALLOWED_APP_DIRS.has(appDir)) continue;
+    const dir = path.resolve(CACHE_DIR, appDir);
+    if (!dir.startsWith(path.resolve(CACHE_DIR) + path.sep)) continue;
     await fs.mkdir(dir, { recursive: true });
 
     for (const [name, entry] of Object.entries(entries)) {
@@ -135,9 +194,10 @@ async function syncOneFile(
   type: "css" | "js",
   expectedHash: string,
 ): Promise<void> {
-  const localPath = path.join(CACHE_DIR, appDir, `${name}.${type}`);
+  if (!SHA256_HEX_RE.test(expectedHash)) return;
+  const localPath = safeRemotePath(appDir, name, type);
+  if (!localPath) return;
 
-  // Skip download if cached file matches expected hash
   if (await hashMatches(localPath, expectedHash)) return;
 
   const url = `${BASE_URL}/${appDir}/${name}.${type}`;
@@ -146,9 +206,8 @@ async function syncOneFile(
 
   const content = await resp.text();
 
-  // Verify integrity before writing
   const actualHash = createHash("sha256").update(content, "utf-8").digest("hex");
-  if (!actualHash.startsWith(expectedHash) && expectedHash !== actualHash) return;
+  if (actualHash !== expectedHash) return;
 
   await fs.writeFile(localPath, content, "utf-8");
 }
@@ -157,7 +216,7 @@ async function hashMatches(filePath: string, expectedHash: string): Promise<bool
   try {
     const content = await fs.readFile(filePath, "utf-8");
     const hash = createHash("sha256").update(content, "utf-8").digest("hex");
-    return hash === expectedHash || hash.startsWith(expectedHash);
+    return hash === expectedHash;
   } catch {
     return false;
   }

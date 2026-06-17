@@ -20,6 +20,11 @@ cp "$ROOT/electron/update-toast.html" "$ROOT/dist/electron/update-toast.html"
 cp "$ROOT/electron/sidebar-ui.js" "$ROOT/dist/electron/sidebar-ui.js"
 cp "$ROOT/electron/chat.js" "$ROOT/dist/electron/chat.js"
 cp "$ROOT/electron/nav-popup.js" "$ROOT/dist/electron/nav-popup.js"
+cp "$ROOT/electron/onboarding.js" "$ROOT/dist/electron/onboarding.js"
+cp "$ROOT/electron/onboarding.css" "$ROOT/dist/electron/onboarding.css"
+
+rm -rf "$ROOT/dist/electron/i18n"
+cp -r "$ROOT/electron/i18n" "$ROOT/dist/electron/i18n"
 
 rm -rf "$ROOT/dist/electron/shared"
 cp -r "$ROOT/electron/shared" "$ROOT/dist/electron/shared"
