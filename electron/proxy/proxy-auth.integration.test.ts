@@ -1,5 +1,26 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { request as httpRequest } from "http";
+import { connect } from "net";
+
+// The proxy binds a hardcoded loopback port (9999). If a real OpenHub instance
+// is already running, startProxy() can't bind it and a foreign server answers
+// with a token we don't know — making auth assertions meaningless. Detect that
+// up front and skip the whole suite (it still runs in CI, where no app runs).
+function isPortBusy(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect({ host: "127.0.0.1", port }, () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("error", () => resolve(false));
+    socket.setTimeout(500, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+const portBusy = await isPortBusy(9999);
 
 // undici's fetch() forbids overriding the Host header, so DNS-rebinding tests
 // need a raw socket. Returns { status, body } for a GET with a chosen Host.
@@ -95,11 +116,12 @@ const HOST = "127.0.0.1:9999";
 let sessionToken: string;
 
 beforeAll(async () => {
+  if (portBusy) return;
   const mod = await import("./index.js");
   sessionToken = await mod.startProxy();
 }, 15_000);
 
-describe("proxy Bearer authentication", () => {
+describe.skipIf(portBusy)("proxy Bearer authentication", () => {
   it("returns a 64-char hex session token from startProxy", () => {
     expect(sessionToken).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -144,7 +166,7 @@ describe("proxy Bearer authentication", () => {
   });
 });
 
-describe("proxy public paths bypass auth", () => {
+describe.skipIf(portBusy)("proxy public paths bypass auth", () => {
   for (const path of ["/status", "/health", "/capabilities", "/runtime/versions"]) {
     it(`allows ${path} without any token`, async () => {
       const res = await fetch(`${PROXY}${path}`, { headers: { Host: HOST } });
@@ -153,7 +175,7 @@ describe("proxy public paths bypass auth", () => {
   }
 });
 
-describe("proxy Host-header validation (DNS-rebinding defense)", () => {
+describe.skipIf(portBusy)("proxy Host-header validation (DNS-rebinding defense)", () => {
   it("rejects an unexpected Host header with 421", async () => {
     const res = await rawGet("/status", "evil.example.com");
     expect(res.status).toBe(421);
@@ -166,7 +188,7 @@ describe("proxy Host-header validation (DNS-rebinding defense)", () => {
   });
 });
 
-describe("proxy security headers", () => {
+describe.skipIf(portBusy)("proxy security headers", () => {
   it("sets hardening headers on every response", async () => {
     const res = await fetch(`${PROXY}/status`, { headers: { Host: HOST } });
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
@@ -176,7 +198,7 @@ describe("proxy security headers", () => {
   });
 });
 
-describe("proxy CORS origin allow-listing", () => {
+describe.skipIf(portBusy)("proxy CORS origin allow-listing", () => {
   it("echoes an allowed origin", async () => {
     const res = await fetch(`${PROXY}/status`, {
       headers: { Host: HOST, Origin: "http://localhost:5173" },
