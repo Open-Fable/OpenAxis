@@ -30,6 +30,9 @@ export async function startStaticServer(
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    // Parité avec le proxy : X-Frame-Options est legacy, frame-ancestors 'none'
+    // est la directive moderne honorée par les navigateurs récents.
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
     res.setHeader("Referrer-Policy", "no-referrer");
     next();
   });
