@@ -294,12 +294,8 @@ div.hidden.xl\:flex {
    En dessous de 1280px, le nav desktop est hidden et le toggle desktop
    ouvre la sidebar store en mémoire sans effet visuel.
    Le main content a "inset-0" (plein écran) et z-20 > z-10 du nav.
-   On force le comportement desktop à toutes les largeurs. */
-
-/* Nav toujours visible, garde son z-index naturel */
-[data-component="sidebar-nav-desktop"] {
-  display: block !important;
-}
+   On force le comportement desktop à toutes les largeurs.
+   (Le nav est déjà forcé en display:block plus haut — pas de doublon ici.) */
 
 /* Main content — respecter la sidebar même sous xl */
 [data-component="sidebar-nav-desktop"] ~ div.z-20 {
