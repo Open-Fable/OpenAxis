@@ -440,7 +440,7 @@ exec "\$REAL_PATH" "\${args[@]}"
     // server below. Falls back to `next dev` when no build is present.
     const hasWebBuild = fs.existsSync(path.join(webCwd, "out", "index.html"));
     t(`hasWebBuild=${hasWebBuild} isPackaged=${this.ctx.isPackaged}`);
-    if (!this.ctx.isPackaged && hasWebBuild) {
+    if (hasWebBuild) {
       const daemonPort = 7456;
       t("daemon fast-path: waitForHealth start");
       await this.waitForHealth(`http://127.0.0.1:${daemonPort}/api/health`);
