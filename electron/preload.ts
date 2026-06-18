@@ -67,8 +67,19 @@ contextBridge.exposeInMainWorld("openhub", {
     return () => ipcRenderer.removeListener("language-changed", handler);
   },
 
-  openworkDesktopInvoke: (command: string, ...args: unknown[]) =>
-    ipcRenderer.invoke("openwork-desktop-invoke", command, ...args),
+  // Défense en profondeur : ce canal est le seul, atteignable depuis une frame
+  // d'app distante, qui transporte des chemins disque vers main (__openPath,
+  // __revealItemInDir). main applique resolveWithinHome, mais on rejette aussi
+  // ici tout segment de traversée `..` pour ne pas dépendre d'un unique garde.
+  openworkDesktopInvoke: (command: string, ...args: unknown[]) => {
+    const hasTraversal = args.some(
+      (a) => typeof a === "string" && /(^|[\\/])\.\.([\\/]|$)/.test(a),
+    );
+    if (hasTraversal) {
+      return Promise.reject(new Error("Invalid path argument"));
+    }
+    return ipcRenderer.invoke("openwork-desktop-invoke", command, ...args);
+  },
 
   saveApiKeys: (keys: {
     anthropic?: string;
