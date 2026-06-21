@@ -2,8 +2,28 @@ import { promises as fs } from "fs";
 import path from "path";
 import os from "os";
 import { randomBytes } from "crypto";
+import { inferModelCapabilities } from "./model-capabilities.js";
 
 const CONFIG_PATH = path.join(os.homedir(), ".config", "opencode", "opencode.json");
+
+/**
+ * Détermine la "source" d'un modèle pour l'inférence de capacités.
+ * Utilise le préfixe ou le pattern du nom pour détecter le fournisseur.
+ */
+function inferModelSource(modelId: string): string {
+  const lower = modelId.toLowerCase();
+  if (lower.startsWith("anthropic/") || lower.startsWith("claude-")) return "anthropic";
+  if (lower.startsWith("openai/") || lower.startsWith("gpt-") || /^o[13]\b/.test(lower))
+    return "openai";
+  if (
+    lower.startsWith("deepseek/") ||
+    lower.startsWith("deepseek-") ||
+    lower.includes("deepseek")
+  )
+    return "deepseek";
+  if (lower.startsWith("google/") || lower.startsWith("gemini")) return "gemini";
+  return "custom";
+}
 
 interface GenerateOptions {
   proxyToken: string;
@@ -37,11 +57,11 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
   // Decide which models to use:
   // If the user already has selected models in openhub (from Catalog), PRESERVE them.
   // Only use defaults for a fresh install (no existing models).
-  let models: Record<string, Record<string, never>>;
+  let models: Record<string, Record<string, unknown>>;
 
   if (existingModels && Object.keys(existingModels).length > 0) {
     // Preserve user's catalog selections exactly
-    models = existingModels as Record<string, Record<string, never>>;
+    models = existingModels as Record<string, Record<string, unknown>>;
     console.warn(
       `[config] Preserving ${Object.keys(models).length} user-selected models from Catalog`,
     );
@@ -95,6 +115,18 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
       for (const mId of provider.models) {
         models[mId] = {};
       }
+    }
+  }
+
+  // Enrich ALL models with adaptive capabilities (reasoning, limit, interleaved, etc.)
+  // Pattern-based : tout nouveau modèle d'une famille reconnue obtient automatiquement
+  // les bonnes capacités sans mise à jour manuelle du catalogue.
+  for (const modelId of Object.keys(models)) {
+    const source = inferModelSource(modelId);
+    const caps = inferModelCapabilities(modelId, source);
+    if (Object.keys(caps).length > 0) {
+      // Les valeurs explicites de l'utilisateur (s'il y en a) écrasent les inférences.
+      models[modelId] = { ...caps, ...(models[modelId] as Record<string, unknown>) };
     }
   }
 

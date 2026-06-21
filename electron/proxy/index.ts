@@ -1523,22 +1523,17 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
             finalRest.max_tokens = budget + 4000;
           }
         }
-        // --- OpenAI/OpenRouter Mapping (reasoning_effort) ---
-        else if (provider === "openai" || isOpenRouter) {
-          const isDirectDeepSeek = targetUrl.includes("api.deepseek.com");
-          if (isDirectDeepSeek) {
-            delete (finalRest as Record<string, unknown>).reasoning_effort;
-          } else {
-            // Map OpenHub's expanded levels back to OpenAI's supported 3 levels
-            if (effort === "minimal") finalRest.reasoning_effort = "low";
-            else if (effort === "xhigh" || effort === "max")
-              finalRest.reasoning_effort = "high";
-            // others (low, medium, high) pass through as is
+        // --- OpenAI/OpenRouter/DeepSeek Mapping (reasoning_effort) ---
+        else if (provider === "openai" || isOpenRouter || provider === "deepseek") {
+          // Map OpenHub's expanded levels back to OpenAI's supported 3 levels
+          if (effort === "minimal") finalRest.reasoning_effort = "low";
+          else if (effort === "xhigh" || effort === "max")
+            finalRest.reasoning_effort = "high";
+          // others (low, medium, high) pass through as is
 
-            // For OpenRouter: force reasoning content to be included
-            if (isOpenRouter) {
-              (finalRest as Record<string, unknown>).include_reasoning = true;
-            }
+          // For OpenRouter: force reasoning content to be included
+          if (isOpenRouter) {
+            (finalRest as Record<string, unknown>).include_reasoning = true;
           }
         }
         // --- Fallback : provider inconnu — on ne risque rien en supprimant ---
@@ -2593,11 +2588,20 @@ export async function fetchOllamaModels(
   }
 }
 
-export function getFullModelCatalog(): Array<{
+import { ModelCapabilities, inferModelCapabilities } from "../model-capabilities.js";
+
+interface ModelCatalogEntry extends ModelCapabilities {
   id: string;
   object: string;
   source: string;
-}> {
+}
+
+/**
+ * Infère les capacités d'un modèle à partir de son ID et de sa source.
+ * Utilise des patterns d'ID plutôt qu'une liste en dur pour être adaptatif :
+ * tout nouveau modèle d'une famille reconnue obtient automatiquement les bonnes capacités.
+ */
+export function getFullModelCatalog(): ModelCatalogEntry[] {
   return [
     // --- Direct Models (Anthropic remains static as they lack a discovery API) ---
     { id: "claude-3-7-sonnet-latest", object: "model", source: "anthropic" },
@@ -2607,9 +2611,6 @@ export function getFullModelCatalog(): Array<{
     { id: "claude-sonnet-4-6", object: "model", source: "anthropic" },
     { id: "claude-opus-4-6", object: "model", source: "anthropic" },
     { id: "claude-haiku-4-5", object: "model", source: "anthropic" },
-
-    // OpenAI and DeepSeek are now DISCOVERED DYNAMICALLY.
-    // No more hardcoded IDs here for them.
 
     // --- Gemini Models (Cloud Code Assist via OAuth) ---
     { id: "google/gemini-2.5-flash", object: "model", source: "gemini" },
@@ -2628,8 +2629,8 @@ export function getFullModelCatalog(): Array<{
     { id: "deepseek/deepseek-r1", object: "model", source: "openrouter" },
     { id: "deepseek/deepseek-chat", object: "model", source: "openrouter" },
     { id: "deepseek/deepseek-v3", object: "model", source: "openrouter" },
-    { id: "deepseek/deepseek-v4-pro", object: "model", source: "openrouter" }, // Restored
-    { id: "deepseek/deepseek-v4-flash", object: "model", source: "openrouter" }, // Restored
+    { id: "deepseek/deepseek-v4-pro", object: "model", source: "openrouter" },
+    { id: "deepseek/deepseek-v4-flash", object: "model", source: "openrouter" },
     { id: "meta-llama/llama-3.3-70b-instruct", object: "model", source: "openrouter" },
     {
       id: "google/gemini-2.0-flash-thinking-exp:free",
@@ -2643,7 +2644,7 @@ async function fetchOpenAICompatibleModels(
   baseUrl: string,
   apiKey: string,
   source: string,
-): Promise<Array<{ id: string; object: string; source: string }>> {
+): Promise<ModelCatalogEntry[]> {
   try {
     const res = await fetch(`${baseUrl.replace(/\/$/, "")}/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -2662,11 +2663,11 @@ async function fetchOpenAICompatibleModels(
 }
 
 export async function appendDynamicModels(
-  base: ReadonlyArray<{ id: string; object: string; source: string }>,
+  base: ReadonlyArray<ModelCatalogEntry>,
   catalogIds: ReadonlySet<string>,
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
-): Promise<Array<{ id: string; object: string; source: string }>> {
-  const dynamic: Array<{ id: string; object: string; source: string }> = [];
+): Promise<ModelCatalogEntry[]> {
+  const dynamic: ModelCatalogEntry[] = [];
 
   // 1. OpenAI Dynamic Discovery
   if (keys.openai) {
@@ -2697,7 +2698,8 @@ export async function appendDynamicModels(
     for (const m of dsModels) {
       if (!catalogIds.has(m.id)) dynamic.push(m);
     }
-    // Force discovery of deprecated but still functional models
+    // Force discovery of deprecated but still functional models.
+    // Capabilities are inferred dynamically via inferModelCapabilities().
     const forceIds = ["deepseek-chat", "deepseek-reasoner"];
     for (const id of forceIds) {
       if (!dynamic.some((m) => m.id === id) && !catalogIds.has(id)) {
@@ -2737,7 +2739,7 @@ export async function appendDynamicModels(
 
 export async function buildModelList(
   keys: Awaited<ReturnType<typeof readAllApiKeys>>,
-): Promise<Array<{ id: string; object: string; source: string }>> {
+): Promise<ModelCatalogEntry[]> {
   await loadCustomProviders();
   const catalog = getFullModelCatalog();
   const catalogIds = new Set(catalog.map((c) => c.id));
@@ -2778,10 +2780,18 @@ export async function buildModelList(
     }
   }
 
+  // Apply adaptive enrichment to ALL models (static + dynamic).
+  // This infers reasoning, tool_call, modalities, interleaved, limit etc.
+  // based on ID patterns — no hardcoded per-model metadata needed.
+  const enriched = result.map((m) => ({
+    ...m,
+    ...inferModelCapabilities(m.id, m.source),
+  }));
+
   console.log(
     `[proxy] buildModelList: ${result.length} models (${cachedCustomProviders.length} custom providers)`,
   );
-  return result;
+  return enriched;
 }
 
 const EXTRACTION_MODEL = "qwen2.5:1.5b";
