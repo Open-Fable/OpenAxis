@@ -19,7 +19,7 @@ Un espace de travail IA local : discute avec n'importe quel modèle, orchestre u
 </div>
 
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="Aperçu de l'interface OpenHub" width="100%">
+  <img src="screen_github/onglet_chat.png" alt="Aperçu de l'interface OpenHub" width="800">
 </p>
 
 ---
@@ -47,10 +47,10 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>💬 Interface de Chat & Projets</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="Onglet Chat" width="90%">
+  <img src="screen_github/onglet_chat.png" alt="Onglet Chat" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/projet_dans_chat.png" alt="Sélection de projet dans le Chat" width="90%">
+  <img src="screen_github/projet_dans_chat.png" alt="Sélection de projet dans le Chat" width="750">
 </p>
 </details>
 
@@ -58,13 +58,13 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>🤖 DAG de l'Orchestrateur Multi-Agents</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_orchestrateur.png" alt="Onglet Orchestrateur" width="90%">
+  <img src="screen_github/onglet_orchestrateur.png" alt="Onglet Orchestrateur" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Projet actif dans l'Orchestrateur" width="90%">
+  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Projet actif dans l'Orchestrateur" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/workflow.png" alt="Schéma d'exécution du workflow" width="90%">
+  <img src="screen_github/workflow.png" alt="Schéma d'exécution du workflow" width="750">
 </p>
 </details>
 
@@ -72,7 +72,7 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>💻 Agent de Code (OpenCode)</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_code.png" alt="Onglet Code" width="90%">
+  <img src="screen_github/onglet_code.png" alt="Onglet Code" width="750">
 </p>
 </details>
 
@@ -80,7 +80,7 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>💼 Espace de Travail (OpenWork) & Hub Projets</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_work.png" alt="Onglet Work" width="90%">
+  <img src="screen_github/onglet_work.png" alt="Onglet Work" width="750">
 </p>
 </details>
 
@@ -88,7 +88,7 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>🎨 Maquettes Visuelles (Open Design)</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_Design.png" alt="Onglet Design" width="90%">
+  <img src="screen_github/onglet_Design.png" alt="Onglet Design" width="750">
 </p>
 </details>
 
@@ -96,7 +96,7 @@ La plupart des outils IA tournent dans des fenêtres séparées avec des clés A
 <summary>⚙️ Configurations & Clés d'API</summary>
 <br>
 <p align="center">
-  <img src="screen_github/parametre.png" alt="Panneau Config" width="90%">
+  <img src="screen_github/parametre.png" alt="Panneau Config" width="750">
 </p>
 </details>
 

@@ -21,7 +21,7 @@ A local AI workspace: chat with any model, orchestrate a team of agents that bui
 </div>
 
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="OpenHub Dashboard Overview" width="100%">
+  <img src="screen_github/onglet_chat.png" alt="OpenHub Dashboard Overview" width="800">
 </p>
 
 ---
@@ -49,10 +49,10 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>💬 Chat & Projects Interface</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="Chat Slot" width="90%">
+  <img src="screen_github/onglet_chat.png" alt="Chat Slot" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/projet_dans_chat.png" alt="Project Context in Chat" width="90%">
+  <img src="screen_github/projet_dans_chat.png" alt="Project Context in Chat" width="750">
 </p>
 </details>
 
@@ -60,13 +60,13 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>🤖 Multi-Agent Orchestrator DAG</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_orchestrateur.png" alt="Orchestrator Slot" width="90%">
+  <img src="screen_github/onglet_orchestrateur.png" alt="Orchestrator Slot" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Active Project in Orchestrator" width="90%">
+  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Active Project in Orchestrator" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/workflow.png" alt="Active Orchestration Workflow Diagram" width="90%">
+  <img src="screen_github/workflow.png" alt="Active Orchestration Workflow Diagram" width="750">
 </p>
 </details>
 
@@ -74,7 +74,7 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>💻 Code Agent (OpenCode)</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_code.png" alt="Code Slot" width="90%">
+  <img src="screen_github/onglet_code.png" alt="Code Slot" width="750">
 </p>
 </details>
 
@@ -82,7 +82,7 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>💼 Workspace (OpenWork) & Project Hub</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_work.png" alt="Work Slot" width="90%">
+  <img src="screen_github/onglet_work.png" alt="Work Slot" width="750">
 </p>
 </details>
 
@@ -90,7 +90,7 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>🎨 Visual Mockups (Open Design)</summary>
 <br>
 <p align="center">
-  <img src="screen_github/onglet_Design.png" alt="Design Slot" width="90%">
+  <img src="screen_github/onglet_Design.png" alt="Design Slot" width="750">
 </p>
 </details>
 
@@ -98,7 +98,7 @@ Most AI tools run in separate windows with separate API keys. None of them talk 
 <summary>⚙️ Configurations & API Keys</summary>
 <br>
 <p align="center">
-  <img src="screen_github/parametre.png" alt="Parameters/Config Panel" width="90%">
+  <img src="screen_github/parametre.png" alt="Parameters/Config Panel" width="750">
 </p>
 </details>
 
