@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Get started — OpenHub</title>
+    <meta name="description" content="Download OpenHub, add your API keys, and start creating. macOS 14 and up, Apple Silicon. Free, open source, no account." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Cg stroke='%2314B8A6' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M 20.27 6.41 A 10.5 10.5 0 0 1 26.44 17.10'/%3E%3Cpath d='M 22.17 24.49 A 10.5 10.5 0 0 1 9.83 24.49'/%3E%3Cpath d='M 5.56 17.10 A 10.5 10.5 0 0 1 11.73 6.41'/%3E%3C/g%3E%3C/svg%3E" />
+    <meta property="og:title" content="Get started — OpenHub" />
+    <meta property="og:description" content="Download, install, add your keys, and start creating in under two minutes." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://open-fable.github.io/OpenHub/docs/landing/get-started.html" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+
+    <header class="nav">
+      <div class="container nav-inner">
+        <a href="index.html" class="nav-logo">
+          <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
+          OpenHub
+        </a>
+        <nav class="nav-links">
+          <a href="tools.html" class="hide-sm">Tools</a>
+          <a href="how-it-works.html" class="hide-sm">How it works</a>
+          <a href="privacy.html" class="hide-sm">Privacy</a>
+          <a href="faq.html" class="hide-sm">FAQ</a>
+          <a href="get-started.fr.html" class="nav-lang">FR</a>
+          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-sm btn-secondary">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <section class="page-hero">
+      <div class="container">
+        <div class="eyebrow">Get started</div>
+        <h1>Up and running in two minutes.</h1>
+        <p class="lead">
+          Download the app, add your API keys once, and every tool is ready to go.
+          No account, no sign-up. No background services left running after you quit.
+        </p>
+      </div>
+    </section>
+
+    <section class="section--tight">
+      <div class="container container--prose">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num"></div>
+            <div>
+              <h3>Check your system</h3>
+              <p>
+                OpenHub requires <strong>macOS 14 (Sonoma) or later</strong> and
+                an <strong>Apple Silicon</strong> Mac (M1, M2, M3, M4 or later).
+                Intel Macs are not supported.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div>
+              <h3>Download the app</h3>
+              <p>
+                Grab the latest <code>.dmg</code> from the
+                <a href="https://github.com/Open-Fable/OpenHub/releases/latest">GitHub releases page</a>.
+                The file is about 80 MB. No installer, no dependency to install.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div>
+              <h3>Install it</h3>
+              <p>
+                Open the <code>.dmg</code>, drag <strong>OpenHub</strong> into
+                your <strong>Applications</strong> folder. Then eject the disk
+                image and launch OpenHub from Applications (or Spotlight).
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div>
+              <h3>Add your API keys</h3>
+              <p>
+                OpenHub ships with no AI credits. Open the app and click the
+                <strong>Config</strong> tab in the sidebar. You'll see fields for
+                each supported provider:
+              </p>
+              <ul style="margin:8px 0 0 20px; padding:0; font-size:14px; color:var(--text-secondary); line-height:1.8;">
+                <li><strong>Anthropic</strong> — get a key at console.anthropic.com</li>
+                <li><strong>OpenAI</strong> — get a key at platform.openai.com</li>
+                <li><strong>OpenRouter</strong> — get a key at openrouter.ai</li>
+                <li><strong>Ollama</strong> — runs 100 % local, no key needed</li>
+              </ul>
+              <p style="margin-top:8px;">
+                Keys live in the <strong>macOS Keychain</strong>, not in a file
+                on disk. A local proxy on <code>127.0.0.1:9999</code> holds them
+                in memory and routes every request. The tools only ever see a fake
+                local token.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div>
+              <h3>Start creating</h3>
+              <p>
+                That's it. Click any tool in the sidebar:
+                <strong>Chat</strong> to talk to a model,
+                <strong>Code</strong> to open the code agent,
+                <strong>Design</strong> for mockups,
+                <strong>Work</strong> for documents, or
+                <strong>Orchestrator</strong> to hand a goal to a team of agents.
+                One config works everywhere.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="section section--divide">
+      <div class="container container--prose">
+        <div class="section-head">
+          <div class="eyebrow">Troubleshooting</div>
+          <h2 class="section-title">Something not working?</h2>
+        </div>
+        <div class="qa">
+          <h3>The app won't open / macOS says it's damaged</h3>
+          <p>
+            OpenHub is signed and notarized. If Gatekeeper blocks it, go to
+            <strong>System Settings → Privacy &amp; Security</strong>, scroll to
+            the "OpenHub was blocked" message, and click
+            <strong>Allow Anyway</strong>. Then open it again.
+          </p>
+        </div>
+        <div class="qa">
+          <h3>Proxy isn't starting / "Connection refused"</h3>
+          <p>
+            The proxy binds to <code>127.0.0.1:9999</code>. Make sure another
+            service isn't already on that port. Check the app logs:
+            <code>~/.config/openhub/logs/</code>. If the port is free and it
+            still fails, open a
+            <a href="https://github.com/Open-Fable/OpenHub/issues">GitHub issue</a>.
+          </p>
+        </div>
+        <div class="qa">
+          <h3>One of the wrapped tools won't load</h3>
+          <p>
+            OpenHub starts OpenCode, OpenWork, and Open Design as separate
+            processes. If a tool tab stays blank, quit OpenHub and relaunch.
+            If the problem persists, run <code>npm run update:apps</code> in the
+            project directory to rebuild the tool bundles.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--divide">
+      <div class="container">
+        <div class="crosslinks">
+          <a href="faq.html" class="crosslink">
+            <div class="k">Questions</div>
+            <h3>FAQ</h3>
+            <p>Costs, platforms, data location, and more answered in plain language.</p>
+          </a>
+          <a href="how-it-works.html" class="crosslink">
+            <div class="k">Under the hood</div>
+            <h3>How it works</h3>
+            <p>The proxy, the single config, and the override layer explained.</p>
+          </a>
+          <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/USAGE.md" class="crosslink">
+            <div class="k">Guide</div>
+            <h3>Usage guide</h3>
+            <p>The full manual: profiles, project contexts, model routing, and every feature.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band section--divide">
+      <div class="container">
+        <h2>Download it. Add your keys. Create.</h2>
+        <p>Drag OpenHub to your Applications folder, then add your API keys in the Config panel. Apple Silicon, macOS 14 and up.</p>
+        <div class="hero-cta">
+          <a href="https://github.com/Open-Fable/OpenHub/releases/latest" class="btn btn-md btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download for macOS
+          </a>
+          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-md btn-secondary">View on GitHub</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a href="index.html" class="nav-logo">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
+              OpenHub
+            </a>
+            <p>A macOS shell for your AI tools. Open source, MIT.</p>
+          </div>
+          <div class="footer-cols">
+            <div class="footer-col">
+              <h4>Product</h4>
+              <a href="tools.html">Tools</a>
+              <a href="how-it-works.html">How it works</a>
+              <a href="get-started.html">Get started</a>
+              <a href="faq.html">FAQ</a>
+            </div>
+            <div class="footer-col">
+              <h4>Resources</h4>
+              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/USAGE.md">Usage guide</a>
+              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/ORCHESTRATOR.md">Orchestrator docs</a>
+              <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md">Architecture</a>
+              <a href="https://github.com/Open-Fable/OpenHub/releases/latest">Download</a>
+            </div>
+            <div class="footer-col">
+              <h4>Project</h4>
+              <a href="https://github.com/Open-Fable/OpenHub">GitHub</a>
+              <a href="https://github.com/Open-Fable/OpenHub/issues">Issues</a>
+              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/CONTRIBUTING.md">Contributing</a>
+              <a href="https://github.com/Open-Fable/OpenHub/blob/main/LICENSE">MIT License</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>OpenHub is a shell, not a fork. The AI tools belong to their respective creators.</span>
+          <a href="get-started.fr.html" class="nav-lang" style="font-size:13px; color:var(--text-muted);">Français</a>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>

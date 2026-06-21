@@ -19,7 +19,8 @@
         <nav class="nav-links">
           <a href="tools.fr.html" class="hide-sm">Outils</a>
           <a href="how-it-works.fr.html" class="hide-sm" aria-current="page">Fonctionnement</a>
-          <a href="privacy.fr.html" class="hide-sm">Confidentialite</a>
+          <a href="get-started.fr.html" class="hide-sm">Démarrer</a>
+          <a href="privacy.fr.html" class="hide-sm">Vie privée</a>
           <a href="faq.fr.html" class="hide-sm">FAQ</a>
           <a href="how-it-works.html" class="nav-lang">EN</a>
           <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-sm btn-secondary">GitHub</a>
@@ -35,7 +36,7 @@
           OpenHub ne reconstruit pas trois apps open-source et n'embarque pas de
           cloud. Il les fait tourner comme des process natifs, route leurs appels IA
           par un proxy local, et les style avec une couche d'injection qui survit a
-          chaque mise a jour upstream. Voici toute la mecanique.
+          chaque mise a jour upstream.
         </p>
       </div>
     </section>
@@ -69,7 +70,7 @@
         <div class="section-head">
           <div class="eyebrow">Quatre idees</div>
           <h2 class="section-title">Tout decoule de quatre decisions.</h2>
-          <p class="section-sub">Chacune est la pour enlever un type de friction precis, pas pour faire malin.</p>
+          <p class="section-sub">Chacune existe pour enlever un type de friction precis.</p>
         </div>
 
         <div class="steps">
@@ -79,10 +80,9 @@
               <h3>Une fenetre tient tout, avec l'etat intact</h3>
               <p>
                 Chaque outil s'ouvre dans sa vue isolee. Passe de Code a Design et
-                reviens : ta session est exactement la ou tu l'as laissee, rien ne
-                recharge, rien ne se reinitialise. L'enveloppe est concue pour qu'un
-                outil reste vivant en arriere-plan au lieu de redemarrer a chaque
-                coup d'oeil.
+                reviens : ta session est exactement la ou tu l'as laissee.
+                L'enveloppe garde les outils vivants en arriere-plan au lieu de
+                les redemarrer a chaque fois que tu changes.
               </p>
             </div>
           </div>
@@ -92,10 +92,9 @@
               <h3>Une config regle les trois outils d'un coup</h3>
               <p>
                 Les trois outils integres tournent tous sur le meme moteur sous-jacent
-                (OpenCode). Donc un seul fichier de config se propage a chacun. Tu ne
-                configures pas Work, puis Code, puis Design, tu configures une fois et
-                ils en heritent. Ajoute un fournisseur et chaque outil peut l'atteindre
-                aussitot.
+                (OpenCode). Donc un seul fichier de config les couvre tous.
+                Configure une fois — Work, Code et Design en heritent.
+                Ajoute un fournisseur et chaque outil peut l'atteindre aussitot.
               </p>
             </div>
           </div>
@@ -105,11 +104,11 @@
               <h3>Un proxy detient les cles ; les outils ne voient qu'un token</h3>
               <p>
                 Un petit serveur tourne sur <code>127.0.0.1:9999</code>. Il detient tes
-                vraies cles API, lit le Trousseau macOS, et expose un unique point
-                d'acces compatible OpenAI qui exige un token Bearer. Les outils
-                recoivent un faux token local, jamais tes vraies cles. Le proxy route
-                chaque appel vers le bon fournisseur et c'est le seul endroit ou la
-                recherche web et l'injection de contexte ont lieu.
+                vraies cles API, lit le Trousseau, et expose un unique point
+                d'acces compatible OpenAI. Les outils recoivent un faux token
+                local, jamais tes vraies cles. Le proxy route chaque appel vers
+                le bon fournisseur. C'est aussi la que la recherche web et
+                l'injection de contexte ont lieu.
               </p>
             </div>
           </div>
@@ -119,11 +118,10 @@
               <h3>Une couche d'overrides personnalise sans forker</h3>
               <p>
                 OpenHub n'edite jamais la source d'un outil. Le theme unifie, les
-                reglages natifs masques, les fonctions ajoutees, tout ca, c'est du CSS
-                et du JS injectes au runtime. Les overrides ciblent des selecteurs
-                stables et semantiques et se reappliquent quand les apps naviguent,
-                donc un <code>git pull</code> upstream arrive proprement au lieu de
-                declencher une bataille de merge.
+                reglages natifs masques, les fonctions ajoutees — tout ca, c'est du
+                CSS et du JS injectes au runtime. Les overrides ciblent des selecteurs
+                stables et se reappliquent quand les apps naviguent. Un
+                <code>git pull</code> upstream arrive proprement. Pas de conflit.
               </p>
             </div>
           </div>
@@ -156,21 +154,21 @@
         </div>
         <div class="prose">
           <p>
-            Les outils doivent lire et ecrire tes vrais fichiers, c'est tout l'interet
-            d'un agent de code et d'un outil de design. Donc ils tournent comme des
-            process natifs macOS, pas dans des conteneurs. OpenHub les demarre, fixe le
-            bon runtime pour chacun, capture leurs ports, et les coupe avec l'app.
+            Les outils doivent lire et ecrire tes vrais fichiers — c'est tout
+            l'interet d'un agent de code et d'un outil de design. Donc ils tournent
+            comme des process natifs macOS, pas dans des conteneurs. OpenHub les
+            demarre, fixe le bon runtime pour chacun, capture leurs ports, et les
+            coupe avec l'app.
           </p>
           <p>
-            Aucune couche de virtualisation a installer, aucun fichier compose a
-            surveiller, et aucune flotte qui tourne en arriere-plan apres que tu as
-            quitte. Tu telecharges un <code>.dmg</code>, tu le glisses dans
-            Applications, et tout ce dont il a besoin, il le gere lui-meme.
+            Rien a installer comme couche de virtualisation. Pas de fichier compose
+            a surveiller. Tu telecharges un <code>.dmg</code>, tu le glisses dans
+            Applications, et l'app gere tout ce dont elle a besoin.
           </p>
         </div>
         <div class="callout" style="margin-top:28px;">
-          Tu veux la spec gelee et verifiee contre la source, ports, modele de
-          securite, cascade de config et catalogue des overrides ? Lis
+          Pour la spec complete — ports, modele de securite, cascade de config,
+          catalogue des overrides — voir
           <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.fr.md" style="color:var(--accent-primary); font-weight:600;">ARCHITECTURE.fr.md</a>.
         </div>
       </div>
@@ -220,7 +218,7 @@
               <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
               OpenHub
             </a>
-            <p>Une enveloppe macOS qui reunit tes outils IA dans une fenetre. Open source, MIT.</p>
+            <p>Une enveloppe macOS pour tes outils IA. Open source, MIT.</p>
           </div>
           <div class="footer-cols">
             <div class="footer-col">

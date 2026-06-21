@@ -19,6 +19,7 @@
         <nav class="nav-links">
           <a href="tools.html" class="hide-sm">Tools</a>
           <a href="how-it-works.html" class="hide-sm" aria-current="page">How it works</a>
+          <a href="get-started.html" class="hide-sm">Get started</a>
           <a href="privacy.html" class="hide-sm">Privacy</a>
           <a href="faq.html" class="hide-sm">FAQ</a>
           <a href="how-it-works.fr.html" class="nav-lang">FR</a>
@@ -36,7 +37,7 @@
           OpenHub doesn't rebuild three open-source apps and it doesn't ship a
           cloud. It runs them as native processes, routes their AI calls through
           one local proxy, and styles them with an injection layer that survives
-          every upstream update. Here's the whole machine.
+          every upstream update.
         </p>
       </div>
     </section>
@@ -72,7 +73,7 @@
         <div class="section-head">
           <div class="eyebrow">Four ideas</div>
           <h2 class="section-title">Everything follows from four decisions.</h2>
-          <p class="section-sub">Each one is there to remove a specific kind of friction, not to look clever.</p>
+          <p class="section-sub">Each decision exists to remove a specific kind of friction.</p>
         </div>
 
         <div class="steps">
@@ -82,10 +83,9 @@
               <h3>One window holds everything, with state intact</h3>
               <p>
                 Each tool opens in its own isolated view. Switch from Code to
-                Design and back, and your session is exactly where you left it,
-                nothing reloads, nothing resets. The shell is built so a tool can
-                stay alive in the background instead of restarting every time you
-                glance at it.
+                Design and back, your session is exactly where you left it.
+                The shell keeps tools alive in the background instead of
+                restarting them every time you switch.
               </p>
             </div>
           </div>
@@ -95,10 +95,9 @@
               <h3>One config sets up all three tools at once</h3>
               <p>
                 The three integrated tools all run on the same underlying engine
-                (OpenCode). So a single config file cascades to every one of them.
-                You don't configure Work, then Code, then Design, you configure
-                once, and they inherit it. Add a provider and every tool can reach
-                it immediately.
+                (OpenCode). So one config file covers all of them.
+                Configure once — Work, Code, Design all inherit it.
+                Add a provider and every tool can reach it immediately.
               </p>
             </div>
           </div>
@@ -108,11 +107,10 @@
               <h3>One proxy holds the keys; the tools only see a token</h3>
               <p>
                 A small server runs on <code>127.0.0.1:9999</code>. It holds your
-                real API keys, reads from the macOS Keychain, and exposes a single
-                OpenAI-compatible endpoint that requires a Bearer token. The tools
-                are handed a fake local token, never your real keys. The proxy
-                routes each call to the right provider and is the one place where
-                web search and context injection happen.
+                real API keys, reads from the Keychain, and exposes a single
+                OpenAI-compatible endpoint. The tools get a fake local token,
+                never your real keys. The proxy routes each call to the right
+                provider. It's also where web search and context injection happen.
               </p>
             </div>
           </div>
@@ -122,11 +120,10 @@
               <h3>One override layer customizes apps without forking them</h3>
               <p>
                 OpenHub never edits a tool's source. The unified theme, the hidden
-                native settings, the added features, all of it is CSS and JS
-                injected at runtime. The overrides target stable, semantic
-                selectors and re-apply themselves as the apps navigate, so a
-                <code>git pull</code> upstream lands cleanly instead of starting a
-                merge fight.
+                native settings, the added features — all of it is CSS and JS
+                injected at runtime. The overrides target stable selectors and
+                re-apply themselves as the apps navigate. A
+                <code>git pull</code> upstream lands cleanly. No merge conflicts.
               </p>
             </div>
           </div>
@@ -161,21 +158,20 @@
         </div>
         <div class="prose">
           <p>
-            The tools need to read and write your real files, that's the point of a
-            code agent and a design tool. So they run as native macOS processes,
-            not inside containers. OpenHub starts them, pins the right runtime for
-            each, captures their ports, and shuts them down with the app.
+            The tools need to read and write your real files — that's the whole
+            point of a code agent and a design tool. So they run as native macOS
+            processes, not inside containers. OpenHub starts them, pins the right
+            runtime for each, captures their ports, and shuts them down with the app.
           </p>
           <p>
-            There's no virtualization layer to install, no compose file to babysit,
-            and no background fleet left running after you quit. You download one
-            <code>.dmg</code>, drag it to Applications, and everything it needs it
-            manages itself.
+            No virtualization layer to install. No compose file to babysit.
+            You download one <code>.dmg</code>, drag it to Applications, and
+            the app manages everything it needs.
           </p>
         </div>
         <div class="callout" style="margin-top:28px;">
-          Want the frozen, verified-against-source spec, ports, security model,
-          config cascade, and the override catalog? Read
+          For the full spec — ports, security model, config cascade, override
+          catalog — see
           <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md" style="color:var(--accent-primary); font-weight:600;">ARCHITECTURE.md</a>.
         </div>
       </div>
@@ -228,7 +224,7 @@
               <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
               OpenHub
             </a>
-            <p>A macOS shell that brings your AI tools into one window. Open source, MIT.</p>
+            <p>A macOS shell for your AI tools. Open source, MIT.</p>
           </div>
           <div class="footer-cols">
             <div class="footer-col">
