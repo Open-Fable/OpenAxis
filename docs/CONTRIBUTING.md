@@ -49,4 +49,4 @@ Use the [Feature Request](https://github.com/Open-Fable/OpenHub/issues/new?templ
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the [MIT](LICENSE) license.
+By contributing, you agree that your contributions are licensed under the [MIT](../LICENSE) license.

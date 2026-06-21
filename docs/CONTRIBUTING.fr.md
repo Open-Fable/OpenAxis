@@ -49,4 +49,4 @@ Utilise le template [Feature Request](https://github.com/Open-Fable/OpenHub/issu
 
 ## Licence
 
-En contribuant, tu acceptes que tes contributions soient sous licence [MIT](LICENSE).
+En contribuant, tu acceptes que tes contributions soient sous licence [MIT](../LICENSE).

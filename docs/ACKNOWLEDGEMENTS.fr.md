@@ -31,7 +31,7 @@ de sa licence (ex. Apache-2.0 impose de préserver le fichier `NOTICE` et l'attr
 Tout ce qui est sous `electron/`, `scripts/`, `config/`, `docs/` et la configuration du
 dépôt — le shell Electron, le proxy LLM, le système d'overrides, l'orchestrateur
 multi-agents et la documentation — est le travail propre d'OpenHub, publié sous
-[licence MIT](LICENSE).
+[licence MIT](../LICENSE).
 
 ## Également construit avec
 

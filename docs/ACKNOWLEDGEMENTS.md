@@ -30,7 +30,7 @@ license requirements (e.g. Apache-2.0 requires preserving the `NOTICE` and attri
 Everything under `electron/`, `scripts/`, `config/`, `docs/`, and the repository's
 configuration — the Electron shell, the LLM proxy, the override system, the multi-agent
 orchestrator, and the documentation — is OpenHub's own work, released under the
-[MIT License](LICENSE).
+[MIT License](../LICENSE).
 
 ## Also built with
 
