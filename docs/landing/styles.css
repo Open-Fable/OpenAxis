@@ -224,6 +224,7 @@ img {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
 .nav-logo svg {
   flex-shrink: 0;
@@ -237,6 +238,7 @@ img {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
+  text-decoration: none;
   transition: color var(--dur-150) var(--ease-default);
 }
 .nav-links a:hover {
@@ -245,9 +247,95 @@ img {
 .nav-links a[aria-current="page"] {
   color: var(--text-primary);
 }
+.nav-links .btn {
+  text-decoration: none;
+}
 .nav-lang {
   font-variant: small-caps;
   letter-spacing: 0.04em;
+}
+
+/* Nav toggle checkbox (hidden) */
+.nav-toggle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hamburger button */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-150);
+  z-index: 110;
+}
+.hamburger:hover {
+  background: var(--bg-surface);
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition:
+    transform var(--dur-250) var(--ease-default),
+    opacity var(--dur-150) var(--ease-default);
+  transform-origin: center;
+}
+.nav-toggle:checked + .hamburger span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.nav-toggle:checked + .hamburger span:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle:checked + .hamburger span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (max-width: 680px) {
+  .hamburger {
+    display: flex;
+  }
+  .nav-links {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    background: color-mix(in srgb, var(--bg-deepest) 97%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-3) var(--space-6) var(--space-4);
+    gap: var(--space-2);
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--dur-250) var(--ease-default),
+      opacity var(--dur-250) var(--ease-default);
+  }
+  .nav-links a {
+    padding: var(--space-2) 0;
+  }
+  .nav-links .btn {
+    margin-top: var(--space-2);
+    justify-content: center;
+  }
+  .nav-toggle:checked ~ .nav-links {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* ── Buttons (design_system.md §8.1) ───────────────────────────── */
