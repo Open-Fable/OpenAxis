@@ -4,7 +4,7 @@
 
 **Tout ton workflow IA dans une seule fenêtre macOS.**
 
-Un espace de travail IA local : orchestre une équipe d'agents qui produit un vrai livrable et discute avec n'importe quel modèle dans trois outils intégrés — [OpenWork](https://github.com/different-ai/openwork), [OpenCode](https://github.com/sst/opencode) et [Open Design](https://github.com/nexu-io/open-design). Un seul proxy LLM, une mémoire persistante, zéro Docker.
+Un espace de travail IA local : discute avec n'importe quel modèle, orchestre une équipe d'agents qui produit un vrai livrable, et bascule entre trois outils intégrés — [OpenWork](https://github.com/different-ai/openwork), [OpenCode](https://github.com/sst/opencode) et [Open Design](https://github.com/nexu-io/open-design). Un seul proxy LLM, une mémoire persistante, zéro Docker.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
