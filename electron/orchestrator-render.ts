@@ -82,15 +82,22 @@ export async function findRenderProblems(
         });
         // Runs in the browser; reference document via globalThis so this file
         // doesn't need the DOM lib in its tsconfig.
-        const visibleLen = await page.evaluate(() => {
+        const visibleText = await page.evaluate(() => {
           const body = (globalThis as { document?: { body?: { innerText?: string } } })
             .document?.body;
-          return body?.innerText?.trim().length ?? 0;
+          return body?.innerText ?? "";
         });
+        const visibleLen = visibleText.trim().length;
         if (visibleLen < 1) {
           problems.push({
             sourceFile: rel,
             problem: "page blanche — aucun contenu visible dans <body> au rendu",
+          });
+        } else if (/\b(undefined|NaN)\b/.test(visibleText)) {
+          const matchedText = visibleText.match(/\b(undefined|NaN)\b/)?.[0] || "erronée";
+          problems.push({
+            sourceFile: rel,
+            problem: `valeur erronée détectée au rendu dans le texte visible : "${matchedText}"`,
           });
         } else if (errors.length > 0) {
           problems.push({

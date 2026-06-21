@@ -19,7 +19,7 @@ Un espace de travail IA local : discute avec n'importe quel modèle, orchestre u
 </div>
 
 <p align="center">
-  <img src="screen_github/banner.png" alt="Aperçu de l'interface OpenHub" width="100%">
+  <img src="screen_github/onglet_chat.png" alt="Aperçu de l'interface OpenHub" width="100%">
 </p>
 
 ---

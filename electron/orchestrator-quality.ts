@@ -284,6 +284,7 @@ export interface QualityGateInputs {
   readonly htmlHeads: string;
   readonly cssSnippets?: string;
   readonly brokenAssetsReport?: string;
+  readonly auditReports?: string;
 }
 
 export function buildQualityGateUserPrompt(inputs: QualityGateInputs): string {
@@ -291,12 +292,19 @@ export function buildQualityGateUserPrompt(inputs: QualityGateInputs): string {
     `TÂCHE GLOBALE :\n${inputs.globalTask}`,
     `RAPPORT DES FICHIERS ATTENDUS :\n${inputs.expectedFilesReport}`,
     `RÉSUMÉS DES LIVRABLES PAR AGENT :\n${inputs.nodeResultSummaries}`,
-    `CRITÈRES D'AUDIT GÉNÉRIQUES :
+  ];
+
+  if (inputs.auditReports && inputs.auditReports.trim()) {
+    sections.push(
+      `RAPPORTS D'AUDIT SUR DISQUE (faits par les agents vérificateurs, font AUTORITÉ) :\n${inputs.auditReports}`,
+    );
+  }
+
+  sections.push(`CRITÈRES D'AUDIT GÉNÉRIQUES :
 1. COMPLÉTUDE — Chaque agent a-t-il livré TOUT ce qui était demandé ? Fichiers attendus présents ?
 2. QUALITÉ — Le contenu est-il substantiel (pas de placeholders, pas de Lorem ipsum, pas de "TODO") ?
 3. COHÉRENCE QUANTITATIVE (CRITIQUE) — Les FAITS partagés entre livrables concordent-ils ? Une même grandeur ne doit JAMAIS avoir deux valeurs différentes selon le fichier : prix, montants, pourcentages, dates/échéances, quantités, noms propres / identité de marque, identifiants, unités. Compare activement les chiffres d'un fichier à l'autre (ex: une métrique annoncée dans un .json vs le détail d'un .csv ; un prix affiché vs une donnée structurée ; un seuil/point-mort dont les hypothèses excluent un coût pourtant compté ailleurs). Toute contradiction = une "issue" attribuée à l'agent propriétaire du fichier fautif.
-4. ERREURS CORRIGÉES — Si un agent a signalé des problèmes, ont-ils été corrigés ?`,
-  ];
+4. ERREURS CORRIGÉES — Si un agent a signalé des problèmes, ont-ils été corrigés ?`);
 
   if (inputs.htmlHeads.trim()) {
     sections.push(`CRITÈRES WEB (pages HTML détectées) :
@@ -1891,4 +1899,78 @@ export async function buildExpectedFilesReport(
     for (const f of missing) lines.push(`  ✗ ${f} (MANQUANT)`);
   }
   return lines.length > 0 ? lines.join("\n") : "Aucun contrat de fichiers attendus.";
+}
+
+export async function findBrandConsistencyProblems(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const problems: ServedSiteProblem[] = [];
+  const roots = await discoverServedRoots(workspaceDir);
+
+  // 1. Essayer de trouver la marque définie dans les fichiers JSON (ex: design-system.json ou catalogue.json)
+  let brandName = "";
+  const jsonFiles = await collectFiles(workspaceDir, (n) => /\.json$/i.test(n), 30, 3);
+  for (const f of jsonFiles) {
+    if (
+      /(^|\/)(node_modules|design|mockups|dist|build|package\.json|package-lock\.json|tsconfig\.json|opencode\.json)/i.test(
+        f.rel,
+      )
+    )
+      continue;
+    try {
+      const content = await fs.readFile(f.full, "utf-8");
+      const obj = JSON.parse(content);
+      const possibleBrand = obj.brand || obj.brandName || obj.brand_name;
+      if (typeof possibleBrand === "string" && possibleBrand.trim().length > 0) {
+        brandName = possibleBrand.trim();
+        break;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Si non trouvé dans le JSON, chercher dans les fichiers de recherche/recommandation
+  if (!brandName) {
+    const mdFiles = await collectFiles(workspaceDir, (n) => /\.md$/i.test(n), 30, 3);
+    const brandRe = /nom de marque recommandé\s*:\s*\*\*([^\*]+)\*\*/i;
+    for (const f of mdFiles) {
+      if (
+        /(^|\/)(node_modules|design|mockups|dist|build|WORKSPACE_INDEX\.md)/i.test(f.rel)
+      )
+        continue;
+      try {
+        const content = await fs.readFile(f.full, "utf-8");
+        const m = content.match(brandRe);
+        if (m) {
+          brandName = m[1].trim();
+          break;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (!brandName) return []; // Aucun nom de marque trouvé
+
+  // 3. Scanner les fichiers HTML sous la racine servie et s'assurer que la marque est présente
+  if (brandName.length >= 2) {
+    const normalizedBrand = brandName.toLowerCase().replace(/\s+/g, " ");
+    for (const { dir } of roots) {
+      const htmls = await collectHtmlUnderRoot(dir, workspaceDir);
+      for (const { rel, content } of htmls) {
+        const stripped = content.replace(/<!--[\s\S]*?-->/g, "");
+        const normalizedContent = stripped.toLowerCase().replace(/\s+/g, " ");
+        if (!normalizedContent.includes(normalizedBrand)) {
+          problems.push({
+            sourceFile: rel,
+            problem: `incohérence de marque — le site utilise un nom différent ou omet le nom officiel "${brandName}" défini dans la base de données/design system`,
+          });
+        }
+      }
+    }
+  }
+
+  return problems;
 }

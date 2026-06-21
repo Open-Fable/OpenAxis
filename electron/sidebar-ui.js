@@ -119,6 +119,22 @@ if (languageSelect) {
   });
 }
 
+// ── Redo onboarding button ──
+var btnRedoOnboarding = document.getElementById("btn-redo-onboarding");
+if (btnRedoOnboarding) {
+  btnRedoOnboarding.addEventListener("click", function () {
+    // Close config panel first
+    var closeBtn = document.getElementById("close-config");
+    if (closeBtn) closeBtn.click();
+
+    // Dispatch restart event on onboarding overlay
+    var overlay = document.getElementById("onboarding-overlay");
+    if (overlay) {
+      overlay.dispatchEvent(new CustomEvent("onboarding-restart"));
+    }
+  });
+}
+
 // Re-render dynamically-built chrome when the language changes — the runtime
 // only auto-translates [data-i18n] elements, so anything set from JS is redone.
 if (window.I18N && window.I18N.onChange) {

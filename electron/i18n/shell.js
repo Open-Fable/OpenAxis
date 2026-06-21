@@ -37,7 +37,7 @@
       "cfg.tab.keys": "Clés API",
       "cfg.tab.models": "Modèles IA",
       "cfg.tab.memory": "Mémoire",
-      "cfg.tab.updates": "Mises à jour",
+      "cfg.tab.updates": "Général & Mises à jour",
       "cfg.tab.notifs": "Notifications",
       "cfg.tab.cache": "Cache",
       "cfg.nav.hint": "Keychain macOS",
@@ -45,7 +45,7 @@
       "cfg.keys.desc": "Stockées en sécurité dans le Keychain macOS.",
       "cfg.models.desc": "Configuration des modèles et fonctionnalités.",
       "cfg.memory.desc": "Profil utilisateur et base de connaissances.",
-      "cfg.updates.desc": "Gérer les apps et l'apparence.",
+      "cfg.updates.desc": "Gérer l'apparence, l'onboarding et les mises à jour.",
       "cfg.notifs.desc": "Alertes de fin de tâche par source.",
       "cfg.cache.desc": "Statistiques d'efficacité du prompt caching.",
 
@@ -90,6 +90,10 @@
       "cfg.models.detail.desc": "Résolution de l'analyse.",
 
       // ── Memory pane ──
+      "cfg.tab.memory.badge": "Bientôt",
+      "cfg.memory.soon.title": "Bientôt disponible",
+      "cfg.memory.soon.desc":
+        "La mémoire à long terme et l'extraction de faits par IA sont temporairement désactivées et seront disponibles dans une prochaine mise à jour.",
       "cfg.memory.control": "Contrôle",
       "cfg.memory.longterm.label": "Mémoire long-terme",
       "cfg.memory.longterm.desc": "Injecte le profil et les faits dans chaque requête.",
@@ -290,7 +294,7 @@
       "cfg.tab.keys": "API Keys",
       "cfg.tab.models": "AI Models",
       "cfg.tab.memory": "Memory",
-      "cfg.tab.updates": "Updates",
+      "cfg.tab.updates": "General & Updates",
       "cfg.tab.notifs": "Notifications",
       "cfg.tab.cache": "Cache",
       "cfg.nav.hint": "macOS Keychain",
@@ -298,7 +302,7 @@
       "cfg.keys.desc": "Stored securely in the macOS Keychain.",
       "cfg.models.desc": "Model and feature configuration.",
       "cfg.memory.desc": "User profile and knowledge base.",
-      "cfg.updates.desc": "Manage apps and appearance.",
+      "cfg.updates.desc": "Manage appearance, onboarding, and updates.",
       "cfg.notifs.desc": "Task-completion alerts by source.",
       "cfg.cache.desc": "Prompt caching efficiency statistics.",
 
@@ -343,6 +347,10 @@
       "cfg.models.detail.desc": "Analysis resolution.",
 
       // ── Memory pane ──
+      "cfg.tab.memory.badge": "Soon",
+      "cfg.memory.soon.title": "Coming Soon",
+      "cfg.memory.soon.desc":
+        "Long-term memory and AI fact extraction are temporarily disabled and will be available in a future update.",
       "cfg.memory.control": "Control",
       "cfg.memory.longterm.label": "Long-term memory",
       "cfg.memory.longterm.desc": "Injects the profile and facts into every request.",

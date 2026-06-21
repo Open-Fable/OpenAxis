@@ -78,6 +78,7 @@ import {
   findScatteredDuplicates,
   findUnwantedWebScaffolding,
   findUselessDesignArtifacts,
+  findBrandConsistencyProblems,
   validateDeclaredChecks,
   buildServedSiteReport,
   extractJsonObject,
@@ -1614,9 +1615,31 @@ export class OrchestratorRunner {
     const cssSnippets = await collectCssSnippets(workspaceDir);
     const brokenAssets = await findBrokenAssetRefs(workspaceDir);
     const uncodedMockups = await findUncodedMockups(workspaceDir);
+
+    // Charger les rapports d'audit écrits sur le disque par les agents vérificateurs
+    let auditReports = "";
+    try {
+      const reportsDir = path.join(workspaceDir, "reports");
+      const files = await fs.readdir(reportsDir);
+      const blocks: string[] = [];
+      for (const f of files) {
+        if (/\.(md|txt)$/i.test(f)) {
+          const content = await fs.readFile(path.join(reportsDir, f), "utf-8");
+          blocks.push(`=== ${f} ===\n${content.substring(0, 10000)}`);
+        }
+      }
+      if (blocks.length > 0) {
+        auditReports = blocks.join("\n\n");
+      }
+    } catch {
+      // Ignorer si le dossier reports n'existe pas
+    }
+
     const servedProblems = [
       ...(await findServedSiteProblems(workspaceDir)),
       ...(await findCssConsistencyProblems(workspaceDir)),
+      ...(await findRenderProblems(workspaceDir)),
+      ...(await findBrandConsistencyProblems(workspaceDir)),
       // Format-agnostic (non-web) deterministic checks — the floor for weak models.
       ...(await findInvalidJsonFiles(workspaceDir)),
       ...(await findCsvColumnProblems(workspaceDir)),
@@ -1681,6 +1704,7 @@ export class OrchestratorRunner {
       htmlHeads,
       cssSnippets,
       brokenAssetsReport,
+      auditReports,
     });
 
     const response = await callLLMStructured(

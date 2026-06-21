@@ -161,6 +161,19 @@ info "open-design node_modules mis à plat et copié ✓"
 
 # Le web n'a besoin que de l'export statique au runtime.
 cp -R "$OD/apps/web/out" "$OD_OUT/apps/web/out"
+
+# 4d. Copie des ressources nécessaires au daemon au runtime.
+info "Copie des ressources de open-design (plugins, skills, templates, etc.)..."
+cp -R "$OD/plugins" "$OD_OUT/plugins"
+cp -R "$OD/skills" "$OD_OUT/skills"
+cp -R "$OD/design-systems" "$OD_OUT/design-systems"
+cp -R "$OD/design-templates" "$OD_OUT/design-templates"
+cp -R "$OD/craft" "$OD_OUT/craft"
+cp -R "$OD/assets" "$OD_OUT/assets"
+cp -R "$OD/prompt-templates" "$OD_OUT/prompt-templates"
+cp "$OD/package.json" "$OD_OUT/package.json"
+cp "$OD/apps/daemon/package.json" "$OD_OUT/apps/daemon/package.json"
+
 info "open-design ✓"
 
 # ──────────────────────────────────────────────────────────────────────────────

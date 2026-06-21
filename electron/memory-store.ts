@@ -208,8 +208,8 @@ async function load(): Promise<MemoryData> {
     }
 
     cache = {
-      enabled: parsed.enabled ?? true,
-      autoExtract: parsed.autoExtract ?? false,
+      enabled: false,
+      autoExtract: false,
       profile: parsed.profile ?? "",
       facts: filteredFacts,
       maxFactTokens: parsed.maxFactTokens ?? DEFAULT_MAX_TOKENS,
@@ -228,7 +228,7 @@ async function load(): Promise<MemoryData> {
     return cache;
   } catch {
     cache = {
-      enabled: true,
+      enabled: false,
       autoExtract: false,
       profile: "",
       facts: [],

@@ -173,7 +173,7 @@ async function fetchLatestRelease(): Promise<UpdateInfo | null> {
 
   // Anchor the asset name to a strict product+version pattern
   const version = tagName.replace(/^v/, "");
-  const expectedZipName = `OpenHub-${version}-mac.zip`;
+  const expectedZipName = `OpenHub-${version}-${process.arch}-mac.zip`;
   const zipAsset = assets.find((a) => a.name === expectedZipName);
   if (!zipAsset) return null;
 

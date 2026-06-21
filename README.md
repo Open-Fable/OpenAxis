@@ -21,7 +21,7 @@ A local AI workspace: chat with any model, orchestrate a team of agents that bui
 </div>
 
 <p align="center">
-  <img src="screen_github/banner.png" alt="OpenHub Dashboard Overview" width="100%">
+  <img src="screen_github/onglet_chat.png" alt="OpenHub Dashboard Overview" width="100%">
 </p>
 
 ---

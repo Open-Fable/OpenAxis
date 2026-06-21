@@ -368,6 +368,24 @@
     var actionBtn = card.querySelector(".ob-ollama-action");
     var progressWrap = card.querySelector(".ob-ollama-progress");
 
+    if (cardId === "ob-ollama-memory") {
+      card.style.opacity = "0.5";
+      card.style.pointerEvents = "none";
+      if (statusEl) {
+        statusEl.className = "ob-ollama-status ob-ollama-status--missing";
+        statusEl.textContent = window.t ? window.t("cfg.tab.memory.badge") : "Soon";
+      }
+      if (actionBtn) {
+        actionBtn.style.display = "";
+        actionBtn.textContent = window.t
+          ? window.t("cfg.memory.soon.title")
+          : "Coming soon";
+        actionBtn.disabled = true;
+      }
+      if (progressWrap) progressWrap.style.display = "none";
+      return;
+    }
+
     var isInstalled = status.installed && status.installed.indexOf(model) !== -1;
 
     if (statusEl) {
@@ -535,6 +553,10 @@
     var overlay = document.getElementById("onboarding-overlay");
     if (!overlay) return;
     overlay.addEventListener("onboarding-restart", function () {
+      overlay.classList.add("open");
+      if (window.openhub && window.openhub.notifyOnboardingVisibility) {
+        window.openhub.notifyOnboardingVisibility(true);
+      }
       currentStep = 1;
       renderStep();
       if (!pullUnsub) subscribePullProgress();
