@@ -536,6 +536,7 @@ ipcOn("show-nav-menu", (_e, x: number, y: number) => {
     hasShadow: false,
     roundedCorners: false,
     parent: mainWindow,
+    fullscreenable: false,
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
@@ -543,6 +544,14 @@ ipcOn("show-nav-menu", (_e, x: number, y: number) => {
       preload: path.join(__dirname, "preload.cjs"),
     },
   });
+
+  if (process.platform === "darwin") {
+    navPopup.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true,
+      skipTransformProcessType: true,
+    });
+    navPopup.setAlwaysOnTop(true, "pop-up-menu");
+  }
 
   navPopup.loadFile(path.join(__dirname, "nav-popup.html"), {
     query: { active: activeSlot },
@@ -2199,7 +2208,6 @@ function showUpdateToast(version: string): void {
   if (Date.now() - toastDismissedAt < TOAST_COOLDOWN_MS) return;
 
   updateToast = new BrowserWindow({
-    parent: mainWindow,
     width: TOAST_WIDTH,
     height: TOAST_HEIGHT,
     frame: false,
@@ -2209,6 +2217,8 @@ function showUpdateToast(version: string): void {
     hasShadow: false,
     focusable: false,
     backgroundColor: "#00000000",
+    parent: mainWindow,
+    fullscreenable: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -2216,6 +2226,14 @@ function showUpdateToast(version: string): void {
       nodeIntegration: false,
     },
   });
+
+  if (process.platform === "darwin") {
+    updateToast.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true,
+      skipTransformProcessType: true,
+    });
+    updateToast.setAlwaysOnTop(true, "status");
+  }
 
   repositionToast();
 
