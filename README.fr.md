@@ -126,9 +126,6 @@ Attrape le dernier `.dmg` depuis les [GitHub Releases](https://github.com/Open-F
 2. Ajoute tes clés API (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — chiffrées dans `~/Library/Application Support/openhub/secrets.enc`
 3. Choisis tes modèles
 
-> [!TIP]
-> Pour utiliser les modèles Google Gemini directement (sans OpenRouter), lance `opencode auth login` dans ton terminal.
-
 Voir le [guide d'usage](docs/USAGE.fr.md) pour le quotidien.
 
 ---

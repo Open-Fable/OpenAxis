@@ -137,16 +137,12 @@ Storage: `~/.config/openhub/memory.json`.
 The **Config** ⚙️ slot. Your keys are stored in an encrypted file at **`~/Library/Application Support/openhub/secrets.enc`** (AES-256-GCM), never in plaintext
 or in local storage.
 
-- **API keys**: Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search,
-  Google Gemini (OAuth).
+- **API keys**: Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search.
 - **Models**: memory classifier model, default reasoning effort, vision proxy, web
   search.
 - **Updates**: check/update the 3 upstream apps.
 - **Notifications**: per source (Work / Code / Design).
 - **Cache**: prefix-caching dashboard (hit rate, tokens saved).
-
-> To use Gemini directly (without OpenRouter), run `opencode auth login` in your
-> terminal.
 
 ---
 

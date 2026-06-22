@@ -128,9 +128,6 @@ Grab the latest `.dmg` from [GitHub Releases](https://github.com/Open-Fable/Open
 2. Add your API keys (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — encrypted to `~/Library/Application Support/openhub/secrets.enc`
 3. Pick your models
 
-> [!TIP]
-> To use Google Gemini models directly (without OpenRouter), run `opencode auth login` in your terminal.
-
 See the [Usage guide](docs/USAGE.md) for the day-to-day.
 
 ---

@@ -137,16 +137,12 @@ Stockage : `~/.config/openhub/memory.json`.
 Slot **Config** ⚙️. Tes clés sont stockées dans un fichier chiffré dans **`~/Library/Application Support/openhub/secrets.enc`** (AES-256-GCM),
 jamais en clair ni dans le stockage local.
 
-- **Clés API** : Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search,
-  Google Gemini (OAuth).
+- **Clés API** : Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search.
 - **Modèles** : modèle du classifieur mémoire, effort de raisonnement par défaut,
   proxy de vision, recherche web.
 - **Mises à jour** : vérifier/mettre à jour les 3 apps upstream.
 - **Notifications** : par source (Work / Code / Design).
 - **Cache** : tableau de bord du prefix caching (taux de hit, tokens économisés).
-
-> Pour utiliser Gemini directement (sans OpenRouter), lance `opencode auth login`
-> dans ton terminal.
 
 ---
 

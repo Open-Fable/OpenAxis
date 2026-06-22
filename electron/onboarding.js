@@ -136,7 +136,6 @@
   // ── Model selects — rebuild options from available keys ─────────────────
   var SOURCE_LABELS = {
     direct: "Direct API",
-    gemini: "Google Gemini",
     openrouter: "OpenRouter",
     local: "Ollama (local)",
   };
@@ -160,15 +159,7 @@
       groups[src].push(m);
     });
 
-    var order = [
-      "openai",
-      "anthropic",
-      "deepseek",
-      "direct",
-      "gemini",
-      "openrouter",
-      "local",
-    ];
+    var order = ["openai", "anthropic", "deepseek", "direct", "openrouter", "local"];
     Object.keys(groups).forEach(function (k) {
       if (order.indexOf(k) === -1) order.push(k);
     });
