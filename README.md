@@ -40,7 +40,7 @@ The **chat** works with Anthropic, OpenAI, OpenRouter, Ollama, Google Gemini, or
 
 Three **upstream tools** sit beside the native Chat and Orchestrator slots: OpenCode (code-agent server), OpenWork (structured project workspace), and Open Design (visual mockups). Switch between all five freely — execution state and session memory stay intact.
 
-Behind the scenes, a **single LLM proxy** at `127.0.0.1:9999` routes everything through one OpenAI-compatible endpoint. It handles DeepSeek and Anthropic prompt caching via a Stable Prefix Strategy (~99% cache hit rate on DeepSeek, ~80% on orchestrator — being improved) and normalizes tool schemas — the apps don't step on each other.
+Behind the scenes, a **single LLM proxy** at `127.0.0.1:9999` routes everything through one OpenAI-compatible endpoint. It handles DeepSeek and Anthropic prompt caching via a Stable Prefix Strategy — ~99% cache hit rate on DeepSeek models across Chat, Code, Work, and Design, and ~80% on the Orchestrator (being improved) — and normalizes tool schemas so the apps don't step on each other.
 
 Your **profile and key facts** carry over between sessions _(under maintenance — coming soon)_. The system extracts them automatically after each chat using local Ollama models (Qwen) with Jaccard semantic deduplication.
 

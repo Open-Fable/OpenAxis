@@ -38,7 +38,7 @@ Le **chat** marche avec Anthropic, OpenAI, OpenRouter, Ollama, Google Gemini et 
 
 Trois **outils upstream** côtoient les slots natifs Chat et Orchestrateur : OpenCode (agent de code), OpenWork (espace de travail structuré) et Open Design (maquettes visuelles). Bascule entre les cinq librement — l'état d'exécution et la mémoire de session restent intacts.
 
-En coulisses, un **proxy LLM** unique sur `127.0.0.1:9999` route tout via un seul endpoint compatible OpenAI. Il gère le cache prompt DeepSeek/Anthropic avec une stratégie de préfixe stable (~99% de hit rate sur DeepSeek, ~80% sur l'orchestrateur — en cours d'amélioration) et normalise les schémas d'outils — les apps ne se marchent pas dessus.
+En coulisses, un **proxy LLM** unique sur `127.0.0.1:9999` route tout via un seul endpoint compatible OpenAI. Il gère le cache prompt DeepSeek/Anthropic avec une stratégie de préfixe stable — ~99% de hit rate sur les modèles DeepSeek dans Chat, Code, Work et Design, et ~80% sur l'Orchestrateur (en cours d'amélioration) — et normalise les schémas d'outils pour que les apps ne se marchent pas dessus.
 
 Ton **profil et tes faits clés** suivent d'une session à l'autre _(en maintenance — bientôt disponible)_. Le système les extrait automatiquement après chaque chat avec des modèles Ollama locaux (Qwen) et une déduplication sémantique de Jaccard.
 
