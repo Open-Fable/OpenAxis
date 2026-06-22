@@ -12,6 +12,8 @@ Un espace de travail IA local : discute avec n'importe quel modèle, orchestre u
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/test.yml)
 
+[![Télécharger OpenHub](https://img.shields.io/badge/T%C3%A9l%C3%A9charger-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenHub/releases/latest)
+
 [English](README.md) · **Français**
 
 [Installation](#installation) | [Usage](docs/USAGE.fr.md) | [Orchestrateur](docs/ORCHESTRATOR.fr.md) | [FAQ](docs/FAQ.fr.md) | [Architecture](#architecture) | [Contribuer](docs/CONTRIBUTING.fr.md)
@@ -109,7 +111,7 @@ Ton **profil et tes faits clés** suivent d'une session à l'autre _(en maintena
 
 **Prérequis :** macOS 14+ (Apple Silicon)
 
-Attrape le dernier `.dmg` depuis les [GitHub Releases](https://github.com/Open-Fable/OpenHub/releases), ouvre-le et glisse OpenHub dans ton dossier Applications.
+Attrape le dernier `.dmg` depuis la page des [dernières versions (Releases)](https://github.com/Open-Fable/OpenHub/releases/latest), ouvre-le et glisse OpenHub dans ton dossier Applications.
 
 > [!IMPORTANT]
 > Le `.dmg` n'est pas signé avec un certificat Apple Developer (build open-source). macOS Gatekeeper le bloquera au premier lancement. Pour l'ouvrir :

@@ -14,6 +14,8 @@ A local AI workspace: chat with any model, orchestrate a team of agents that bui
 [![lint](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/lint.yml?label=lint&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/lint.yml)
 [![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/test.yml)
 
+[![Download OpenHub](https://img.shields.io/badge/Download-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenHub/releases/latest)
+
 **English** · [Français](README.fr.md)
 
 [Installation](#installation) | [Usage](docs/USAGE.md) | [Orchestrator](docs/ORCHESTRATOR.md) | [FAQ](docs/FAQ.md) | [Architecture](#architecture) | [Contributing](docs/CONTRIBUTING.md)
@@ -111,7 +113,7 @@ Your **profile and key facts** carry over between sessions _(under maintenance �
 
 **Requirements:** macOS 14+ (Apple Silicon)
 
-Grab the latest `.dmg` from [GitHub Releases](https://github.com/Open-Fable/OpenHub/releases), open it, and drag OpenHub to your Applications folder.
+Grab the latest `.dmg` from the [Latest Release](https://github.com/Open-Fable/OpenHub/releases/latest) page, open it, and drag OpenHub to your Applications folder.
 
 > [!IMPORTANT]
 > The `.dmg` isn't signed with an Apple Developer certificate (open-source build). macOS Gatekeeper will block it on first launch. To open it:
