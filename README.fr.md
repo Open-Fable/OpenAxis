@@ -64,7 +64,7 @@ Ton **profil et tes faits clés** suivent d'une session à l'autre _(en maintena
   <img src="screen_github/onglet_orchestrateur.png" alt="Onglet Orchestrateur" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Projet actif dans l'orchestrateur" width="750">
+  <img src="screen_github/agent_de_workflow_dans_orchestrateur.png" alt="Projet actif dans l'orchestrateur" width="750">
 </p>
 <p align="center">
   <img src="screen_github/workflow.png" alt="Schéma du workflow d'orchestration" width="750">

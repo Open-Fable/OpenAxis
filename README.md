@@ -66,7 +66,7 @@ Your **profile and key facts** carry over between sessions _(under maintenance â
   <img src="screen_github/onglet_orchestrateur.png" alt="Orchestrator Slot" width="750">
 </p>
 <p align="center">
-  <img src="screen_github/orchestrateur_avec_un_projet_Actife.png" alt="Active project in orchestrator" width="750">
+  <img src="screen_github/agent_de_workflow_dans_orchestrateur.png" alt="Active project in orchestrator" width="750">
 </p>
 <p align="center">
   <img src="screen_github/workflow.png" alt="Orchestration workflow diagram" width="750">
