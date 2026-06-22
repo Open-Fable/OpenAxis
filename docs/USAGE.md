@@ -3,7 +3,7 @@
 # OpenHub — Usage Guide
 
 This guide explains how to use OpenHub day to day, once the app is installed
-(see the [README](../README.md#-installation) for installation).
+(see the [README](../README.md#installation) for installation).
 
 > OpenHub is a shell: it wraps OpenWork, OpenCode, and Open Design in a single
 > window, adds a chat and orchestrator on top, and routes everything through one LLM

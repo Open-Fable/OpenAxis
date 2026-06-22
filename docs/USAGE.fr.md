@@ -3,7 +3,7 @@
 # OpenHub — Guide d'usage
 
 Ce guide explique comment se servir d'OpenHub au quotidien, une fois l'app
-installée (voir [README](../README.fr.md#-installation) pour l'installation).
+installée (voir [README](../README.fr.md#installation) pour l'installation).
 
 > OpenHub est un shell : il emballe OpenWork, OpenCode et Open Design dans une seule
 > fenêtre, ajoute un chat et un orchestrateur par-dessus, et route tout via un seul
