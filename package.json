@@ -1,6 +1,6 @@
 {
   "name": "openaxis",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "macOS desktop hub unifying OpenWork, OpenCode, and Open Design",
   "main": "dist/electron/main.js",
