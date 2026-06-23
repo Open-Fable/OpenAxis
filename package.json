@@ -9,7 +9,7 @@
     "dev": "bash scripts/dev.sh",
     "build": "tsc && tsc -p electron/tsconfig.preload.json && bash scripts/copy-assets.sh && npm run package:apps && npm run build:package",
     "package:apps": "bash scripts/package-apps.sh",
-    "build:package": "electron-builder --config electron-builder.json",
+    "build:package": "electron-builder --config electron-builder.json --publish never",
     "typecheck": "tsc --noEmit",
     "lint": "eslint electron/",
     "lint:fix": "eslint electron/ --fix",
