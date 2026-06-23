@@ -3,7 +3,7 @@
   if (window.__OH_PROJECTS_HUB_V2_REDESIGN__) return;
   window.__OH_PROJECTS_HUB_V2_REDESIGN__ = true;
 
-  const hub = window.openhub;
+  const hub = window.openaxis;
   if (!hub) return;
 
   let selectMode = false;

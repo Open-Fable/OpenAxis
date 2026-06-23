@@ -18,7 +18,7 @@ First public release. A macOS desktop shell unifying three open-source AI tools.
   `WebContentsView`.
 - **Unified LLM proxy** on `127.0.0.1:9999` (OpenAI-compatible, Bearer required)
   routing to Anthropic, OpenAI, OpenRouter, Ollama and Google Gemini.
-- **Secret storage in an encrypted file** at `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM) — never in plaintext;
+- **Secret storage in an encrypted file** at `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM) — never in plaintext;
   the apps only receive a fake local token.
 - **Built-in chat**: model selector, per-model reasoning effort,
   saved history, web search, attachments, project context.
@@ -41,4 +41,4 @@ First public release. A macOS desktop shell unifying three open-source AI tools.
   password, never logged.
 - Minimal `contextBridge` bridge, with no disk path parameter.
 
-[0.1.0]: https://github.com/Open-Fable/OpenHub/releases/tag/v0.1.0
+[0.1.0]: https://github.com/Open-Fable/OpenAxis/releases/tag/v0.1.0

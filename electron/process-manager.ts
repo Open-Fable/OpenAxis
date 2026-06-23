@@ -80,7 +80,7 @@ fi`;
     // Create a temporary directory for shims
     this.shimDir = path.join(
       os.tmpdir(),
-      `openhub-shims-${randomBytes(8).toString("hex")}`,
+      `openaxis-shims-${randomBytes(8).toString("hex")}`,
     );
     try {
       // Owner-only: the shim dir lives in a shared /tmp; 0700 keeps other local
@@ -91,8 +91,8 @@ fi`;
 # shim), then the standard ~/.opencode install location.
 # Paths injected via env vars to avoid shell metacharacter injection.
 SHIM_DIR="\$(dirname "\$0")"
-BUNDLED="\${OPENHUB_BUNDLED_OPENCODE:-}"
-FALLBACK="\${OPENHUB_FALLBACK_OPENCODE:-}"
+BUNDLED="\${OPENAXIS_BUNDLED_OPENCODE:-}"
+FALLBACK="\${OPENAXIS_FALLBACK_OPENCODE:-}"
 REAL_PATH=""
 if [ -n "\$BUNDLED" ] && [ -x "\$BUNDLED" ]; then
   REAL_PATH="\$BUNDLED"
@@ -267,9 +267,9 @@ exec "\$REAL_PATH" "\${args[@]}"
   private sharedEnv(): NodeJS.ProcessEnv {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
-      OPENHUB_TOKEN: this.proxyToken,
-      OPENHUB_BUNDLED_OPENCODE: path.join(this.ctx.resourcesPath, "bin", "opencode"),
-      OPENHUB_FALLBACK_OPENCODE: path.join(os.homedir(), ".opencode", "bin", "opencode"),
+      OPENAXIS_TOKEN: this.proxyToken,
+      OPENAXIS_BUNDLED_OPENCODE: path.join(this.ctx.resourcesPath, "bin", "opencode"),
+      OPENAXIS_FALLBACK_OPENCODE: path.join(os.homedir(), ".opencode", "bin", "opencode"),
     };
     if (
       this.apiKeys.googleAiKey !== null &&
@@ -306,8 +306,8 @@ exec "\$REAL_PATH" "\${args[@]}"
             .trim();
           const execName = path.basename(process.execPath);
           if (cmd.includes(execName)) return false;
-          if (cmd.includes("Electron.app") || cmd.includes("OpenHub.app")) return false;
-          if (cmd.includes("Electron Helper") || cmd.includes("OpenHub Helper"))
+          if (cmd.includes("Electron.app") || cmd.includes("OpenAxis.app")) return false;
+          if (cmd.includes("Electron Helper") || cmd.includes("OpenAxis Helper"))
             return false;
         } catch {
           // Si ps échoue, le processus a peut-être déjà quitté. Par sécurité, on le garde dans la liste à tuer.

@@ -1,6 +1,6 @@
 **English** · [Français](ORCHESTRATOR.fr.md)
 
-# OpenHub — The Multi-Agent Orchestrator
+# OpenAxis — The Multi-Agent Orchestrator
 
 > The orchestrator is an **interactive assistant** that turns a plain-language goal
 > into a multi-agent workflow. You describe what you want — it plans the work as a
@@ -94,8 +94,8 @@ The orchestrator-relevant fields:
 - `adaptToWeakModel` — selects the **weak tier** profile (more iterations, forced
   decomposition, compact prompts) for less capable models.
 
-Projects are stored at `~/.config/openhub/projects.json` (atomic write + write-lock).
-Run history lives in `~/.config/openhub/orch-history.json`, capped at 50 runs.
+Projects are stored at `~/.config/openaxis/projects.json` (atomic write + write-lock).
+Run history lives in `~/.config/openaxis/orch-history.json`, capped at 50 runs.
 
 ---
 

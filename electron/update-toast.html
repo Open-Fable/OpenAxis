@@ -103,7 +103,7 @@
       <button class="btn-close" id="btn-close">✕</button>
     </div>
     <script>
-      var lang = window.openhub && window.openhub.language === "en" ? "en" : "fr";
+      var lang = window.openaxis && window.openaxis.language === "en" ? "en" : "fr";
       var STR = {
         fr: {
           available: "Mise à jour disponible",
@@ -124,11 +124,11 @@
 
       var params = new URLSearchParams(window.location.search);
       var ver = params.get("version") || "?";
-      document.getElementById("toast-version").textContent = "OpenHub v" + ver;
+      document.getElementById("toast-version").textContent = "OpenAxis v" + ver;
 
       document.getElementById("btn-close").addEventListener("click", function () {
-        if (window.openhub && window.openhub.dismissUpdateToast) {
-          window.openhub.dismissUpdateToast();
+        if (window.openaxis && window.openaxis.dismissUpdateToast) {
+          window.openaxis.dismissUpdateToast();
         }
       });
 
@@ -138,8 +138,8 @@
         installBtn.textContent = "…";
         installBtn.style.opacity = "0.6";
         if (titleEl) titleEl.textContent = STR.downloading;
-        if (window.openhub && window.openhub.selfUpdateInstall) {
-          window.openhub.selfUpdateInstall();
+        if (window.openaxis && window.openaxis.selfUpdateInstall) {
+          window.openaxis.selfUpdateInstall();
         }
       });
     </script>

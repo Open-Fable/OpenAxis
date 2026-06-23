@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>How OpenHub Works — Local Proxy, Single Config, No Cloud</title>
-    <meta name="description" content="How OpenHub works: one local proxy holds your keys, a single config sets up every tool, and a CSS/JS override layer wraps three open-source apps without touching their source. No Docker, no cloud." />
-    <meta property="og:title" content="How OpenHub Works — Local Proxy, Single Config, No Cloud" />
-    <meta property="og:description" content="OpenHub runs three open-source tools as native processes, routes AI calls through one local proxy, and styles them with an injection layer that survives every update." />
+    <title>How OpenAxis Works — Local Proxy, Single Config, No Cloud</title>
+    <meta name="description" content="How OpenAxis works: one local proxy holds your keys, a single config sets up every tool, and a CSS/JS override layer wraps three open-source apps without touching their source. No Docker, no cloud." />
+    <meta property="og:title" content="How OpenAxis Works — Local Proxy, Single Config, No Cloud" />
+    <meta property="og:description" content="OpenAxis runs three open-source tools as native processes, routes AI calls through one local proxy, and styles them with an injection layer that survives every update." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
+    <meta property="og:url" content="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="How OpenHub Works — Local Proxy, Single Config, No Cloud" />
+    <meta name="twitter:title" content="How OpenAxis Works — Local Proxy, Single Config, No Cloud" />
     <meta name="twitter:description" content="One proxy holds the keys. One config sets up every tool. An override layer customizes apps without forking them." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Cg stroke='%2314B8A6' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M 20.27 6.41 A 10.5 10.5 0 0 1 26.44 17.10'/%3E%3Cpath d='M 22.17 24.49 A 10.5 10.5 0 0 1 9.83 24.49'/%3E%3Cpath d='M 5.56 17.10 A 10.5 10.5 0 0 1 11.73 6.41'/%3E%3C/g%3E%3C/svg%3E" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="canonical" href="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
-    <link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
-    <link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/how-it-works.fr.html" />
-    <link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
+    <link rel="canonical" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
+    <link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
+    <link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.fr.html" />
+    <link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "OpenHub",
+      "name": "OpenAxis",
       "operatingSystem": "macOS",
       "applicationCategory": "DeveloperApplication",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -44,7 +44,7 @@
       <div class="container nav-inner">
         <a href="index.html" class="nav-logo">
           <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
-          OpenHub
+          OpenAxis
         </a>
         <input type="checkbox" id="nav-toggle" class="nav-toggle" />
         <nav class="nav-links">
@@ -53,7 +53,7 @@
           <a href="privacy.html">Privacy</a>
           <a href="faq.html">FAQ</a>
           <a href="how-it-works.fr.html" class="nav-lang">FR</a>
-          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-sm btn-secondary">GitHub</a>
+          <a href="https://github.com/Open-Fable/OpenAxis" class="btn btn-sm btn-secondary">GitHub</a>
         </nav>
         <label for="nav-toggle" class="hamburger" aria-label="Toggle navigation">
           <span></span>
@@ -69,7 +69,7 @@
         <div class="eyebrow">How it works</div>
         <h1>A shell around your tools, not a fork of them.</h1>
         <p class="lead">
-          OpenHub doesn't rebuild three open-source apps and it doesn't ship a
+          OpenAxis doesn't rebuild three open-source apps and it doesn't ship a
           cloud. It runs them as native processes, routes their AI calls through
           one local proxy, and styles them with an injection layer that survives
           every upstream update.
@@ -158,7 +158,7 @@
             <div>
               <h3>One override layer customizes apps without forking them</h3>
               <p>
-                OpenHub never edits a tool's source. The unified theme, the hidden
+                OpenAxis never edits a tool's source. The unified theme, the hidden
                 native settings, the added features — all of it is CSS and JS
                 injected at runtime. The overrides target stable selectors and
                 re-apply themselves as the apps navigate. A
@@ -199,7 +199,7 @@
           <p>
             The tools need to read and write your real files — that's the whole
             point of a code agent and a design tool. So they run as native macOS
-            processes, not inside containers. OpenHub starts them, pins the right
+            processes, not inside containers. OpenAxis starts them, pins the right
             runtime for each, captures their ports, and shuts them down with the app.
           </p>
           <p>
@@ -211,7 +211,7 @@
         <div class="callout" style="margin-top:28px;">
           For the full spec — ports, security model, config cascade, override
           catalog — see
-          <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md" style="color:var(--accent-primary); font-weight:600;">ARCHITECTURE.md</a>.
+          <a href="https://github.com/Open-Fable/OpenAxis/blob/main/ARCHITECTURE.md" style="color:var(--accent-primary); font-weight:600;">ARCHITECTURE.md</a>.
         </div>
       </div>
     </section>
@@ -243,13 +243,13 @@
     <section class="cta-band section--divide">
       <div class="container">
         <h2>Download it. Add your keys. Create.</h2>
-        <p>Drag OpenHub to your Applications folder, then add your API keys in the Config panel. Apple Silicon, macOS 14 and up.</p>
+        <p>Drag OpenAxis to your Applications folder, then add your API keys in the Config panel. Apple Silicon, macOS 14 and up.</p>
         <div class="hero-cta">
-          <a href="https://github.com/Open-Fable/OpenHub/releases/latest" class="btn btn-md btn-primary">
+          <a href="https://github.com/Open-Fable/OpenAxis/releases/latest" class="btn btn-md btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download for macOS
           </a>
-          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-md btn-secondary">View on GitHub</a>
+          <a href="https://github.com/Open-Fable/OpenAxis" class="btn btn-md btn-secondary">View on GitHub</a>
         </div>
       </div>
     </section>
@@ -261,7 +261,7 @@
           <div class="footer-brand">
             <a href="index.html" class="nav-logo">
               <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
-              OpenHub
+              OpenAxis
             </a>
             <p>A macOS shell for your AI tools. Open source, MIT.</p>
           </div>
@@ -275,22 +275,22 @@
             </div>
             <div class="footer-col">
               <h4>Resources</h4>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/USAGE.md">Usage guide</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/ORCHESTRATOR.md">Orchestrator docs</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md">Architecture</a>
-              <a href="https://github.com/Open-Fable/OpenHub/releases/latest">Download</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/USAGE.md">Usage guide</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/ORCHESTRATOR.md">Orchestrator docs</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/ARCHITECTURE.md">Architecture</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/releases/latest">Download</a>
             </div>
             <div class="footer-col">
               <h4>Project</h4>
-              <a href="https://github.com/Open-Fable/OpenHub">GitHub</a>
-              <a href="https://github.com/Open-Fable/OpenHub/issues">Issues</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/CONTRIBUTING.md">Contributing</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/LICENSE">MIT License</a>
+              <a href="https://github.com/Open-Fable/OpenAxis">GitHub</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/issues">Issues</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/CONTRIBUTING.md">Contributing</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/LICENSE">MIT License</a>
             </div>
           </div>
         </div>
         <div class="footer-bottom">
-          <span>OpenHub is a shell, not a fork. The AI tools belong to their respective creators.</span>
+          <span>OpenAxis is a shell, not a fork. The AI tools belong to their respective creators.</span>
           <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
             <span style="font-size:12px; color:var(--text-muted);">Built by <a href="https://github.com/Open-Fable" style="color:var(--text-muted); text-decoration:underline;">Open-Fable</a> · <time datetime="2026-06-22">June 2026</time></span>
             <a href="how-it-works.fr.html" class="nav-lang" style="font-size:13px; color:var(--text-muted);">Français</a>

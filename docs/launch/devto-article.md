@@ -10,7 +10,7 @@
 
 Most AI tools run in their own window with their own API keys and their own configuration. I had OpenCode open for coding, OpenWork for task management, Open Design for mockups, and a separate chat window. Four windows, four configs, four sets of API keys.
 
-So I built [OpenHub](https://github.com/Open-Fable/OpenHub) — a macOS app that puts all of them (plus a multi-agent orchestrator) behind a single sidebar.
+So I built [OpenAxis](https://github.com/Open-Fable/OpenAxis) — a macOS app that puts all of them (plus a multi-agent orchestrator) behind a single sidebar.
 
 ## The constraint that shaped everything
 
@@ -24,7 +24,7 @@ So how do you customize apps you can't change?
 
 ## CSS/JS injection as an override layer
 
-Electron's `WebContentsView` gives you `insertCSS()` and `executeJavaScript()` via a context bridge. OpenHub uses this to:
+Electron's `WebContentsView` gives you `insertCSS()` and `executeJavaScript()` via a context bridge. OpenAxis uses this to:
 
 - Apply a unified dark theme across all three tools
 - Hide each tool's native settings (centralized in one Config panel)
@@ -39,7 +39,7 @@ The three tools all use the same underlying engine (opencode by SST). So one con
 ```json
 {
   "provider": {
-    "openhub": {
+    "openaxis": {
       "npm": "@ai-sdk/openai-compatible",
       "options": {
         "baseURL": "http://localhost:9999/v1"
@@ -67,12 +67,12 @@ It's like a tiny CI pipeline for creative work.
 
 1. **The injection pattern is underrated.** Most people think "wrapping" means forking. It doesn't. CSS/JS injection + a proxy gives you 90% of what you need without touching a line of upstream code.
 
-2. **A local encrypted file keeps secrets safe without the Keychain dependency.** AES-256-GCM encryption is solid. Keys go into `~/Library/Application Support/openhub/secrets.enc`, read into RAM, passed as env vars at process spawn. Never stored in plaintext.
+2. **A local encrypted file keeps secrets safe without the Keychain dependency.** AES-256-GCM encryption is solid. Keys go into `~/Library/Application Support/openaxis/secrets.enc`, read into RAM, passed as env vars at process spawn. Never stored in plaintext.
 
 3. **The "configure once" insight was non-obvious.** I didn't realize all three tools shared the same engine until I read their source code. That one discovery eliminated 80% of the configuration complexity.
 
 ---
 
-[OpenHub on GitHub](https://github.com/Open-Fable/OpenHub) — MIT licensed. Download the `.dmg` from Releases.
+[OpenAxis on GitHub](https://github.com/Open-Fable/OpenAxis) — MIT licensed. Download the `.dmg` from Releases.
 
 I'd love feedback on the architecture, especially the override system and the orchestrator engine.

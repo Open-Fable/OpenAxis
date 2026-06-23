@@ -1,6 +1,6 @@
 {
-  "appId": "com.openhub.app",
-  "productName": "OpenHub",
+  "appId": "com.openaxis.app",
+  "productName": "OpenAxis",
   "files": [
     "dist/**/*",
     "electron/overrides/**/*",

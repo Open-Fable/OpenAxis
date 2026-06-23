@@ -15,7 +15,7 @@ Your entire AI workflow in one macOS window
 ## Description
 
 ```
-OpenHub is a free, open-source macOS app that puts five AI tools behind a single sidebar: a chat, a multi-agent orchestrator, a code agent (OpenCode), a task manager (OpenWork), and a design tool (Open Design).
+OpenAxis is a free, open-source macOS app that puts five AI tools behind a single sidebar: a chat, a multi-agent orchestrator, a code agent (OpenCode), a task manager (OpenWork), and a design tool (Open Design).
 
 Enter your API keys once — they're stored in an encrypted file (AES-256-GCM), never in plaintext. A local proxy routes all LLM calls to Anthropic, OpenAI, OpenRouter, Ollama, or Gemini. Every tool shares the same context, memory, and project settings.
 
@@ -35,7 +35,7 @@ MIT licensed. Standalone .dmg for Apple Silicon.
 ## Maker comment (post after launch)
 
 ```
-Hey PH! I'm the maker of OpenHub. Built this because I was tired of managing
+Hey PH! I'm the maker of OpenAxis. Built this because I was tired of managing
 5 different AI tool windows with 5 different API keys.
 
 The core insight: OpenCode, OpenWork, and Open Design all use the same underlying

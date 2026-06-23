@@ -8,7 +8,7 @@ import { startStaticServer, type StaticServerHandle } from "./static-server.js";
 // Integration test — boots the real static SPA server on an ephemeral loopback
 // port and verifies asset serving, security headers, the history-API fallback,
 // and that express.static rejects path traversal. Uses a configurable port, so
-// (unlike the proxy) it never collides with a running OpenHub instance.
+// (unlike the proxy) it never collides with a running OpenAxis instance.
 // ---------------------------------------------------------------------------
 
 const PORT = 19987;
@@ -18,14 +18,14 @@ let rootDir: string;
 let handle: StaticServerHandle;
 
 beforeAll(async () => {
-  rootDir = await fs.mkdtemp(path.join(tmpdir(), "openhub-static-"));
+  rootDir = await fs.mkdtemp(path.join(tmpdir(), "openaxis-static-"));
   await fs.writeFile(
     path.join(rootDir, "index.html"),
     "<!doctype html><title>shell</title><div id=app></div>",
   );
   await fs.writeFile(path.join(rootDir, "app.js"), "console.warn('asset');");
   // A secret sibling OUTSIDE rootDir, to assert traversal cannot reach it.
-  await fs.writeFile(path.join(tmpdir(), "openhub-static-secret.txt"), "TOP SECRET");
+  await fs.writeFile(path.join(tmpdir(), "openaxis-static-secret.txt"), "TOP SECRET");
   handle = await startStaticServer(rootDir, PORT);
 }, 15_000);
 
@@ -63,7 +63,7 @@ describe("startStaticServer", () => {
   it("does not leak files outside the root via path traversal", async () => {
     // Encoded traversal that express.static must refuse. Even if routed to the
     // SPA fallback, the response must be the app shell, never the secret file.
-    const res = await fetch(`${BASE}/..%2fopenhub-static-secret.txt`);
+    const res = await fetch(`${BASE}/..%2fopenaxis-static-secret.txt`);
     expect(await res.text()).not.toContain("TOP SECRET");
   });
 });

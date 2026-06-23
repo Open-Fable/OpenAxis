@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# OpenHub — Setup Script
+# OpenAxis — Setup Script
 # ──────────────────────────────────────────────────────────────────────────────
-# Ce script configure tout le nécessaire pour faire fonctionner OpenHub :
+# Ce script configure tout le nécessaire pour faire fonctionner OpenAxis :
 #   1. Vérifie/mét à jour les dépendances système (Node.js, pnpm)
 #   2. Installe le binaire opencode CLI
 #   3. Clone les 3 apps upstream (openwork, opencode, open-design)
@@ -147,12 +147,12 @@ else
   info "$OPENCODE_CONFIG existe déjà ✓"
 fi
 
-# 4b. ~/.config/openhub/settings.json
-OPENHUB_CONFIG_DIR="$HOME/.config/openhub"
-mkdir -p "$OPENHUB_CONFIG_DIR"
+# 4b. ~/.config/openaxis/settings.json
+OPENAXIS_CONFIG_DIR="$HOME/.config/openaxis"
+mkdir -p "$OPENAXIS_CONFIG_DIR"
 
 install_template() {
-  local src="$TEMPLATES/$1" dst="$OPENHUB_CONFIG_DIR/$2"
+  local src="$TEMPLATES/$1" dst="$OPENAXIS_CONFIG_DIR/$2"
   if [ ! -f "$dst" ]; then
     warn "Création de $dst..."
     cp "$src" "$dst"
@@ -161,21 +161,21 @@ install_template() {
   fi
 }
 
-install_template "openhub-settings.json" "settings.json"
-install_template "openhub-projects.json" "projects.json"
-install_template "openhub-memory.json" "memory.json"
+install_template "openaxis-settings.json" "settings.json"
+install_template "openaxis-projects.json" "projects.json"
+install_template "openaxis-memory.json" "memory.json"
 
-# 4c. ~/.config/opencode/openhub-selected-models.json
-if [ -f "$TEMPLATES/selected-models.json" ] && [ ! -f "$HOME/.config/opencode/openhub-selected-models.json" ]; then
-  warn "Création de openhub-selected-models.json..."
-  cp "$TEMPLATES/selected-models.json" "$HOME/.config/opencode/openhub-selected-models.json"
+# 4c. ~/.config/opencode/openaxis-selected-models.json
+if [ -f "$TEMPLATES/selected-models.json" ] && [ ! -f "$HOME/.config/opencode/openaxis-selected-models.json" ]; then
+  warn "Création de openaxis-selected-models.json..."
+  cp "$TEMPLATES/selected-models.json" "$HOME/.config/opencode/openaxis-selected-models.json"
 fi
 
 info "Configuration externe OK ✓"
 
-# 4d. ~/.config/openhub/cache-metrics.json (fichier vide au départ)
-if [ ! -f "$OPENHUB_CONFIG_DIR/cache-metrics.json" ]; then
-  echo '{"entries":[],"totalTokens":0,"totalCalls":0}' > "$OPENHUB_CONFIG_DIR/cache-metrics.json"
+# 4d. ~/.config/openaxis/cache-metrics.json (fichier vide au départ)
+if [ ! -f "$OPENAXIS_CONFIG_DIR/cache-metrics.json" ]; then
+  echo '{"entries":[],"totalTokens":0,"totalCalls":0}' > "$OPENAXIS_CONFIG_DIR/cache-metrics.json"
 fi
 
 # 4e. AGENT-MEMORY.md à la racine du projet (si absent)
@@ -193,9 +193,9 @@ fi
 info "Configuration externe OK ✓"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5. Dépendances du projet OpenHub lui-même
+# 5. Dépendances du projet OpenAxis lui-même
 # ──────────────────────────────────────────────────────────────────────────────
-info "=== Dépendances OpenHub ==="
+info "=== Dépendances OpenAxis ==="
 if [ -f "$ROOT/package.json" ]; then
   if [ -d "$ROOT/node_modules" ]; then
     info "node_modules déjà présent — vérification rapide..."

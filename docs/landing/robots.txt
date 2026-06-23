@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://open-fable.github.io/OpenHub/landing/sitemap.xml
+Sitemap: https://open-fable.github.io/OpenAxis/landing/sitemap.xml

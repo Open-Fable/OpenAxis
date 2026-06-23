@@ -23,7 +23,9 @@ var state = {
   attachments: [],
   webSearchEnabled: false, // reflète l'interrupteur maître « Recherche Internet » (Config), synchronisé à l'init
 
-  modelPreferences: JSON.parse(localStorage.getItem("openhub-model-preferences") || "{}"),
+  modelPreferences: JSON.parse(
+    localStorage.getItem("openaxis-model-preferences") || "{}",
+  ),
   initReady: false,
   isSearchMode: false,
 };
@@ -38,7 +40,7 @@ function setModelEffort(modelId, effort) {
   state.modelPreferences[modelId] = effort;
   try {
     localStorage.setItem(
-      "openhub-model-preferences",
+      "openaxis-model-preferences",
       JSON.stringify(state.modelPreferences),
     );
   } catch (e) {}
@@ -76,17 +78,17 @@ var els = {
 
 /* ── File backup helpers ── */
 function backupFilePath() {
-  return window.openhub && window.openhub.readChatBackup ? "disk" : null;
+  return window.openaxis && window.openaxis.readChatBackup ? "disk" : null;
 }
 function getHistoryKey() {
-  return state.isSearchMode ? "openhub-searches" : "openhub-chats";
+  return state.isSearchMode ? "openaxis-searches" : "openaxis-chats";
 }
 
 async function restoreFromBackup() {
   try {
-    if (!window.openhub || !window.openhub.readChatBackup) return null;
+    if (!window.openaxis || !window.openaxis.readChatBackup) return null;
     if (state.isSearchMode) return null; // No search backup on disk for now
-    var raw = await window.openhub.readChatBackup();
+    var raw = await window.openaxis.readChatBackup();
     if (!raw) return null;
     var parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -102,7 +104,7 @@ async function restoreFromBackup() {
 }
 async function writeBackup() {
   try {
-    if (!window.openhub || !window.openhub.writeChatBackup) return;
+    if (!window.openaxis || !window.openaxis.writeChatBackup) return;
     var toSave = conversations
       .filter(function (c) {
         return c && c.messages && c.messages.length > 0;
@@ -114,7 +116,7 @@ async function writeBackup() {
 
     if (state.isSearchMode) return; // Skip search backup for now
 
-    await window.openhub.writeChatBackup(JSON.stringify(toSave));
+    await window.openaxis.writeChatBackup(JSON.stringify(toSave));
   } catch (_) {
     console.warn("[chat] File backup write failed:", _);
   }
@@ -580,7 +582,7 @@ async function init() {
   // If localStorage empty, try file backup (quick IPC)
   if (convs.length === 0 && !state.isSearchMode) {
     try {
-      var backupRaw = await window.openhub.readChatBackup();
+      var backupRaw = await window.openaxis.readChatBackup();
       if (backupRaw && backupRaw.length > 10) {
         var parsed = JSON.parse(backupRaw);
         if (Array.isArray(parsed)) {
@@ -603,7 +605,7 @@ async function init() {
   startNewConversation();
 
   // ═══ BACKGROUND — config, models, projects ═══
-  window.openhub
+  window.openaxis
     .getChatConfig()
     .then(function (c) {
       if (c && c.proxyUrl) {
@@ -630,7 +632,7 @@ async function init() {
 
 /* ── Projects ── */
 function loadProjects() {
-  return Promise.all([window.openhub.getProjects(), window.openhub.getActiveProject()])
+  return Promise.all([window.openaxis.getProjects(), window.openaxis.getActiveProject()])
     .then(function (res) {
       projState.projects = res[0] || [];
       projState.active = res[1] || null;
@@ -641,7 +643,7 @@ function loadProjects() {
     });
 }
 function syncProjects() {
-  Promise.all([window.openhub.getProjects(), window.openhub.getActiveProject()])
+  Promise.all([window.openaxis.getProjects(), window.openaxis.getActiveProject()])
     .then(function (res) {
       var np = res[0] || [],
         na = res[1] || null;
@@ -657,7 +659,7 @@ function syncProjects() {
     .catch(function () {});
 }
 function activateProject(id) {
-  window.openhub
+  window.openaxis
     .setActiveProject(id)
     .then(loadProjects)
     .catch(function (err) {
@@ -665,14 +667,14 @@ function activateProject(id) {
     });
 }
 function saveProjectData(data) {
-  return window.openhub.saveProject(data).then(function (np) {
+  return window.openaxis.saveProject(data).then(function (np) {
     return loadProjects().then(function () {
       return np;
     });
   });
 }
 function removeProject(id) {
-  return window.openhub.deleteProject(id).then(loadProjects);
+  return window.openaxis.deleteProject(id).then(loadProjects);
 }
 function renderProjectUI() {
   if (window.renderProjectsHub) {
@@ -852,7 +854,7 @@ function updateEmptyState() {
       return c.messages && c.messages.length > 0;
     });
     var hasShownWelcome =
-      localStorage.getItem("openhub-chat-welcome-shown") === "true" || hasNonEmptyConv;
+      localStorage.getItem("openaxis-chat-welcome-shown") === "true" || hasNonEmptyConv;
     if (!hasShownWelcome) {
       title = t("chat.empty.welcome");
       desc = t("chat.empty.welcomeDesc");
@@ -1068,8 +1070,8 @@ function renderCatalogList() {
     var msg = document.createElement("div");
     msg.style.cssText =
       "padding:12px 16px;color:var(--text-muted);font-size:12px;line-height:1.5";
-    if (window.openhub && window.openhub.ollamaCheckModels) {
-      window.openhub
+    if (window.openaxis && window.openaxis.ollamaCheckModels) {
+      window.openaxis
         .ollamaCheckModels()
         .then(function (status) {
           if (!status || !status.running) {
@@ -1131,8 +1133,8 @@ function syncWebSearchUI() {
   btn.classList.toggle("more-dropdown-item--active", state.webSearchEnabled);
   btn.setAttribute("aria-pressed", state.webSearchEnabled.toString());
 }
-if (window.openhub.getWebSearchEnabled) {
-  window.openhub.getWebSearchEnabled().then(function (e) {
+if (window.openaxis.getWebSearchEnabled) {
+  window.openaxis.getWebSearchEnabled().then(function (e) {
     state.webSearchEnabled = !!e;
     syncWebSearchUI();
   });
@@ -1140,8 +1142,8 @@ if (window.openhub.getWebSearchEnabled) {
 $("ddWebSearch").addEventListener("click", function (e) {
   e.stopPropagation();
   state.webSearchEnabled = !state.webSearchEnabled;
-  if (window.openhub.setWebSearchEnabled)
-    window.openhub.setWebSearchEnabled(state.webSearchEnabled);
+  if (window.openaxis.setWebSearchEnabled)
+    window.openaxis.setWebSearchEnabled(state.webSearchEnabled);
   syncWebSearchUI();
   $("btnInputMore").click();
 });
@@ -1161,9 +1163,9 @@ var WEB_SEARCH_DECISION_PROMPT =
 var _classifierModel = null;
 async function getClassifierModel() {
   if (_classifierModel) return _classifierModel;
-  if (window.openhub.getAiClassifierModel) {
+  if (window.openaxis.getAiClassifierModel) {
     try {
-      _classifierModel = await window.openhub.getAiClassifierModel();
+      _classifierModel = await window.openaxis.getAiClassifierModel();
     } catch (_) {
       /* ignore */
     }
@@ -1826,7 +1828,7 @@ function renderSkillsModal() {
   loading.innerHTML =
     '<div class="oh-skel-list"><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton" style="width:28px;height:28px;border-radius:var(--radius-sm,6px)"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:48%"></div><div class="oh-skeleton oh-skel-line" style="width:80%;height:10px"></div></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton" style="width:28px;height:28px;border-radius:var(--radius-sm,6px)"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:60%"></div><div class="oh-skeleton oh-skel-line" style="width:70%;height:10px"></div></div></div><div class="oh-skel-row"><div class="oh-skel-box oh-skeleton" style="width:28px;height:28px;border-radius:var(--radius-sm,6px)"></div><div class="oh-skel-fill"><div class="oh-skeleton oh-skel-line" style="width:52%"></div><div class="oh-skeleton oh-skel-line" style="width:75%;height:10px"></div></div></div></div>';
   list.appendChild(loading);
-  window.openhub
+  window.openaxis
     .getSkills()
     .then(function (skills) {
       list.innerHTML = "";
@@ -1940,7 +1942,7 @@ function openSkillEditorModal(skill) {
     delBtn.textContent = t("chat.skills.delete");
     delBtn.addEventListener("click", function () {
       if (confirm(t("chat.skills.confirmDelete"))) {
-        window.openhub.deleteSkill(skill.filename).then(function () {
+        window.openaxis.deleteSkill(skill.filename).then(function () {
           overlay.remove();
           showModal("modalSkills");
           renderSkillsModal();
@@ -1978,7 +1980,7 @@ function openSkillEditorModal(skill) {
     // Protection double-submit : ignorer les clics répétés pendant l'écriture
     if (saveBtn.disabled) return;
     saveBtn.disabled = true;
-    window.openhub
+    window.openaxis
       .saveSkill({ filename: skill ? skill.filename : undefined, title, content })
       .then(function () {
         overlay.remove();
@@ -2250,7 +2252,7 @@ async function sendMessage() {
   )
     return;
   if (!activeConvId) startNewConversation();
-  localStorage.setItem("openhub-chat-welcome-shown", "true");
+  localStorage.setItem("openaxis-chat-welcome-shown", "true");
   els.emptyState.style.display = "none";
   document.body.classList.remove("oh-is-new-conv");
   var currentAttachments = state.attachments.slice();
@@ -2291,7 +2293,7 @@ async function sendMessage() {
   if (searchQuery) {
     var searchWidget = createSearchWidget(searchQuery);
     try {
-      var searchResults = await window.openhub.webSearch(searchQuery);
+      var searchResults = await window.openaxis.webSearch(searchQuery);
       updateSearchWidget(searchWidget, searchResults, null);
       if (searchResults && searchResults.length > 0) {
         searchContext =
@@ -2848,7 +2850,7 @@ function exportArtifactPdf(id) {
   var a = artifacts.find(function (x) {
     return x.id === id;
   });
-  if (!a || !window.openhub.exportHtmlToPdf) return;
+  if (!a || !window.openaxis.exportHtmlToPdf) return;
   var html;
   switch (a.info.type) {
     case "html":
@@ -2882,7 +2884,7 @@ function exportArtifactPdf(id) {
         '<pre style="white-space:pre-wrap">' + escapeHtml(a.code) + "</pre>",
       );
   }
-  window.openhub.exportHtmlToPdf(html);
+  window.openaxis.exportHtmlToPdf(html);
 }
 // Delegated handler for artifact action buttons (CSP: no inline onclick).
 document.addEventListener("click", function (e) {
@@ -3138,8 +3140,8 @@ function scrollToBottom(force) {
 }
 
 /* ── Key refresh ── */
-if (window.openhub.onApiKeysUpdated) {
-  window.openhub.onApiKeysUpdated(function () {
+if (window.openaxis.onApiKeysUpdated) {
+  window.openaxis.onApiKeysUpdated(function () {
     refreshModels().then(function () {
       updateEmptyState();
       updateSendButton();
@@ -3646,14 +3648,14 @@ function hubHandleCtxAction(action) {
   } else if (action === "rename") {
     var newName = prompt(t("chat.prompt.renameProject"), p.name);
     if (newName && newName.trim()) {
-      window.openhub.saveProject({ id: p.id, name: newName.trim() }).then(function () {
+      window.openaxis.saveProject({ id: p.id, name: newName.trim() }).then(function () {
         showToast(t("chat.toast.projectRenamed"), "success");
         loadProjects();
       });
     }
   } else if (action === "pin") {
     var wasPinned = p.pinned;
-    window.openhub
+    window.openaxis
       .saveProject({ id: p.id, name: p.name, pinned: !wasPinned })
       .then(function () {
         showToast(
@@ -3663,7 +3665,7 @@ function hubHandleCtxAction(action) {
         loadProjects();
       });
   } else if (action === "duplicate") {
-    window.openhub
+    window.openaxis
       .saveProject({
         name: p.name + t("chat.project.copySuffix"),
         instructions: p.instructions || "",
@@ -3676,7 +3678,7 @@ function hubHandleCtxAction(action) {
       });
   } else if (action === "archive") {
     var wasArchived = p.archived;
-    window.openhub
+    window.openaxis
       .saveProject({
         id: p.id,
         name: p.name,
@@ -3697,7 +3699,7 @@ function hubHandleCtxAction(action) {
   } else if (action === "move-folder") {
     return;
   } else if (action === "remove-folder") {
-    window.openhub.saveProject({ id: p.id, name: p.name, folder: "" }).then(function () {
+    window.openaxis.saveProject({ id: p.id, name: p.name, folder: "" }).then(function () {
       showToast(t("chat.toast.removedFromFolder"), "success");
       loadProjects().then(function () {
         window.renderProjectsHub();
@@ -3706,10 +3708,10 @@ function hubHandleCtxAction(action) {
   } else if (action === "new-folder") {
     var folderName = prompt(t("chat.prompt.newFolder"));
     if (folderName && folderName.trim()) {
-      window.openhub
+      window.openaxis
         .createFolder(folderName.trim())
         .then(function () {
-          return window.openhub.saveProject({
+          return window.openaxis.saveProject({
             id: p.id,
             name: p.name,
             folder: folderName.trim(),
@@ -3735,7 +3737,7 @@ function hubHandleMoveToFolder(folderName) {
   var p = hubCtxTarget;
   hubHideCtxMenu();
   if (!p) return;
-  window.openhub
+  window.openaxis
     .saveProject({ id: p.id, name: p.name, folder: folderName })
     .then(function () {
       showToast(t("chat.toast.movedTo", { name: folderName }), "success");
@@ -3802,7 +3804,7 @@ function hubDeleteSelected() {
   var chain = Promise.resolve();
   ids.forEach(function (id) {
     chain = chain.then(function () {
-      return window.openhub.deleteProject(id);
+      return window.openaxis.deleteProject(id);
     });
   });
   chain.then(function () {
@@ -3986,7 +3988,7 @@ function hubRenderContent() {
           if (act === "rename" && folderId) {
             var newName = prompt(t("chat.prompt.renameFolder"), fname);
             if (newName && newName.trim() && newName.trim() !== fname) {
-              window.openhub.renameFolder(folderId.id, newName.trim()).then(function () {
+              window.openaxis.renameFolder(folderId.id, newName.trim()).then(function () {
                 showToast(t("chat.toast.folderRenamed"), "success");
                 loadProjects().then(function () {
                   window.renderProjectsHub();
@@ -3995,7 +3997,7 @@ function hubRenderContent() {
             }
           } else if (act === "delete" && folderId) {
             if (confirm(t("chat.confirm.deleteFolder", { name: fname }))) {
-              window.openhub.deleteFolder(folderId.id).then(function () {
+              window.openaxis.deleteFolder(folderId.id).then(function () {
                 showToast(t("chat.toast.folderDeleted"), "success");
                 loadProjects().then(function () {
                   window.renderProjectsHub();
@@ -4182,10 +4184,10 @@ function hubRenderContent() {
 }
 
 window.renderProjectsHub = function () {
-  window.openhub
+  window.openaxis
     .reloadProjectStore()
     .then(function () {
-      return Promise.all([window.openhub.getProjects(), window.openhub.getFolders()]);
+      return Promise.all([window.openaxis.getProjects(), window.openaxis.getFolders()]);
     })
     .then(function (results) {
       projState.projects = results[0] || [];
@@ -4196,7 +4198,7 @@ window.renderProjectsHub = function () {
 };
 
 function openProjectDetails(projectId) {
-  window.openhub.getProjects().then(function (allProjects) {
+  window.openaxis.getProjects().then(function (allProjects) {
     var p = allProjects.find(function (x) {
       return x.id === projectId;
     });
@@ -4292,7 +4294,7 @@ function initProjectsLogic() {
         return x.id === id;
       });
       if (p) {
-        await window.openhub.saveProject({
+        await window.openaxis.saveProject({
           id: p.id,
           name: p.name,
           instructions: instructions,

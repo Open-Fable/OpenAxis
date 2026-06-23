@@ -1,4 +1,4 @@
-// OpenHub — Self-update engine (no Apple Developer account required)
+// OpenAxis — Self-update engine (no Apple Developer account required)
 //
 // Downloads a .zip from GitHub Releases, verifies its SHA-256 against a
 // CI-published .sha256 sidecar file (U1), swaps the running .app via a
@@ -41,7 +41,7 @@ export interface UpdaterDeps {
 // ---------------------------------------------------------------------------
 
 const GITHUB_RELEASES_URL =
-  "https://api.github.com/repos/Open-Fable/OpenHub/releases/latest";
+  "https://api.github.com/repos/Open-Fable/OpenAxis/releases/latest";
 
 const ALLOWED_HOSTS = new Set(["github.com", "objects.githubusercontent.com"]);
 
@@ -173,7 +173,7 @@ async function fetchLatestRelease(): Promise<UpdateInfo | null> {
 
   // Anchor the asset name to a strict product+version pattern
   const version = tagName.replace(/^v/, "");
-  const expectedZipName = `OpenHub-${version}-${process.arch}-mac.zip`;
+  const expectedZipName = `OpenAxis-${version}-${process.arch}-mac.zip`;
   const zipAsset = assets.find((a) => a.name === expectedZipName);
   if (!zipAsset) return null;
 
@@ -197,7 +197,7 @@ async function downloadAndStage(
 ): Promise<string> {
   setStatus({ stage: "downloading", version: info.version, percent: 0 });
 
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openhub-update-"));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openaxis-update-"));
   onTmpDir(tmpDir);
   await fs.chmod(tmpDir, 0o700);
 
@@ -250,10 +250,10 @@ async function downloadAndStage(
   await fs.mkdir(extractDir, { recursive: true });
   await execPromise("ditto", ["-x", "-k", zipPath, extractDir]);
 
-  // Locate OpenHub.app inside the extracted folder (anchored name)
+  // Locate OpenAxis.app inside the extracted folder (anchored name)
   const entries = await fs.readdir(extractDir);
-  const appEntry = entries.find((e) => e === "OpenHub.app");
-  if (!appEntry) throw new Error("No OpenHub.app found in zip");
+  const appEntry = entries.find((e) => e === "OpenAxis.app");
+  if (!appEntry) throw new Error("No OpenAxis.app found in zip");
 
   setStatus({ stage: "ready", version: info.version });
   return path.join(extractDir, appEntry);
@@ -267,7 +267,7 @@ async function applyAndRelaunch(newAppPath: string): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Resolve current bundle root from process.execPath
-  // e.g. /Applications/OpenHub.app/Contents/MacOS/OpenHub → /Applications/OpenHub.app
+  // e.g. /Applications/OpenAxis.app/Contents/MacOS/OpenAxis → /Applications/OpenAxis.app
   const execPath = process.execPath;
   const contentsIdx = execPath.indexOf("/Contents/MacOS/");
   if (contentsIdx < 0) throw new Error("Cannot resolve .app bundle path");
@@ -282,9 +282,9 @@ async function applyAndRelaunch(newAppPath: string): Promise<void> {
     await fs.access(parentDir, fsConstants.W_OK);
   } catch {
     // Fallback: open the Releases page in the browser
-    shell.openExternal("https://github.com/Open-Fable/OpenHub/releases/latest");
+    shell.openExternal("https://github.com/Open-Fable/OpenAxis/releases/latest");
     throw new Error(
-      "Le dossier contenant OpenHub n'est pas modifiable. " +
+      "Le dossier contenant OpenAxis n'est pas modifiable. " +
         "La page des téléchargements a été ouverte dans votre navigateur.",
     );
   }
@@ -343,7 +343,7 @@ open "$BUNDLE"
   // Show a brief notification before quitting
   if (Notification.isSupported()) {
     const n = new Notification({
-      title: "OpenHub — Mise à jour",
+      title: "OpenAxis — Mise à jour",
       body: `Installation de la v${latestInfo?.version ?? "?"}. L'app va redémarrer.`,
       silent: true,
     });

@@ -26,7 +26,7 @@
         getOpenworkUiMcpCommand: [],
         getOpenworkUiMcpEnvironment: {},
         getComputerUseMcpCommand: [],
-        getDeviceFingerprint: "openhub-stub",
+        getDeviceFingerprint: "openaxis-stub",
         __setApplicationMenuVisible: true,
         __setNativeTheme: true,
         getUiControlBridgeInfo: { supported: false },
@@ -37,7 +37,7 @@
       }
 
       // Pour les autres commandes, on essaie le bridge Electron réel ou on renvoie une liste vide par sécurité
-      return window.openhub
+      return window.openaxis
         .openworkDesktopInvoke(command, ...args)
         .then((res) => (res === null ? [] : res))
         .catch(() => []);
@@ -96,7 +96,7 @@
     },
     meta: {
       platform: "darwin",
-      version: "openhub",
+      version: "openaxis",
       initialDeepLinks: [],
     },
   };

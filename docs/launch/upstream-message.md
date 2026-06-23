@@ -9,16 +9,16 @@ Tone: informative, respectful, no ask for promotion.
 
 **Where:** GitHub Discussion on `sst/opencode`, or DM on Twitter/Discord
 
-**Subject:** OpenHub — macOS app integrating OpenCode
+**Subject:** OpenAxis — macOS app integrating OpenCode
 
 **Message:**
 
-Hi! I built OpenHub, an open-source macOS desktop app that integrates OpenCode as one of its core tools — alongside OpenWork and Open Design.
+Hi! I built OpenAxis, an open-source macOS desktop app that integrates OpenCode as one of its core tools — alongside OpenWork and Open Design.
 
 OpenCode runs unmodified inside a sandboxed WebView. A shared LLM proxy handles API key management (encrypted secrets file) so users configure their keys once.
 
 I wanted to let you know in case you have any concerns or feedback. The project is MIT licensed:
-https://github.com/Open-Fable/OpenHub
+https://github.com/Open-Fable/OpenAxis
 
 Thanks for building OpenCode — it's the backbone of the whole thing.
 
@@ -28,16 +28,16 @@ Thanks for building OpenCode — it's the backbone of the whole thing.
 
 **Where:** GitHub Discussion on `different-ai/openwork`
 
-**Subject:** OpenHub — macOS app integrating OpenWork
+**Subject:** OpenAxis — macOS app integrating OpenWork
 
 **Message:**
 
-Hi! I built an open-source macOS app called OpenHub that integrates OpenWork alongside OpenCode and Open Design.
+Hi! I built an open-source macOS app called OpenAxis that integrates OpenWork alongside OpenCode and Open Design.
 
 OpenWork runs unmodified — all customization is done through CSS/JS injection (hiding native settings, unified dark theme). The app's LLM proxy routes API calls and injects project context.
 
 Wanted to share in case you have questions or feedback:
-https://github.com/Open-Fable/OpenHub
+https://github.com/Open-Fable/OpenAxis
 
 Thanks for building OpenWork!
 
@@ -47,16 +47,16 @@ Thanks for building OpenWork!
 
 **Where:** GitHub Discussion on `nexu-io/open-design`
 
-**Subject:** OpenHub — macOS app integrating Open Design
+**Subject:** OpenAxis — macOS app integrating Open Design
 
 **Message:**
 
-Hi! I built OpenHub, an open-source macOS desktop app that brings together Open Design, OpenCode, and OpenWork in a single sidebar interface.
+Hi! I built OpenAxis, an open-source macOS desktop app that brings together Open Design, OpenCode, and OpenWork in a single sidebar interface.
 
 Open Design runs as a native daemon, unmodified. The shell captures the port at spawn and displays the UI in a sandboxed WebView.
 
 Sharing in case you'd like to take a look or have concerns:
-https://github.com/Open-Fable/OpenHub
+https://github.com/Open-Fable/OpenAxis
 
 Thanks for building Open Design!
 

@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenHub Privacy &amp; Security — Your Keys Stay on Your Mac</title>
-    <meta name="description" content="Where your API keys and data live with OpenHub: macOS Keychain, localhost-only proxy, sandboxed views, no account, no telemetry, no cloud. Everything stays on your Mac, and it's all open source." />
-    <meta property="og:title" content="OpenHub Privacy &amp; Security — Your Keys Stay on Your Mac" />
-    <meta property="og:description" content="No account, no cloud, no telemetry. OpenHub stores your API keys in the macOS Keychain and routes everything through a localhost-only proxy." />
+    <title>OpenAxis Privacy &amp; Security — Your Keys Stay on Your Mac</title>
+    <meta name="description" content="Where your API keys and data live with OpenAxis: macOS Keychain, localhost-only proxy, sandboxed views, no account, no telemetry, no cloud. Everything stays on your Mac, and it's all open source." />
+    <meta property="og:title" content="OpenAxis Privacy &amp; Security — Your Keys Stay on Your Mac" />
+    <meta property="og:description" content="No account, no cloud, no telemetry. OpenAxis stores your API keys in the macOS Keychain and routes everything through a localhost-only proxy." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://open-fable.github.io/OpenHub/landing/privacy.html" />
+    <meta property="og:url" content="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="OpenHub Privacy &amp; Security — Your Keys Stay on Your Mac" />
+    <meta name="twitter:title" content="OpenAxis Privacy &amp; Security — Your Keys Stay on Your Mac" />
     <meta name="twitter:description" content="Your API keys live in the macOS Keychain. The proxy is localhost-only. The whole thing is open source." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Cg stroke='%2314B8A6' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M 20.27 6.41 A 10.5 10.5 0 0 1 26.44 17.10'/%3E%3Cpath d='M 22.17 24.49 A 10.5 10.5 0 0 1 9.83 24.49'/%3E%3Cpath d='M 5.56 17.10 A 10.5 10.5 0 0 1 11.73 6.41'/%3E%3C/g%3E%3C/svg%3E" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="canonical" href="https://open-fable.github.io/OpenHub/landing/privacy.html" />
-    <link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/privacy.html" />
-    <link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/privacy.fr.html" />
-    <link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/privacy.html" />
+    <link rel="canonical" href="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
+    <link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
+    <link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/privacy.fr.html" />
+    <link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "OpenHub",
+      "name": "OpenAxis",
       "operatingSystem": "macOS",
       "applicationCategory": "DeveloperApplication",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -44,7 +44,7 @@
       <div class="container nav-inner">
         <a href="index.html" class="nav-logo">
           <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
-          OpenHub
+          OpenAxis
         </a>
         <input type="checkbox" id="nav-toggle" class="nav-toggle" />
         <nav class="nav-links">
@@ -53,7 +53,7 @@
           <a href="privacy.html" aria-current="page">Privacy</a>
           <a href="faq.html">FAQ</a>
           <a href="privacy.fr.html" class="nav-lang">FR</a>
-          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-sm btn-secondary">GitHub</a>
+          <a href="https://github.com/Open-Fable/OpenAxis" class="btn btn-sm btn-secondary">GitHub</a>
         </nav>
         <label for="nav-toggle" class="hamburger" aria-label="Toggle navigation">
           <span></span>
@@ -70,7 +70,7 @@
         <h1>We don't ask for your trust. We prove it.</h1>
         <p class="lead">
           "Free" isn't an argument when you're asking someone to hand over their
-          API keys. So OpenHub doesn't ask you to take anything on faith. No
+          API keys. So OpenAxis doesn't ask you to take anything on faith. No
           account, no cloud, no telemetry — and the whole thing is open source.
           Here's where every secret and every byte of your data lives.
         </p>
@@ -84,7 +84,7 @@
           <div class="card">
             <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
             <h3>Keys in an encrypted file, never on disk</h3>
-            <p>Your API keys are stored in an encrypted file at <code>~/Library/Application Support/openhub/secrets.enc</code> (AES-256-GCM). Not in a config file, not in local storage, not inside any tool's view. The proxy loads them into memory and passes them as environment variables when a process starts.</p>
+            <p>Your API keys are stored in an encrypted file at <code>~/Library/Application Support/openaxis/secrets.enc</code> (AES-256-GCM). Not in a config file, not in local storage, not inside any tool's view. The proxy loads them into memory and passes them as environment variables when a process starts.</p>
           </div>
           <div class="card">
             <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><circle cx="6" cy="6" r="0.5" fill="currentColor"/></svg></div>
@@ -99,7 +99,7 @@
           <div class="card">
             <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
             <h3>No server, because there's no backend</h3>
-            <p>OpenHub has no cloud component. Nothing is sent to an OpenHub server, because one doesn't exist. The only outbound calls are the ones you trigger, going straight to the model provider you chose.</p>
+            <p>OpenAxis has no cloud component. Nothing is sent to an OpenAxis server, because one doesn't exist. The only outbound calls are the ones you trigger, going straight to the model provider you chose.</p>
           </div>
         </div>
       </div>
@@ -119,9 +119,9 @@
               <tr><th>Data</th><th>Where it lives</th></tr>
             </thead>
             <tbody>
-              <tr><td>API keys</td><td><code>~/Library/Application Support/openhub/secrets.enc</code> (AES-256-GCM)</td></tr>
-              <tr><td>Projects</td><td><code>~/.config/openhub/projects.json</code></td></tr>
-              <tr><td>Memory</td><td><code>~/.config/openhub/memory.json</code></td></tr>
+              <tr><td>API keys</td><td><code>~/Library/Application Support/openaxis/secrets.enc</code> (AES-256-GCM)</td></tr>
+              <tr><td>Projects</td><td><code>~/.config/openaxis/projects.json</code></td></tr>
+              <tr><td>Memory</td><td><code>~/.config/openaxis/memory.json</code></td></tr>
               <tr><td>Tool config</td><td><code>~/.config/opencode/opencode.json</code></td></tr>
               <tr><td>Chat history</td><td>local storage + a file backup on disk</td></tr>
               <tr><td>Orchestrator deliverables</td><td>a workspace folder you choose</td></tr>
@@ -129,7 +129,7 @@
           </table>
         </div>
         <div class="callout" style="margin-top:24px;">
-          <strong>The short version:</strong> nothing is sent to an OpenHub server,
+          <strong>The short version:</strong> nothing is sent to an OpenAxis server,
           because there isn't one. Your inference calls go to the provider you
           picked, and your keys never leave your Mac.
         </div>
@@ -160,8 +160,8 @@
           </p>
         </div>
         <div class="hero-cta" style="justify-content:flex-start; margin-top:28px;">
-          <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/SECURITY.md" class="btn btn-md btn-secondary">Read the security policy</a>
-          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-md btn-secondary">Browse the source</a>
+          <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/SECURITY.md" class="btn btn-md btn-secondary">Read the security policy</a>
+          <a href="https://github.com/Open-Fable/OpenAxis" class="btn btn-md btn-secondary">Browse the source</a>
         </div>
       </div>
     </section>
@@ -193,13 +193,13 @@
     <section class="cta-band section--divide">
       <div class="container">
         <h2>Your keys. Your machine. Your call.</h2>
-        <p>Download OpenHub, add your keys to the Config panel, and watch where they go: nowhere but your Mac.</p>
+        <p>Download OpenAxis, add your keys to the Config panel, and watch where they go: nowhere but your Mac.</p>
         <div class="hero-cta">
-          <a href="https://github.com/Open-Fable/OpenHub/releases/latest" class="btn btn-md btn-primary">
+          <a href="https://github.com/Open-Fable/OpenAxis/releases/latest" class="btn btn-md btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download for macOS
           </a>
-          <a href="https://github.com/Open-Fable/OpenHub" class="btn btn-md btn-secondary">View on GitHub</a>
+          <a href="https://github.com/Open-Fable/OpenAxis" class="btn btn-md btn-secondary">View on GitHub</a>
         </div>
       </div>
     </section>
@@ -211,7 +211,7 @@
           <div class="footer-brand">
             <a href="index.html" class="nav-logo">
               <svg width="24" height="24" viewBox="0 0 512 512" fill="none"><g stroke="var(--accent-primary)" stroke-width="76" stroke-linecap="round"><path d="M 311.4 103.8 A 162 162 0 0 1 415.5 284.1"/><path d="M 360.1 380.1 A 162 162 0 0 1 151.9 380.1"/><path d="M 96.5 284.1 A 162 162 0 0 1 200.6 103.8"/></g></svg>
-              OpenHub
+              OpenAxis
             </a>
             <p>A macOS shell for your AI tools. Open source, MIT.</p>
           </div>
@@ -225,22 +225,22 @@
             </div>
             <div class="footer-col">
               <h4>Resources</h4>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/USAGE.md">Usage guide</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/ORCHESTRATOR.md">Orchestrator docs</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md">Architecture</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/SECURITY.md">Security policy</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/USAGE.md">Usage guide</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/ORCHESTRATOR.md">Orchestrator docs</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/ARCHITECTURE.md">Architecture</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/SECURITY.md">Security policy</a>
             </div>
             <div class="footer-col">
               <h4>Project</h4>
-              <a href="https://github.com/Open-Fable/OpenHub">GitHub</a>
-              <a href="https://github.com/Open-Fable/OpenHub/issues">Issues</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/docs/CONTRIBUTING.md">Contributing</a>
-              <a href="https://github.com/Open-Fable/OpenHub/blob/main/LICENSE">MIT License</a>
+              <a href="https://github.com/Open-Fable/OpenAxis">GitHub</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/issues">Issues</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/docs/CONTRIBUTING.md">Contributing</a>
+              <a href="https://github.com/Open-Fable/OpenAxis/blob/main/LICENSE">MIT License</a>
             </div>
           </div>
         </div>
         <div class="footer-bottom">
-          <span>OpenHub is a shell, not a fork. The AI tools belong to their respective creators.</span>
+          <span>OpenAxis is a shell, not a fork. The AI tools belong to their respective creators.</span>
           <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
             <span style="font-size:12px; color:var(--text-muted);">Built by <a href="https://github.com/Open-Fable" style="color:var(--text-muted); text-decoration:underline;">Open-Fable</a> · <time datetime="2026-06-22">June 2026</time></span>
             <a href="privacy.fr.html" class="nav-lang" style="font-size:13px; color:var(--text-muted);">Français</a>

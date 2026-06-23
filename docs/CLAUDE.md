@@ -1,6 +1,6 @@
-# CLAUDE.md — OpenHub
+# CLAUDE.md — OpenAxis
 
-Behavioral guidelines for the OpenHub project. Biased toward caution over speed.
+Behavioral guidelines for the OpenAxis project. Biased toward caution over speed.
 For trivial tasks, use judgment.
 
 ## 1. Think Before Coding
@@ -66,7 +66,7 @@ For multi-step tasks, state a brief plan:
 
 ## Project Context
 
-### About OpenHub
+### About OpenAxis
 
 Electron desktop shell for macOS that unifies 3 open-source AI tools behind a
 single sidebar (Work, Code, Design). Each tool runs as a separate native process;
@@ -104,7 +104,7 @@ scripts/            ← Setup, update, selector-check utilities
 
 - **Runtime:** Electron v32+, TypeScript, native processes (zero Docker)
 - **Proxy:** Express on 127.0.0.1:9999, OpenAI-compatible, Bearer token required
-- **Secrets:** Encrypted file at `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM) — never in plaintext
+- **Secrets:** Encrypted file at `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM) — never in plaintext
 - **Config cascade:** `~/.config/opencode/opencode.json` propagates to all 3 apps
 - **Overrides:** `insertCSS()` + `executeJavaScript()` via contextBridge
 

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 type SlotName = "work" | "code" | "design" | "chat" | "config" | "projects";
 
-contextBridge.exposeInMainWorld("openhub", {
+contextBridge.exposeInMainWorld("openaxis", {
   switchSlot: (slot: SlotName) => ipcRenderer.invoke("switch-slot", slot),
   showSlotContextMenu: (slot: SlotName) =>
     ipcRenderer.send("show-slot-context-menu", slot),
@@ -317,7 +317,7 @@ const OPENWORK_MOCK_RESPONSES: Record<string, unknown> = {
   getOpenworkUiMcpCommand: [],
   getOpenworkUiMcpEnvironment: {},
   getComputerUseMcpCommand: [],
-  getDeviceFingerprint: "openhub-stub",
+  getDeviceFingerprint: "openaxis-stub",
   __setApplicationMenuVisible: true,
   __setNativeTheme: true,
   getUiControlBridgeInfo: { supported: false },
@@ -365,7 +365,7 @@ contextBridge.exposeInMainWorld("__OPENWORK_ELECTRON__", {
   },
   meta: {
     platform: "darwin",
-    version: "openhub",
+    version: "openaxis",
     initialDeepLinks: [],
   },
 });

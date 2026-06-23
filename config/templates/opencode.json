@@ -11,9 +11,9 @@
         "gemini-3.1-pro-preview"
       ]
     },
-    "openhub": {
+    "openaxis": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "OpenHub Proxy",
+      "name": "OpenAxis Proxy",
       "options": {
         "baseURL": "http://localhost:9999/v1",
         "apiKey": "__PROXY_TOKEN__",

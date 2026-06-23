@@ -1,4 +1,4 @@
-# OpenHub Launch Checklist
+# OpenAxis Launch Checklist
 
 ## Before launch
 

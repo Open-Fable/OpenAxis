@@ -6,6 +6,6 @@ document.querySelectorAll(".item").forEach(function (btn) {
     btn.classList.add("active");
   }
   btn.addEventListener("click", function () {
-    window.openhub.navPopupSelect(btn.dataset.slot);
+    window.openaxis.navPopupSelect(btn.dataset.slot);
   });
 });

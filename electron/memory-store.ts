@@ -19,7 +19,7 @@ export interface MemoryData {
   readonly maxFactTokens: number;
 }
 
-const STORE_DIR = path.join(homedir(), ".config", "openhub");
+const STORE_DIR = path.join(homedir(), ".config", "openaxis");
 const STORE_PATH = path.join(STORE_DIR, "memory.json");
 
 const MAX_FACTS = 50;

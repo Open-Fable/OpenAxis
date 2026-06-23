@@ -75,7 +75,7 @@ describe("remote-overrides", () => {
       readFileMock.mockRejectedValue(new Error("ENOENT"));
 
       const base =
-        "https://raw.githubusercontent.com/Open-Fable/OpenHub/remote-overrides";
+        "https://raw.githubusercontent.com/Open-Fable/OpenAxis/remote-overrides";
       mockFetchResponses({
         [`${base}/manifest.json`]: JSON.stringify(MANIFEST),
         [`${base}/global/hotfix-scroll.css`]: "body { overflow: auto; }",
@@ -273,7 +273,7 @@ describe("remote-overrides", () => {
       };
 
       const base =
-        "https://raw.githubusercontent.com/Open-Fable/OpenHub/remote-overrides";
+        "https://raw.githubusercontent.com/Open-Fable/OpenAxis/remote-overrides";
       mockFetchResponses({
         [`${base}/manifest.json`]: JSON.stringify(manifest),
         [`${base}/global/tampered.css`]: "body { color: red; }",

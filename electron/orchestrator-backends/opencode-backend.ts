@@ -58,7 +58,7 @@ export function buildPermissions(
 
 interface OpencodeConfig {
   readonly provider?: {
-    readonly openhub?: {
+    readonly openaxis?: {
       readonly models?: Record<string, unknown>;
     };
   };
@@ -77,7 +77,7 @@ async function loadValidModels(): Promise<ReadonlySet<string>> {
     const configPath = path.join(homedir(), ".config", "opencode", "opencode.json");
     const raw = await fs.readFile(configPath, "utf-8");
     const config = JSON.parse(raw) as OpencodeConfig;
-    const models = config.provider?.openhub?.models;
+    const models = config.provider?.openaxis?.models;
     cachedValidModels = models ? new Set(Object.keys(models)) : new Set<string>();
   } catch {
     cachedValidModels = new Set<string>();
@@ -95,11 +95,11 @@ function resolveModel(
   if (!candidate) return undefined;
   if (!validModels.has(candidate)) {
     console.warn(
-      `[opencode-backend] Model "${candidate}" not in openhub provider config — omitting`,
+      `[opencode-backend] Model "${candidate}" not in openaxis provider config — omitting`,
     );
     return undefined;
   }
-  return { providerID: "openhub", modelID: candidate };
+  return { providerID: "openaxis", modelID: candidate };
 }
 
 interface SessionResponse {

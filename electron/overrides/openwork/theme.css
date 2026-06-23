@@ -1,5 +1,5 @@
 /*
- * OpenHub → OpenWork — unified neutral palette v2
+ * OpenAxis → OpenWork — unified neutral palette v2
  * v2.0 — Pure neutral grays, teal accent.
  */
 
@@ -52,7 +52,7 @@
 }
 
 /*
- * Radius → échelle OpenHub. Redéfinit les variables natives (--radius recale
+ * Radius → échelle OpenAxis. Redéfinit les variables natives (--radius recale
  * l'échelle @theme inline dérivée). Méthode robuste (cf. 07 D.1).
  */
 :root {

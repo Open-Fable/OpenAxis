@@ -1,4 +1,4 @@
-// OpenHub i18n runtime — shared by every native renderer surface.
+// OpenAxis i18n runtime — shared by every native renderer surface.
 // Loaded as a plain <script src="i18n/runtime.js"> BEFORE each surface's own
 // logic and before its dictionary script. Exposes window.I18N and window.t.
 //
@@ -15,7 +15,7 @@
     return value === "en" || value === "fr" ? value : FALLBACK;
   }
 
-  var lang = normalize(window.openhub && window.openhub.language);
+  var lang = normalize(window.openaxis && window.openaxis.language);
   var listeners = [];
 
   function register(translations) {
@@ -98,8 +98,8 @@
   window.t = t;
 
   // Re-apply live when the main process broadcasts a language change.
-  if (window.openhub && window.openhub.onLanguageChanged) {
-    window.openhub.onLanguageChanged(function (next) {
+  if (window.openaxis && window.openaxis.onLanguageChanged) {
+    window.openaxis.onLanguageChanged(function (next) {
       setLanguage(next);
     });
   }

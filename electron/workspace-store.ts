@@ -17,21 +17,21 @@ interface WorkspaceStoreData {
   readonly activeWorkspaceId: string | null;
 }
 
-const STORE_DIR = path.join(homedir(), ".config", "openhub");
+const STORE_DIR = path.join(homedir(), ".config", "openaxis");
 const STORE_PATH = path.join(STORE_DIR, "workspaces.json");
 
 // In-memory cache for fast synchronous access
 let workspaces: WorkspaceEntry[] = [
   {
-    id: "openhub-default",
-    name: "OpenHub",
+    id: "openaxis-default",
+    name: "OpenAxis",
     path: homedir(),
     preset: "default",
     workspaceType: "local",
-    displayName: "OpenHub",
+    displayName: "OpenAxis",
   },
 ];
-let activeWorkspaceId: string | null = "openhub-default";
+let activeWorkspaceId: string | null = "openaxis-default";
 
 let writeLock = Promise.resolve();
 
@@ -77,20 +77,20 @@ export async function initWorkspaces(): Promise<void> {
     const loadedActiveId =
       typeof parsed.activeWorkspaceId === "string"
         ? parsed.activeWorkspaceId
-        : "openhub-default";
+        : "openaxis-default";
 
-    // Ensure openhub-default workspace always exists
-    const hasDefault = loadedWorkspaces.some((w) => w.id === "openhub-default");
+    // Ensure openaxis-default workspace always exists
+    const hasDefault = loadedWorkspaces.some((w) => w.id === "openaxis-default");
     const nextWorkspaces = hasDefault
       ? loadedWorkspaces
       : [
           {
-            id: "openhub-default",
-            name: "OpenHub",
+            id: "openaxis-default",
+            name: "OpenAxis",
             path: homedir(),
             preset: "default",
             workspaceType: "local",
-            displayName: "OpenHub",
+            displayName: "OpenAxis",
           } as WorkspaceEntry,
           ...loadedWorkspaces,
         ];
@@ -105,15 +105,15 @@ export async function initWorkspaces(): Promise<void> {
   } catch {
     // If the file doesn't exist or is corrupted, seed it
     const defaultWS: WorkspaceEntry = {
-      id: "openhub-default",
-      name: "OpenHub",
+      id: "openaxis-default",
+      name: "OpenAxis",
       path: homedir(),
       preset: "default",
       workspaceType: "local",
-      displayName: "OpenHub",
+      displayName: "OpenAxis",
     };
     const seededWorkspaces = [defaultWS];
-    const seededActiveId = "openhub-default";
+    const seededActiveId = "openaxis-default";
     try {
       await saveWorkspacesToDisk(seededWorkspaces, seededActiveId);
     } catch (err) {

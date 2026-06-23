@@ -3,7 +3,7 @@ import { promises as fsp } from "fs";
 import path from "path";
 import { homedir } from "os";
 
-const CACHE_FILE = path.join(homedir(), ".config", "openhub", "cache-metrics.json");
+const CACHE_FILE = path.join(homedir(), ".config", "openaxis", "cache-metrics.json");
 const MAX_RECORDS = 5000;
 
 interface CacheRecord {
@@ -45,7 +45,10 @@ function loadStoreSync(): CacheStore {
       // Migration: convert old-format records (with prompt_tokens/cached_tokens)
       // to new format (system_tokens/non_system_tokens/upstream_cached)
       for (const r of parsed.records) {
-        if (typeof r.system_tokens === "undefined" && typeof r.prompt_tokens === "number") {
+        if (
+          typeof r.system_tokens === "undefined" &&
+          typeof r.prompt_tokens === "number"
+        ) {
           r.system_tokens = r.prompt_tokens;
           r.non_system_tokens = 0;
           r.upstream_cached = r.cached_tokens || 0;
@@ -56,7 +59,7 @@ function loadStoreSync(): CacheStore {
       }
       return parsed;
     }
-  } catch { }
+  } catch {}
   return { records: [] };
 }
 
@@ -76,7 +79,7 @@ function scheduleWrite() {
     try {
       await fsp.mkdir(path.dirname(CACHE_FILE), { recursive: true });
       await fsp.writeFile(CACHE_FILE, JSON.stringify(store), "utf-8");
-    } catch { }
+    } catch {}
   });
 }
 
@@ -106,18 +109,21 @@ function computeMetrics(): CacheMetricsData {
       : upstream;
     total_cached_tokens += recordSavings;
 
-    if (!byModel[r.model]) byModel[r.model] = { requests: 0, prompt_tokens: 0, cached_tokens: 0 };
+    if (!byModel[r.model])
+      byModel[r.model] = { requests: 0, prompt_tokens: 0, cached_tokens: 0 };
     byModel[r.model].requests++;
     byModel[r.model].prompt_tokens += t;
     byModel[r.model].cached_tokens += recordSavings;
 
-    if (!byWorkspace[r.workspace]) byWorkspace[r.workspace] = { requests: 0, prompt_tokens: 0, cached_tokens: 0 };
+    if (!byWorkspace[r.workspace])
+      byWorkspace[r.workspace] = { requests: 0, prompt_tokens: 0, cached_tokens: 0 };
     byWorkspace[r.workspace].requests++;
     byWorkspace[r.workspace].prompt_tokens += t;
     byWorkspace[r.workspace].cached_tokens += recordSavings;
   }
 
-  const savings_ratio = total_prompt_tokens > 0 ? total_cached_tokens / total_prompt_tokens : 0;
+  const savings_ratio =
+    total_prompt_tokens > 0 ? total_cached_tokens / total_prompt_tokens : 0;
 
   return {
     total_requests,

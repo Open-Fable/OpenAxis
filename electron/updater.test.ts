@@ -14,7 +14,7 @@ vi.mock("electron", () => ({
       return appState.isPackaged;
     },
     getVersion: () => appState.version,
-    getAppPath: () => "/Applications/OpenHub.app/Contents/Resources/app",
+    getAppPath: () => "/Applications/OpenAxis.app/Contents/Resources/app",
     relaunch: vi.fn(),
     exit: vi.fn(),
   },
@@ -43,7 +43,7 @@ function makeRelease(
 ): unknown {
   const version = overrides.version ?? "2.0.0";
   const tag = overrides.tag ?? `v${version}`;
-  const zipName = overrides.zipName ?? `OpenHub-${version}-${process.arch}-mac.zip`;
+  const zipName = overrides.zipName ?? `OpenAxis-${version}-${process.arch}-mac.zip`;
   const zipHost = overrides.zipHost ?? "github.com";
   const shaHost = overrides.shaHost ?? "objects.githubusercontent.com";
   const assets: Array<{ name: string; browser_download_url: string }> = [];
@@ -106,8 +106,8 @@ describe("updater — checkForUpdate", () => {
     const info = await mod.checkForUpdate();
     expect(info).toEqual({
       version: "2.0.0",
-      zipUrl: `https://github.com/download/OpenHub-2.0.0-${process.arch}-mac.zip`,
-      shaUrl: `https://objects.githubusercontent.com/download/OpenHub-2.0.0-${process.arch}-mac.zip.sha256`,
+      zipUrl: `https://github.com/download/OpenAxis-2.0.0-${process.arch}-mac.zip`,
+      shaUrl: `https://objects.githubusercontent.com/download/OpenAxis-2.0.0-${process.arch}-mac.zip.sha256`,
     });
     expect(statuses).toContainEqual({ stage: "checking" });
     expect(statuses).toContainEqual({ stage: "available", version: "2.0.0" });
@@ -170,12 +170,12 @@ describe("updater — checkForUpdate", () => {
         tag_name: "v2.0.0",
         assets: [
           {
-            name: `OpenHub-2.0.0-${process.arch}-mac.zip`,
-            browser_download_url: `http://github.com/download/OpenHub-2.0.0-${process.arch}-mac.zip`,
+            name: `OpenAxis-2.0.0-${process.arch}-mac.zip`,
+            browser_download_url: `http://github.com/download/OpenAxis-2.0.0-${process.arch}-mac.zip`,
           },
           {
-            name: `OpenHub-2.0.0-${process.arch}-mac.zip.sha256`,
-            browser_download_url: `http://github.com/download/OpenHub-2.0.0-${process.arch}-mac.zip.sha256`,
+            name: `OpenAxis-2.0.0-${process.arch}-mac.zip.sha256`,
+            browser_download_url: `http://github.com/download/OpenAxis-2.0.0-${process.arch}-mac.zip.sha256`,
           },
         ],
       }),
@@ -187,7 +187,7 @@ describe("updater — checkForUpdate", () => {
   it("returns null when the expected zip asset name is absent (strict anchoring)", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => makeRelease({ zipName: "OpenHub-portable.zip" }),
+      json: async () => makeRelease({ zipName: "OpenAxis-portable.zip" }),
     });
     const { mod } = await loadUpdater();
     expect(await mod.checkForUpdate()).toBeNull();

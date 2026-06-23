@@ -64,7 +64,7 @@ interface ProjectStoreData {
   readonly activeProjectId: string | null;
 }
 
-const STORE_DIR = path.join(homedir(), ".config", "openhub");
+const STORE_DIR = path.join(homedir(), ".config", "openaxis");
 const STORE_PATH = path.join(STORE_DIR, "projects.json");
 
 const DEFAULT_COLORS = [

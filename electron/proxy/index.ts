@@ -117,8 +117,8 @@ export async function startProxy(): Promise<string> {
 
   // ── Auth middleware — placed BEFORE all data endpoints ──
   // Only the per-session token (generated with randomBytes) is accepted. There is
-  // NO static/shared token: every OpenHub caller obtains the session token from
-  // get-chat-config (renderer) or OPENHUB_TOKEN (spawned apps).
+  // NO static/shared token: every OpenAxis caller obtains the session token from
+  // get-chat-config (renderer) or OPENAXIS_TOKEN (spawned apps).
   // Only /status, /health, /capabilities, /runtime/versions are exempt (above).
   const PUBLIC_PATHS = new Set([
     "/status",
@@ -342,7 +342,7 @@ export async function startProxy(): Promise<string> {
   app.get(/^\/workspace\/[^/]+\/sessions$/, (req: Request, res: Response) => {
     const workspaceId = req.path.split("/")[2] ?? "";
     const ws = getWorkspacesSync().find((w) => w.id === workspaceId);
-    // For the default "openhub-default" workspace (from IPC, not in workspaces[]),
+    // For the default "openaxis-default" workspace (from IPC, not in workspaces[]),
     // look up the bootstrap path
     const wsPath = ws?.path ?? "";
 
@@ -471,10 +471,10 @@ export async function startProxy(): Promise<string> {
 
   // ── OpenWork server compatibility endpoints ──
   app.get("/status", (_req, res) =>
-    res.json({ running: true, version: "openhub", uptimeMs: process.uptime() * 1000 }),
+    res.json({ running: true, version: "openaxis", uptimeMs: process.uptime() * 1000 }),
   );
   app.get("/health", (_req, res) =>
-    res.json({ ok: true, version: "openhub", uptimeMs: process.uptime() * 1000 }),
+    res.json({ ok: true, version: "openaxis", uptimeMs: process.uptime() * 1000 }),
   );
   app.get("/capabilities", (_req, res) =>
     res.json({
@@ -484,7 +484,7 @@ export async function startProxy(): Promise<string> {
     }),
   );
   app.get("/runtime/versions", (_req, res) =>
-    res.json({ runtime: "openhub", versions: {} }),
+    res.json({ runtime: "openaxis", versions: {} }),
   );
 
   // ── Cache Metrics endpoints (authenticated — called by sidebar) ──
@@ -905,7 +905,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
   const ORCH_ASSISTANT_PATH = path.join(
     homedir(),
     ".config",
-    "openhub",
+    "openaxis",
     "orch-assistant.json",
   );
 
@@ -924,7 +924,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
 
   // Load default reasoning effort from settings
   try {
-    const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+    const settingsPath = path.join(homedir(), ".config", "openaxis", "settings.json");
     const raw = await fs.readFile(settingsPath, "utf-8");
     const parsed = JSON.parse(raw);
     if (parsed.defaultReasoningEffort)
@@ -942,7 +942,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
     if (body.effort) {
       defaultReasoningEffort = body.effort;
       // Persist to settings file so it survives restart
-      const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+      const settingsPath = path.join(homedir(), ".config", "openaxis", "settings.json");
       void (async () => {
         try {
           let settings: Record<string, unknown> = {};
@@ -967,7 +967,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
     const raw = await fs.readFile(configPath, "utf-8");
     const cfg = JSON.parse(raw) as Record<string, unknown>;
     const providers = cfg.provider as Record<string, unknown> | undefined;
-    const ohub = providers?.openhub as Record<string, unknown> | undefined;
+    const ohub = providers?.openaxis as Record<string, unknown> | undefined;
     if (ohub?.models) {
       selectedModelIds = Object.keys(ohub.models as Record<string, unknown>);
     }
@@ -988,7 +988,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         const raw = await fs.readFile(configPath, "utf-8");
         const cfg = JSON.parse(raw) as Record<string, unknown>;
         const providers = cfg.provider as Record<string, unknown> | undefined;
-        const ohub = providers?.openhub as Record<string, unknown> | undefined;
+        const ohub = providers?.openaxis as Record<string, unknown> | undefined;
         if (ohub?.models) {
           cachedSelectedModels = Object.keys(ohub.models as Record<string, unknown>);
         } else {
@@ -1055,7 +1055,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         const raw = await fs.readFile(configPath, "utf-8");
         const cfg = JSON.parse(raw) as Record<string, unknown>;
         const providers = cfg.provider as Record<string, unknown> | undefined;
-        const ohub = providers?.openhub as Record<string, unknown> | undefined;
+        const ohub = providers?.openaxis as Record<string, unknown> | undefined;
         if (ohub?.models) {
           cachedSelectedModels = Object.keys(ohub.models as Record<string, unknown>);
         } else {
@@ -1076,7 +1076,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
       cachedSelectedModels = selectedModelIds;
       selectedModelsExpiry = Date.now() + 5000;
 
-      // Persist to opencode.json as the openhub provider model list
+      // Persist to opencode.json as the openaxis provider model list
       const configPath = path.join(homedir(), ".config", "opencode", "opencode.json");
       let config: Record<string, unknown> = {};
       try {
@@ -1087,14 +1087,14 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
       }
 
       const providers = (config.provider ?? {}) as Record<string, unknown>;
-      const ohub = (providers.openhub ?? {}) as Record<string, unknown>;
+      const ohub = (providers.openaxis ?? {}) as Record<string, unknown>;
 
       const newModels: Record<string, unknown> = {};
       for (const id of selectedModelIds) {
         newModels[id] = {};
       }
       ohub.models = newModels;
-      providers.openhub = ohub;
+      providers.openaxis = ohub;
       config.provider = providers;
 
       await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
@@ -1285,10 +1285,10 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         }
 
         // ── 2. Préparation des blocs de contexte gelés ──
-        // Per-request routing: orchestrator nodes send X-OpenHub-Project-Id so
+        // Per-request routing: orchestrator nodes send X-OpenAxis-Project-Id so
         // the proxy resolves the right project without global mutable state.
         // Fallback to getActiveProject() for the interactive chat UI.
-        const headerProjectId = req.headers["x-openhub-project-id"];
+        const headerProjectId = req.headers["x-openaxis-project-id"];
         const hasExplicitId =
           typeof headerProjectId === "string" && headerProjectId.length > 0;
         const project = hasExplicitId
@@ -1495,7 +1495,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         }
         // --- OpenAI/OpenRouter/DeepSeek Mapping (reasoning_effort) ---
         else if (provider === "openai" || isOpenRouter || provider === "deepseek") {
-          // Map OpenHub's expanded levels back to OpenAI's supported 3 levels
+          // Map OpenAxis's expanded levels back to OpenAI's supported 3 levels
           if (effort === "minimal") finalRest.reasoning_effort = "low";
           else if (effort === "xhigh" || effort === "max")
             finalRest.reasoning_effort = "high";
@@ -2330,7 +2330,7 @@ let cachedCustomProviders: CustomProvider[] = [];
 
 export async function loadCustomProviders(): Promise<CustomProvider[]> {
   try {
-    const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+    const settingsPath = path.join(homedir(), ".config", "openaxis", "settings.json");
     const raw = await fs.readFile(settingsPath, "utf-8");
     const parsed = JSON.parse(raw);
     cachedCustomProviders = Array.isArray(parsed.customProviders)

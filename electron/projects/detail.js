@@ -192,7 +192,7 @@ function initDetailPanel() {
         });
         if (!active) return;
         active.task = self.value;
-        window.openhub.saveProject(active);
+        window.openaxis.saveProject(active);
         var shared = document.getElementById("sharedTaskText");
         if (shared && document.activeElement !== shared) shared.value = self.value;
       }, 400);
@@ -214,7 +214,7 @@ function initDetailPanel() {
       });
       if (active) {
         active.task = self.value;
-        window.openhub.saveProject(active);
+        window.openaxis.saveProject(active);
         updateTaskCard();
       }
     }, 400);
@@ -229,7 +229,7 @@ function initDetailPanel() {
       });
       if (active) {
         active.instructions = self.value;
-        window.openhub.saveProject(active);
+        window.openaxis.saveProject(active);
       }
     }, 400);
   };
@@ -243,7 +243,7 @@ function initDetailPanel() {
       });
       if (node) {
         node.task = self.value;
-        window.openhub.saveProject(node);
+        window.openaxis.saveProject(node);
       }
     }, 400);
   };
@@ -254,7 +254,7 @@ function initDetailPanel() {
     });
     if (active) {
       var updated = Object.assign({}, active, { model: this.value });
-      window.openhub.saveProject(updated);
+      window.openaxis.saveProject(updated);
       var idx = projects.indexOf(active);
       if (idx !== -1) projects[idx] = updated;
     }
@@ -272,7 +272,7 @@ function initDetailPanel() {
       var updated = Object.assign({}, active, {
         reasoningEffort: this.value || undefined,
       });
-      window.openhub.saveProject(updated);
+      window.openaxis.saveProject(updated);
       var idx = projects.indexOf(active);
       if (idx !== -1) projects[idx] = updated;
     }
@@ -291,7 +291,7 @@ function initDetailPanel() {
         { adaptToWeakModel: this.checked },
       );
       var updated = Object.assign({}, active, { orchSettings: merged });
-      window.openhub.saveProject(updated);
+      window.openaxis.saveProject(updated);
       var idx = projects.indexOf(active);
       if (idx !== -1) projects[idx] = updated;
     }
@@ -304,22 +304,22 @@ function initDetailPanel() {
   document.getElementById("btnCloseDetail").onclick = closeDetail;
 
   document.getElementById("btnPickOrchWorkdir").onclick = async function () {
-    if (!window.openhub.pickProjectPath) return;
-    var p = await window.openhub.pickProjectPath();
+    if (!window.openaxis.pickProjectPath) return;
+    var p = await window.openaxis.pickProjectPath();
     if (!p || !selectedOrchestratorId) return;
     var active = projects.find(function (proj) {
       return proj.id === selectedOrchestratorId;
     });
     if (!active) return;
     active.path = p;
-    await window.openhub.saveProject(active);
+    await window.openaxis.saveProject(active);
     if (activeWorkflowId) {
       var wf = workflows.find(function (w) {
         return w.id === activeWorkflowId;
       });
       if (wf) {
         wf.workDir = p;
-        await window.openhub.saveWorkflow(wf);
+        await window.openaxis.saveWorkflow(wf);
       }
     }
     document.getElementById("orchWorkdirPath").textContent = p;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
 import { request as httpRequest } from "http";
 import { connect } from "net";
 
-// The proxy binds a hardcoded loopback port (9999). If a real OpenHub instance
+// The proxy binds a hardcoded loopback port (9999). If a real OpenAxis instance
 // is already running, startProxy() can't bind it and a foreign server answers
 // with a token we don't know — making auth assertions meaningless. Detect that
 // up front and skip the whole suite (it still runs in CI, where no app runs).
@@ -54,7 +54,7 @@ function rawGet(path: string, host: string): Promise<{ status: number; body: str
 
 // keychain.ts imports `app` from electron purely for app.getPath(...)
 vi.mock("electron", () => ({
-  app: { getPath: vi.fn(() => "/tmp/openhub-proxy-auth-test") },
+  app: { getPath: vi.fn(() => "/tmp/openaxis-proxy-auth-test") },
 }));
 
 vi.mock("../project-store.js", () => ({

@@ -16,7 +16,7 @@ function proxyHeaders(projectId?: string): Record<string, string> {
     "Content-Type": "application/json",
     Authorization: `Bearer ${proxyToken}`,
   };
-  if (projectId) h["X-OpenHub-Project-Id"] = projectId;
+  if (projectId) h["X-OpenAxis-Project-Id"] = projectId;
   return h;
 }
 

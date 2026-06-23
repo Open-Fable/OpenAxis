@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // On mocke fs intégralement : le module charge le store en SYNCHRONE à l'import
 // (readFileSync) et planifie des écritures via fsp.writeFile. Sans ce mock, les
-// tests écriraient dans ~/.config/openhub/cache-metrics.json du vrai utilisateur.
+// tests écriraient dans ~/.config/openaxis/cache-metrics.json du vrai utilisateur.
 vi.mock("fs", () => ({
   readFileSync: vi.fn(() => {
     throw new Error("ENOENT");

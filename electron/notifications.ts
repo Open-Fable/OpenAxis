@@ -1,4 +1,4 @@
-// OpenHub — Task-completion notifications
+// OpenAxis — Task-completion notifications
 //
 // Central decision point for "a task finished in slot X" signals coming from
 // the orchestrator (main process) and the renderers (chat, code, work, design

@@ -1,19 +1,19 @@
-# OpenHub — AI tools in one macOS window
+# OpenAxis — AI tools in one macOS window
 > A free, open-source macOS app. Chat with any model, run a code agent, design interfaces, manage projects, and orchestrate a team of AI agents. Your API keys stay on your Mac.
 
 ## Docs
-- [Usage guide](https://github.com/Open-Fable/OpenHub/blob/main/docs/USAGE.md)
-- [Orchestrator reference](https://github.com/Open-Fable/OpenHub/blob/main/docs/ORCHESTRATOR.md)
-- [Architecture](https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md)
-- [Security policy](https://github.com/Open-Fable/OpenHub/blob/main/docs/SECURITY.md)
+- [Usage guide](https://github.com/Open-Fable/OpenAxis/blob/main/docs/USAGE.md)
+- [Orchestrator reference](https://github.com/Open-Fable/OpenAxis/blob/main/docs/ORCHESTRATOR.md)
+- [Architecture](https://github.com/Open-Fable/OpenAxis/blob/main/ARCHITECTURE.md)
+- [Security policy](https://github.com/Open-Fable/OpenAxis/blob/main/docs/SECURITY.md)
 
 ## Pages
-- [Home](https://open-fable.github.io/OpenHub/landing/index.html): Five AI tools in one macOS window — Chat, Orchestrator, Code, Design, Work, Memory
-- [Tools](https://open-fable.github.io/OpenHub/landing/tools.html): Detailed walkthrough of every tool
-- [How it works](https://open-fable.github.io/OpenHub/landing/how-it-works.html): Local proxy, single config, override layer architecture
-- [Privacy & security](https://open-fable.github.io/OpenHub/landing/privacy.html): Keys in Keychain, localhost proxy, no cloud
-- [FAQ](https://open-fable.github.io/OpenHub/landing/faq.html): Costs, platforms, data location, troubleshooting
-- [Get started](https://open-fable.github.io/OpenHub/landing/get-started.html): Download, install, add keys in 2 minutes
+- [Home](https://open-fable.github.io/OpenAxis/landing/index.html): Five AI tools in one macOS window — Chat, Orchestrator, Code, Design, Work, Memory
+- [Tools](https://open-fable.github.io/OpenAxis/landing/tools.html): Detailed walkthrough of every tool
+- [How it works](https://open-fable.github.io/OpenAxis/landing/how-it-works.html): Local proxy, single config, override layer architecture
+- [Privacy & security](https://open-fable.github.io/OpenAxis/landing/privacy.html): Keys in Keychain, localhost proxy, no cloud
+- [FAQ](https://open-fable.github.io/OpenAxis/landing/faq.html): Costs, platforms, data location, troubleshooting
+- [Get started](https://open-fable.github.io/OpenAxis/landing/get-started.html): Download, install, add keys in 2 minutes
 
 ## License
-MIT — https://github.com/Open-Fable/OpenHub/blob/main/LICENSE
+MIT — https://github.com/Open-Fable/OpenAxis/blob/main/LICENSE

@@ -1,4 +1,4 @@
-// OpenHub orchestrator/projects translations (Work Orchestrator surface).
+// OpenAxis orchestrator/projects translations (Work Orchestrator surface).
 // fr values MUST match the original French markup/strings exactly so French
 // users see no change. Registered into the i18n runtime; resolve with
 // window.t("proj.key"). This surface loads only runtime.js + projects.js, so

@@ -106,8 +106,8 @@ export async function ensureGitBaseline(mainDir: string): Promise<void> {
     .catch(() => false);
   if (!alreadyRepo) {
     await git(["init", "-q"], mainDir);
-    await git(["config", "user.email", "orchestrator@openhub.local"], mainDir);
-    await git(["config", "user.name", "OpenHub Orchestrator"], mainDir);
+    await git(["config", "user.email", "orchestrator@openaxis.local"], mainDir);
+    await git(["config", "user.name", "OpenAxis Orchestrator"], mainDir);
   }
   await fs.writeFile(path.join(mainDir, ".gitignore"), GITIGNORE_BODY, "utf-8");
   await git(["add", "-A"], mainDir);

@@ -1,6 +1,6 @@
 <div align="center">
 
-# OpenHub
+# OpenAxis
 
 **Tout ton workflow IA dans une seule fenêtre macOS.**
 
@@ -10,9 +10,9 @@ Un espace de travail IA local : discute avec n'importe quel modèle, orchestre u
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
 [![Electron](https://img.shields.io/badge/Electron-42+-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/test.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenAxis/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenAxis/actions/workflows/test.yml)
 
-[![Télécharger OpenHub](https://img.shields.io/badge/T%C3%A9l%C3%A9charger-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenHub/releases/latest)
+[![Télécharger OpenAxis](https://img.shields.io/badge/T%C3%A9l%C3%A9charger-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenAxis/releases/latest)
 
 [English](README.md) · **Français**
 
@@ -21,14 +21,14 @@ Un espace de travail IA local : discute avec n'importe quel modèle, orchestre u
 </div>
 
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="Aperçu de l'interface OpenHub" width="800">
+  <img src="screen_github/onglet_chat.png" alt="Aperçu de l'interface OpenAxis" width="800">
 </p>
 
 ---
 
-## Pourquoi OpenHub ?
+## Pourquoi OpenAxis ?
 
-Les outils IA sont des silos. Ils tournent dans des apps séparées avec leurs propres clés et mémoire. Rien ne suit quand tu changes de fenêtre. OpenHub met cinq outils dans une seule fenêtre macOS avec mémoire partagée, contexte projet partagé et un seul proxy LLM. Les clés sont chiffrées dans `~/Library/Application Support/openhub/secrets.enc` une fois. C'est tout.
+Les outils IA sont des silos. Ils tournent dans des apps séparées avec leurs propres clés et mémoire. Rien ne suit quand tu changes de fenêtre. OpenAxis met cinq outils dans une seule fenêtre macOS avec mémoire partagée, contexte projet partagé et un seul proxy LLM. Les clés sont chiffrées dans `~/Library/Application Support/openaxis/secrets.enc` une fois. C'est tout.
 
 **Cinq slots dans la sidebar :** Chat · Code · Work · Design · Orchestrateur (plus un panneau Config).
 
@@ -44,7 +44,7 @@ En coulisses, un **proxy LLM** unique sur `127.0.0.1:9999` route tout via un seu
 
 Ton **profil et tes faits clés** suivent d'une session à l'autre _(en maintenance — bientôt disponible)_. Le système les extrait automatiquement après chaque chat avec des modèles Ollama locaux (Qwen) et une déduplication sémantique de Jaccard.
 
-**Sécurité :** les clés API sont chiffrées dans `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM). Les WebViews sont sandboxées avec auth Bearer localhost.
+**Sécurité :** les clés API sont chiffrées dans `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM). Les WebViews sont sandboxées avec auth Bearer localhost.
 
 ### Captures d'écran
 
@@ -111,21 +111,21 @@ Ton **profil et tes faits clés** suivent d'une session à l'autre _(en maintena
 
 **Prérequis :** macOS 14+ (Apple Silicon)
 
-Attrape le dernier `.dmg` depuis la page des [dernières versions (Releases)](https://github.com/Open-Fable/OpenHub/releases/latest), ouvre-le et glisse OpenHub dans ton dossier Applications.
+Attrape le dernier `.dmg` depuis la page des [dernières versions (Releases)](https://github.com/Open-Fable/OpenAxis/releases/latest), ouvre-le et glisse OpenAxis dans ton dossier Applications.
 
 > [!IMPORTANT]
 > Le `.dmg` n'est pas signé avec un certificat Apple Developer (build open-source). macOS Gatekeeper le bloquera au premier lancement. Pour l'ouvrir :
 >
-> - **Clic droit** sur `OpenHub.app` → **Ouvrir** → confirmer, **ou**
+> - **Clic droit** sur `OpenAxis.app` → **Ouvrir** → confirmer, **ou**
 > - supprimer le flag de quarantaine :
 >   ```bash
->   xattr -cr /Applications/OpenHub.app
+>   xattr -cr /Applications/OpenAxis.app
 >   ```
 
 ### Premier lancement
 
 1. Ouvre le panneau **Config** (icône engrenage dans la sidebar)
-2. Ajoute tes clés API (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — chiffrées dans `~/Library/Application Support/openhub/secrets.enc`
+2. Ajoute tes clés API (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — chiffrées dans `~/Library/Application Support/openaxis/secrets.enc`
 3. Choisis tes modèles
 
 Voir le [guide d'usage](docs/USAGE.fr.md) pour le quotidien.
@@ -157,7 +157,7 @@ Compiler depuis les sources, corriger un bug, ajouter une fonctionnalité — vo
 
 ## Sécurité
 
-- Les clés sont chiffrées dans `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM).
+- Les clés sont chiffrées dans `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM).
 - Le proxy tourne sur `127.0.0.1:9999` avec auth Bearer par session.
 - Les WebViews sont sandboxées : `contextIsolation`, `sandbox`, sans `nodeIntegration`.
 - Les overrides sont CSS/JS uniquement — le code upstream reste inchangé.
@@ -168,7 +168,7 @@ Politique complète et comment signaler une vulnérabilité : [docs/SECURITY.fr.
 
 ## Remerciements
 
-OpenHub est un shell, pas un fork. L'outillage IA appartient à
+OpenAxis est un shell, pas un fork. L'outillage IA appartient à
 [OpenCode](https://github.com/sst/opencode) (sst),
 [OpenWork](https://github.com/different-ai/openwork) (different-ai) et
 [Open Design](https://github.com/nexu-io/open-design) (nexu-io) — chacun cloné à
@@ -176,11 +176,11 @@ l'installation, exécuté sans modification. Voir [docs/ACKNOWLEDGEMENTS.fr.md](
 
 ## Licence
 
-MIT — voir [LICENSE](LICENSE). Couvre le code propre d'OpenHub uniquement ; les
+MIT — voir [LICENSE](LICENSE). Couvre le code propre d'OpenAxis uniquement ; les
 outils wrappés gardent leurs propres licences.
 
 ---
 
-**[Ouvrir une issue](https://github.com/Open-Fable/OpenHub/issues) · [Usage](docs/USAGE.fr.md) · [Orchestrateur](docs/ORCHESTRATOR.fr.md) · [FAQ](docs/FAQ.fr.md) · [Architecture](ARCHITECTURE.fr.md) · [Remerciements](docs/ACKNOWLEDGEMENTS.fr.md) · [Contribuer](docs/CONTRIBUTING.fr.md)**
+**[Ouvrir une issue](https://github.com/Open-Fable/OpenAxis/issues) · [Usage](docs/USAGE.fr.md) · [Orchestrateur](docs/ORCHESTRATOR.fr.md) · [FAQ](docs/FAQ.fr.md) · [Architecture](ARCHITECTURE.fr.md) · [Remerciements](docs/ACKNOWLEDGEMENTS.fr.md) · [Contribuer](docs/CONTRIBUTING.fr.md)**
 
 ---

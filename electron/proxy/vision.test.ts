@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // fs.promises.readFile est mocké pour piloter le contenu de settings.json
-// sans toucher le disque réel de l'utilisateur (~/.config/openhub/settings.json).
+// sans toucher le disque réel de l'utilisateur (~/.config/openaxis/settings.json).
 const readFileMock = vi.fn();
 vi.mock("fs", () => ({
   promises: {

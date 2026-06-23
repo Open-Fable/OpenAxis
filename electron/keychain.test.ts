@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock Electron app module (only getPath is needed)
 vi.mock("electron", () => ({
-  app: { getPath: vi.fn(() => "/tmp/openhub-test") },
+  app: { getPath: vi.fn(() => "/tmp/openaxis-test") },
 }));
 
 // Mock child_process to return a fake hardware UUID (avoid real ioreg call)
@@ -56,24 +56,24 @@ describe("keychain (AES-256-GCM)", () => {
 
   describe("readSecret", () => {
     it("returns null when no secret exists", async () => {
-      const result = await readSecret("openhub", "missing");
+      const result = await readSecret("openaxis", "missing");
       expect(result).toBeNull();
     });
   });
 
   describe("writeSecret + readSecret round-trip", () => {
     it("stores and retrieves a secret", async () => {
-      await writeSecret("openhub", "test-key", "secret-value");
-      const result = await readSecret("openhub", "test-key");
+      await writeSecret("openaxis", "test-key", "secret-value");
+      const result = await readSecret("openaxis", "test-key");
       expect(result).toBe("secret-value");
     });
   });
 
   describe("deleteSecret", () => {
     it("removes a stored secret", async () => {
-      await writeSecret("openhub", "del-key", "to-delete");
-      await deleteSecret("openhub", "del-key");
-      const result = await readSecret("openhub", "del-key");
+      await writeSecret("openaxis", "del-key", "to-delete");
+      await deleteSecret("openaxis", "del-key");
+      const result = await readSecret("openaxis", "del-key");
       expect(result).toBeNull();
     });
   });
@@ -87,8 +87,8 @@ describe("keychain (AES-256-GCM)", () => {
     });
 
     it("returns stored values", async () => {
-      await writeSecret("openhub", "anthropic-api-key", "sk-ant-xxx");
-      await writeSecret("openhub", "ollama-url", "http://custom:11434");
+      await writeSecret("openaxis", "anthropic-api-key", "sk-ant-xxx");
+      await writeSecret("openaxis", "ollama-url", "http://custom:11434");
       const result = await readAllApiKeys();
       expect(result.anthropic).toBe("sk-ant-xxx");
       expect(result.ollamaUrl).toBe("http://custom:11434");

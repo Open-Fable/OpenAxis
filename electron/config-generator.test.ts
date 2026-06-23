@@ -49,8 +49,8 @@ function readGeneratedConfig(): { config: Record<string, unknown>; mode?: number
 
 function getModels(config: Record<string, unknown>): Record<string, unknown> {
   const provider = config.provider as Record<string, unknown>;
-  const openhub = provider.openhub as Record<string, unknown>;
-  return openhub.models as Record<string, unknown>;
+  const openaxis = provider.openaxis as Record<string, unknown>;
+  return openaxis.models as Record<string, unknown>;
 }
 
 const noKeys = {
@@ -65,12 +65,12 @@ describe("config-generator — generateOpenCodeConfig", () => {
     fsState.files.clear();
   });
 
-  it("écrit le provider openhub pointant vers le proxy local avec le token de session", async () => {
+  it("écrit le provider openaxis pointant vers le proxy local avec le token de session", async () => {
     await generateOpenCodeConfig({ proxyToken: "tok-123", ...noKeys });
     const { config } = readGeneratedConfig();
     const provider = config.provider as Record<string, unknown>;
-    const openhub = provider.openhub as Record<string, unknown>;
-    const options = openhub.options as Record<string, unknown>;
+    const openaxis = provider.openaxis as Record<string, unknown>;
+    const options = openaxis.options as Record<string, unknown>;
     expect(options.baseURL).toBe("http://localhost:9999/v1");
     expect(options.apiKey).toBe("tok-123");
     expect(config.$schema).toBe("https://opencode.ai/config.json");
@@ -135,7 +135,7 @@ describe("config-generator — generateOpenCodeConfig", () => {
     fsState.files.set(CONFIG_PATH, {
       content: JSON.stringify({
         provider: {
-          openhub: { models: { "modele-perso-1": {}, "modele-perso-2": {} } },
+          openaxis: { models: { "modele-perso-1": {}, "modele-perso-2": {} } },
         },
       }),
     });
@@ -164,7 +164,7 @@ describe("config-generator — generateOpenCodeConfig", () => {
     const { config } = readGeneratedConfig();
     const provider = config.provider as Record<string, unknown>;
     expect(provider.autre).toBeDefined();
-    expect(provider.openhub).toBeDefined();
+    expect(provider.openaxis).toBeDefined();
     expect(config.selectedModels).toBeUndefined();
     expect(config.customField).toBe("garde-moi");
   });
@@ -173,7 +173,7 @@ describe("config-generator — generateOpenCodeConfig", () => {
     fsState.files.set(CONFIG_PATH, { content: "{ pas du json" });
     await generateOpenCodeConfig({ proxyToken: "t", ...noKeys });
     const { config } = readGeneratedConfig();
-    expect((config.provider as Record<string, unknown>).openhub).toBeDefined();
+    expect((config.provider as Record<string, unknown>).openaxis).toBeDefined();
   });
 
   it("inclut les modèles des customProviders configurés", async () => {

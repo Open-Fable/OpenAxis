@@ -1,11 +1,11 @@
 /*
- * OpenHub → Open Design — sidebar trigger remover
- * Cache le bouton sidebar trigger (inutile dans OpenHub)
+ * OpenAxis → Open Design — sidebar trigger remover
+ * Cache le bouton sidebar trigger (inutile dans OpenAxis)
  * via MutationObserver pour les SPA qui réinjectent le DOM.
  */
 (function () {
-  if (window.__OPENHUB_DESIGN_BRIDGE_INJECTED__) return;
-  window.__OPENHUB_DESIGN_BRIDGE_INJECTED__ = true;
+  if (window.__OPENAXIS_DESIGN_BRIDGE_INJECTED__) return;
+  window.__OPENAXIS_DESIGN_BRIDGE_INJECTED__ = true;
 
   var SIDEBAR_TRIGGER_SELECTOR = [
     "[data-sidebar='trigger']",

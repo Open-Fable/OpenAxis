@@ -1,6 +1,6 @@
 <div align="center">
 
-# OpenHub
+# OpenAxis
 
 **Your entire AI workflow in one macOS window.**
 
@@ -10,11 +10,11 @@ A local AI workspace: chat with any model, orchestrate a team of agents that bui
 [![macOS](https://img.shields.io/badge/platform-macOS_14+-black?logo=apple)](https://www.apple.com/macos)
 [![Electron](https://img.shields.io/badge/Electron-42+-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![typecheck](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/typecheck.yml?label=typecheck&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/typecheck.yml)
-[![lint](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/lint.yml?label=lint&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/lint.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenHub/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenHub/actions/workflows/test.yml)
+[![typecheck](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenAxis/typecheck.yml?label=typecheck&style=flat)](https://github.com/Open-Fable/OpenAxis/actions/workflows/typecheck.yml)
+[![lint](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenAxis/lint.yml?label=lint&style=flat)](https://github.com/Open-Fable/OpenAxis/actions/workflows/lint.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/Open-Fable/OpenAxis/test.yml?label=tests&style=flat)](https://github.com/Open-Fable/OpenAxis/actions/workflows/test.yml)
 
-[![Download OpenHub](https://img.shields.io/badge/Download-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenHub/releases/latest)
+[![Download OpenAxis](https://img.shields.io/badge/Download-DMG-blue?logo=apple&style=for-the-badge)](https://github.com/Open-Fable/OpenAxis/releases/latest)
 
 **English** · [Français](README.fr.md)
 
@@ -23,14 +23,14 @@ A local AI workspace: chat with any model, orchestrate a team of agents that bui
 </div>
 
 <p align="center">
-  <img src="screen_github/onglet_chat.png" alt="OpenHub Dashboard Overview" width="800">
+  <img src="screen_github/onglet_chat.png" alt="OpenAxis Dashboard Overview" width="800">
 </p>
 
 ---
 
-## Why OpenHub?
+## Why OpenAxis?
 
-AI tools are silos. They run in separate apps with their own API keys and memory. Nothing carries over when you switch windows. OpenHub puts five tools in one macOS window — shared memory, shared project context, a single LLM proxy. Keys are encrypted to `~/Library/Application Support/openhub/secrets.enc` once. That's it.
+AI tools are silos. They run in separate apps with their own API keys and memory. Nothing carries over when you switch windows. OpenAxis puts five tools in one macOS window — shared memory, shared project context, a single LLM proxy. Keys are encrypted to `~/Library/Application Support/openaxis/secrets.enc` once. That's it.
 
 **Five sidebar slots:** Chat · Code · Work · Design · Orchestrator (plus a Config panel).
 
@@ -46,7 +46,7 @@ Behind the scenes, a **single LLM proxy** at `127.0.0.1:9999` routes everything 
 
 Your **profile and key facts** carry over between sessions _(under maintenance — coming soon)_. The system extracts them automatically after each chat using local Ollama models (Qwen) with Jaccard semantic deduplication.
 
-**Security**: API credentials are encrypted to `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM). WebViews are sandboxed with localhost-only Bearer auth.
+**Security**: API credentials are encrypted to `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM). WebViews are sandboxed with localhost-only Bearer auth.
 
 ### Screenshots
 
@@ -113,21 +113,21 @@ Your **profile and key facts** carry over between sessions _(under maintenance �
 
 **Requirements:** macOS 14+ (Apple Silicon)
 
-Grab the latest `.dmg` from the [Latest Release](https://github.com/Open-Fable/OpenHub/releases/latest) page, open it, and drag OpenHub to your Applications folder.
+Grab the latest `.dmg` from the [Latest Release](https://github.com/Open-Fable/OpenAxis/releases/latest) page, open it, and drag OpenAxis to your Applications folder.
 
 > [!IMPORTANT]
 > The `.dmg` isn't signed with an Apple Developer certificate (open-source build). macOS Gatekeeper will block it on first launch. To open it:
 >
-> - **Right-click** `OpenHub.app` → **Open** → confirm, **or**
+> - **Right-click** `OpenAxis.app` → **Open** → confirm, **or**
 > - clear the quarantine flag:
 >   ```bash
->   xattr -cr /Applications/OpenHub.app
+>   xattr -cr /Applications/OpenAxis.app
 >   ```
 
 ### First launch
 
 1. Open the **Config** panel (gear icon in the sidebar)
-2. Add your API keys (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — encrypted to `~/Library/Application Support/openhub/secrets.enc`
+2. Add your API keys (Anthropic, OpenAI, OpenRouter, Google AI, Brave Search) — encrypted to `~/Library/Application Support/openaxis/secrets.enc`
 3. Pick your models
 
 See the [Usage guide](docs/USAGE.md) for the day-to-day.
@@ -159,7 +159,7 @@ Build from source, fix a bug, add a feature — see [docs/CONTRIBUTING.md](docs/
 
 ## Security
 
-- Keys are encrypted to `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM).
+- Keys are encrypted to `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM).
 - The proxy runs on `127.0.0.1:9999` with per-session Bearer auth.
 - WebViews are sandboxed: `contextIsolation`, `sandbox`, no `nodeIntegration`.
 - Overrides are CSS/JS only — upstream source stays unmodified.
@@ -170,7 +170,7 @@ Full policy and how to report a vulnerability: [docs/SECURITY.md](docs/SECURITY.
 
 ## Acknowledgements
 
-OpenHub is a shell, not a fork. The AI tooling belongs to
+OpenAxis is a shell, not a fork. The AI tooling belongs to
 [OpenCode](https://github.com/sst/opencode) (sst),
 [OpenWork](https://github.com/different-ai/openwork) (different-ai), and
 [Open Design](https://github.com/nexu-io/open-design) (nexu-io) — each cloned at install
@@ -178,11 +178,11 @@ time, run unmodified. See [docs/ACKNOWLEDGEMENTS.md](docs/ACKNOWLEDGEMENTS.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Covers OpenHub's own code only; the bundled tools
+MIT — see [LICENSE](LICENSE). Covers OpenAxis's own code only; the bundled tools
 keep their own licenses.
 
 ---
 
-**[Open an issue](https://github.com/Open-Fable/OpenHub/issues) · [Usage](docs/USAGE.md) · [Orchestrator](docs/ORCHESTRATOR.md) · [FAQ](docs/FAQ.md) · [Architecture](ARCHITECTURE.md) · [Acknowledgements](docs/ACKNOWLEDGEMENTS.md) · [Contribute](docs/CONTRIBUTING.md)**
+**[Open an issue](https://github.com/Open-Fable/OpenAxis/issues) · [Usage](docs/USAGE.md) · [Orchestrator](docs/ORCHESTRATOR.md) · [FAQ](docs/FAQ.md) · [Architecture](ARCHITECTURE.md) · [Acknowledgements](docs/ACKNOWLEDGEMENTS.md) · [Contribute](docs/CONTRIBUTING.md)**
 
 ---

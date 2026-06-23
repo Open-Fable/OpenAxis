@@ -1,12 +1,12 @@
 /* main.js — Workflow selector, bootstrap, global event listeners */
 
-var CHAT_COLLAPSED_KEY = "openhub-chat-collapsed";
-var LAST_WF_KEY = "openhub-last-workflow";
-var LAST_NODE_KEY = "openhub-last-node";
+var CHAT_COLLAPSED_KEY = "openaxis-chat-collapsed";
+var LAST_WF_KEY = "openaxis-last-workflow";
+var LAST_NODE_KEY = "openaxis-last-node";
 
 async function loadWorkflows() {
-  if (window.openhub.getWorkflows) {
-    workflows = await window.openhub.getWorkflows();
+  if (window.openaxis.getWorkflows) {
+    workflows = await window.openaxis.getWorkflows();
   }
   renderWorkflowSelector();
   if (!activeWorkflowId && workflows.length > 0) {
@@ -66,7 +66,7 @@ async function switchWorkflow(id) {
     });
     if (orch && wf.linkedProjectIds) {
       var synced = Object.assign({}, orch, { linked: wf.linkedProjectIds.slice() });
-      await window.openhub.saveProject(synced);
+      await window.openaxis.saveProject(synced);
     }
     await loadProjects();
   }
@@ -111,7 +111,7 @@ async function createWorkflow() {
   }).length;
   var name = sameNameCount === 0 ? base : base + " " + (sameNameCount + 1);
   try {
-    var orch = await window.openhub.saveProject({
+    var orch = await window.openaxis.saveProject({
       name: t("proj.node.typeOrchestrator"),
       instructions:
         "Tu es un coordinateur d'agents. Distribue les tâches et assure la cohérence globale.",
@@ -127,7 +127,7 @@ async function createWorkflow() {
       y: 240,
       task: "",
     });
-    var wf = await window.openhub.saveWorkflow({
+    var wf = await window.openaxis.saveWorkflow({
       name: name,
       orchProjectId: orch.id,
       linkedProjectIds: [],
@@ -222,7 +222,7 @@ function initMain() {
     this.disabled = true;
     try {
       wf.name = name;
-      await window.openhub.saveWorkflow(wf);
+      await window.openaxis.saveWorkflow(wf);
       if (activeWorkflowId === wf.id) {
         document.getElementById("wfName").textContent = name;
       }

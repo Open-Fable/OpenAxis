@@ -23,7 +23,7 @@ body:
       label: Etapes pour reproduire
       description: Comment reproduire le bug ?
       placeholder: |
-        1. Lancer OpenHub
+        1. Lancer OpenAxis
         2. Cliquer sur ...
         3. Observer ...
     validations:
@@ -65,7 +65,7 @@ body:
     attributes:
       label: App concernee
       options:
-        - OpenHub (shell)
+        - OpenAxis (shell)
         - OpenWork
         - OpenCode
         - Open Design

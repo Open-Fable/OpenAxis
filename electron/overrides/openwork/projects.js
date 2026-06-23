@@ -1,10 +1,10 @@
 (function () {
   "use strict";
   // Verrou unique pour cette version du script
-  if (window.__OPENHUB_WORK_PROJECTS_SIMPLE_V2__) return;
-  window.__OPENHUB_WORK_PROJECTS_SIMPLE_V2__ = true;
+  if (window.__OPENAXIS_WORK_PROJECTS_SIMPLE_V2__) return;
+  window.__OPENAXIS_WORK_PROJECTS_SIMPLE_V2__ = true;
 
-  var hub = window.openhub;
+  var hub = window.openaxis;
 
   // ── Inline i18n (webview has no runtime) ──
   var lang = (hub && hub.language) || "fr";
@@ -144,8 +144,8 @@
     };
 
     pickBtn.onclick = function () {
-      if (window.openhub.pickProjectPath) {
-        window.openhub.pickProjectPath().then(function (p) {
+      if (window.openaxis.pickProjectPath) {
+        window.openaxis.pickProjectPath().then(function (p) {
           if (p) {
             selectedPath = p;
             pathInput.value = p;

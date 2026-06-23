@@ -3,8 +3,8 @@ var __proxyTokenPromise = null;
 function getProxyToken() {
   if (!__proxyTokenPromise) {
     __proxyTokenPromise = (
-      window.openhub && window.openhub.getChatConfig
-        ? window.openhub.getChatConfig()
+      window.openaxis && window.openaxis.getChatConfig
+        ? window.openaxis.getChatConfig()
         : Promise.resolve(null)
     )
       .then(function (c) {
@@ -66,7 +66,7 @@ function updateDropdownTrigger(slot) {
 dropdownTrigger.addEventListener("click", function () {
   var rect = dropdownTrigger.getBoundingClientRect();
   var centerX = rect.left + rect.width / 2;
-  window.openhub.showNavMenu(Math.round(centerX), Math.round(rect.bottom + 4));
+  window.openaxis.showNavMenu(Math.round(centerX), Math.round(rect.bottom + 4));
 });
 
 document.getElementById("dropdown-config-btn").addEventListener("click", function () {
@@ -74,8 +74,8 @@ document.getElementById("dropdown-config-btn").addEventListener("click", functio
 });
 
 // Load saved nav mode on startup
-if (window.openhub.getNavMode) {
-  window.openhub
+if (window.openaxis.getNavMode) {
+  window.openaxis
     .getNavMode()
     .then(function (mode) {
       applyNavMode(mode || "topbar");
@@ -86,8 +86,8 @@ if (window.openhub.getNavMode) {
 }
 
 // Listen for nav mode changes from main process
-if (window.openhub.onNavModeChanged) {
-  window.openhub.onNavModeChanged(function (mode) {
+if (window.openaxis.onNavModeChanged) {
+  window.openaxis.onNavModeChanged(function (mode) {
     applyNavMode(mode);
     var sel = document.getElementById("nav-mode-select");
     if (sel) sel.value = mode;
@@ -100,8 +100,8 @@ if (navModeSelect) {
   navModeSelect.addEventListener("change", function () {
     var mode = navModeSelect.value;
     applyNavMode(mode);
-    if (window.openhub.setNavMode) {
-      window.openhub.setNavMode(mode);
+    if (window.openaxis.setNavMode) {
+      window.openaxis.setNavMode(mode);
     }
   });
 }
@@ -113,8 +113,8 @@ if (languageSelect) {
   languageSelect.addEventListener("change", function () {
     var lang = languageSelect.value;
     if (window.I18N) window.I18N.setLanguage(lang); // translate this view immediately
-    if (window.openhub && window.openhub.setLanguage) {
-      window.openhub.setLanguage(lang); // persist + broadcast to the other views
+    if (window.openaxis && window.openaxis.setLanguage) {
+      window.openaxis.setLanguage(lang); // persist + broadcast to the other views
     }
   });
 }
@@ -170,7 +170,7 @@ buttons.forEach(function (btn) {
     var slot = btn.dataset.slot;
     if (!slot || slot === "config") return;
     setLoading(slot, true);
-    window.openhub.switchSlot(slot).catch(function (err) {
+    window.openaxis.switchSlot(slot).catch(function (err) {
       console.error("[sidebar] switchSlot failed:", err);
       setLoading(slot, false);
     });
@@ -180,7 +180,7 @@ buttons.forEach(function (btn) {
     e.preventDefault();
     var slot = btn.dataset.slot;
     if (!slot || slot === "config") return;
-    window.openhub.showSlotContextMenu(slot);
+    window.openaxis.showSlotContextMenu(slot);
   });
 });
 
@@ -198,7 +198,7 @@ window.addEventListener("keydown", function (e) {
     e.preventDefault();
     var slot = shortcutSlots[idx - 1];
     setLoading(slot, true);
-    window.openhub.switchSlot(slot).catch(function (err) {
+    window.openaxis.switchSlot(slot).catch(function (err) {
       console.error("[sidebar] shortcut switchSlot failed:", err);
       setLoading(slot, false);
     });
@@ -208,7 +208,7 @@ window.addEventListener("keydown", function (e) {
 // Auto-open chat on startup
 document.addEventListener("DOMContentLoaded", function () {
   setLoading("chat", true);
-  window.openhub.switchSlot("chat").catch(function (err) {
+  window.openaxis.switchSlot("chat").catch(function (err) {
     console.error("[sidebar] startup switch to chat failed:", err);
     setLoading("chat", false);
   });
@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Sync active state
-window.openhub.onSlotChanged(function (slot) {
+window.openaxis.onSlotChanged(function (slot) {
   buttons.forEach(function (b) {
     var isActive = b.dataset.slot === slot;
     b.classList.toggle("active", isActive);
@@ -314,14 +314,14 @@ if (configNav) {
 }
 
 function loadNotifyUI() {
-  if (window.openhub.getNotifyMode) {
-    window.openhub.getNotifyMode().then(function (m) {
+  if (window.openaxis.getNotifyMode) {
+    window.openaxis.getNotifyMode().then(function (m) {
       var sel = document.getElementById("notify-mode");
       if (sel) sel.value = m || "other-tab";
     });
   }
-  if (window.openhub.getNotifySources) {
-    window.openhub.getNotifySources().then(function (sources) {
+  if (window.openaxis.getNotifySources) {
+    window.openaxis.getNotifySources().then(function (sources) {
       if (!sources) return;
       document.querySelectorAll("[data-notify-source]").forEach(function (input) {
         var key = input.dataset.notifySource;
@@ -367,9 +367,9 @@ function openConfig() {
   var firstTab = document.getElementById("cfg-tab-keys");
   if (firstTab) switchConfigTab(firstTab);
 
-  window.openhub.notifyConfigVisibility(true);
-  if (window.openhub.getApiKeys) {
-    window.openhub
+  window.openaxis.notifyConfigVisibility(true);
+  if (window.openaxis.getApiKeys) {
+    window.openaxis
       .getApiKeys()
       .then(function (keys) {
         if (!keys) return;
@@ -401,8 +401,8 @@ function openConfig() {
       })
       .catch(function () {});
   }
-  if (window.openhub.getCustomProviders) {
-    window.openhub
+  if (window.openaxis.getCustomProviders) {
+    window.openaxis
       .getCustomProviders()
       .then(function (providers) {
         renderCustomProviders(providers);
@@ -413,8 +413,8 @@ function openConfig() {
   loadMemoryUI();
   loadCacheMetrics();
   // Adapt updates pane based on packaged vs dev mode
-  if (window.openhub.getAppMode) {
-    window.openhub
+  if (window.openaxis.getAppMode) {
+    window.openaxis
       .getAppMode()
       .then(function (mode) {
         if (mode && mode.isPackaged) {
@@ -440,8 +440,8 @@ function openConfig() {
   } else {
     loadUpdateStatus();
   }
-  if (window.openhub.getAutoUpdate) {
-    window.openhub
+  if (window.openaxis.getAutoUpdate) {
+    window.openaxis
       .getAutoUpdate()
       .then(function (enabled) {
         var toggle = document.getElementById("auto-update-toggle");
@@ -449,8 +449,8 @@ function openConfig() {
       })
       .catch(function () {});
   }
-  if (window.openhub.getNavMode) {
-    window.openhub
+  if (window.openaxis.getNavMode) {
+    window.openaxis
       .getNavMode()
       .then(function (mode) {
         var sel = document.getElementById("nav-mode-select");
@@ -471,7 +471,7 @@ function closeConfig() {
   configPanel.classList.remove("open");
   var topRow = document.querySelector(".top-row");
   if (topRow) topRow.style.removeProperty("-webkit-app-region");
-  window.openhub.notifyConfigVisibility(false);
+  window.openaxis.notifyConfigVisibility(false);
   // Restore focus to the element that opened the dialog
   if (configFocusTrigger && configFocusTrigger.focus) {
     configFocusTrigger.focus();
@@ -505,7 +505,7 @@ configPanel.addEventListener("keydown", function (e) {
   }
 });
 
-window.openhub.onShowConfig(openConfig);
+window.openaxis.onShowConfig(openConfig);
 document.getElementById("close-config").addEventListener("click", closeConfig);
 backdrop.addEventListener("click", closeConfig);
 
@@ -528,7 +528,7 @@ backdrop.addEventListener("click", closeConfig);
     if (el.value === el.dataset.initial) return;
     var previous = el.dataset.initial;
     el.dataset.initial = el.value;
-    window.openhub
+    window.openaxis
       .saveApiKeys({
         anthropic: document.getElementById("key-anthropic").value.trim(),
         openai: document.getElementById("key-openai").value.trim(),
@@ -602,11 +602,11 @@ async function loadModelsUI() {
   const classifierSelect = document.getElementById("ai-classifier");
   const visionSelect = document.getElementById("vision-model");
 
-  var currentClassifier = await (window.openhub.getAiClassifierModel
-    ? window.openhub.getAiClassifierModel()
+  var currentClassifier = await (window.openaxis.getAiClassifierModel
+    ? window.openaxis.getAiClassifierModel()
     : Promise.resolve(""));
-  var currentVisionModel = await (window.openhub.getVisionModel
-    ? window.openhub.getVisionModel()
+  var currentVisionModel = await (window.openaxis.getVisionModel
+    ? window.openaxis.getVisionModel()
     : Promise.resolve(""));
 
   try {
@@ -666,25 +666,25 @@ async function loadModelsUI() {
     console.error("Failed to fetch models:", err);
   }
 
-  if (window.openhub.getWebSearchEnabled) {
-    window.openhub.getWebSearchEnabled().then(function (e) {
+  if (window.openaxis.getWebSearchEnabled) {
+    window.openaxis.getWebSearchEnabled().then(function (e) {
       document.getElementById("web-search-toggle").checked = !!e;
     });
   }
-  if (window.openhub.getVisionProxyEnabled) {
-    window.openhub.getVisionProxyEnabled().then(function (e) {
+  if (window.openaxis.getVisionProxyEnabled) {
+    window.openaxis.getVisionProxyEnabled().then(function (e) {
       document.getElementById("vision-proxy-toggle").checked = !!e;
       var vog = document.getElementById("vision-options-group");
       if (vog) vog.style.display = e ? "" : "none";
     });
   }
-  if (window.openhub.getVisionDetailLevel) {
-    window.openhub.getVisionDetailLevel().then(function (l) {
+  if (window.openaxis.getVisionDetailLevel) {
+    window.openaxis.getVisionDetailLevel().then(function (l) {
       document.getElementById("vision-detail-level").value = l || "high";
     });
   }
-  if (window.openhub.getDefaultReasoningEffort) {
-    window.openhub.getDefaultReasoningEffort().then(function (e) {
+  if (window.openaxis.getDefaultReasoningEffort) {
+    window.openaxis.getDefaultReasoningEffort().then(function (e) {
       document.getElementById("default-reasoning-effort").value = e || "medium";
     });
   }
@@ -702,8 +702,8 @@ async function loadModelsUI() {
 }
 
 function loadMemoryUI() {
-  if (!window.openhub.getMemory) return;
-  window.openhub
+  if (!window.openaxis.getMemory) return;
+  window.openaxis
     .getMemory()
     .then(function (mem) {
       if (!mem) return;
@@ -778,7 +778,7 @@ async function checkUpdate(appId) {
   btnEl.classList.add("checking");
   btnEl.disabled = true;
   try {
-    var results = await window.openhub.checkAppUpdates();
+    var results = await window.openaxis.checkAppUpdates();
     var info = results && results[appId];
     if (!info) throw new Error("no response");
     if (info.error) throw new Error(info.error);
@@ -791,8 +791,8 @@ async function checkUpdate(appId) {
       btnEl.onclick = function () {
         runUpdate(appId);
       };
-      if (window.openhub.getAutoUpdate) {
-        var isAuto = await window.openhub.getAutoUpdate();
+      if (window.openaxis.getAutoUpdate) {
+        var isAuto = await window.openaxis.getAutoUpdate();
         if (isAuto) {
           runUpdate(appId);
         }
@@ -833,7 +833,7 @@ async function runUpdate(appId) {
   btnEl.textContent = "…";
   btnEl.disabled = true;
   try {
-    var result = await window.openhub.runAppUpdate(appId);
+    var result = await window.openaxis.runAppUpdate(appId);
     if (!result || !result.ok)
       throw new Error((result && result.error) || t("common.failed"));
     statusEl.textContent = t("update.done");
@@ -862,13 +862,13 @@ async function runUpdate(appId) {
 function loadBundledVersions() {
   var section = document.getElementById("bundled-versions-section");
   var list = document.getElementById("bundled-versions-list");
-  if (!section || !list || !window.openhub.getBundledVersions) return;
+  if (!section || !list || !window.openaxis.getBundledVersions) return;
   var apps = [
     { id: "openwork", label: "OpenWork" },
     { id: "opencode", label: "OpenCode" },
     { id: "open-design", label: "Open Design" },
   ];
-  window.openhub
+  window.openaxis
     .getBundledVersions()
     .then(function (versions) {
       if (!versions) return;
@@ -908,16 +908,16 @@ function initSelfUpdateUI() {
   var barEl = document.getElementById("self-update-bar");
   if (!statusEl || !btnEl) return;
 
-  if (window.openhub.onSelfUpdateStatus) {
-    window.openhub.onSelfUpdateStatus(function (s) {
+  if (window.openaxis.onSelfUpdateStatus) {
+    window.openaxis.onSelfUpdateStatus(function (s) {
       applySelfUpdateStatus(s, versionEl, statusEl, btnEl, progressEl, barEl);
     });
   }
 
-  if (window.openhub.selfUpdateCheck) {
+  if (window.openaxis.selfUpdateCheck) {
     statusEl.textContent = t("common.checking");
     statusEl.removeAttribute("data-i18n");
-    window.openhub
+    window.openaxis
       .selfUpdateCheck()
       .then(function (info) {
         if (info && info.version) {
@@ -939,10 +939,10 @@ function initSelfUpdateUI() {
   }
 
   btnEl.addEventListener("click", function () {
-    if (window.openhub.selfUpdateInstall) {
+    if (window.openaxis.selfUpdateInstall) {
       btnEl.disabled = true;
       btnEl.textContent = "…";
-      window.openhub.selfUpdateInstall().catch(function () {});
+      window.openaxis.selfUpdateInstall().catch(function () {});
     }
   });
 }
@@ -1011,7 +1011,7 @@ function renderFacts(facts) {
     btn.dataset.id = f.id;
     btn.addEventListener("click", function () {
       var id = this.dataset.id;
-      window.openhub.removeMemoryFact(id).then(loadMemoryUI);
+      window.openaxis.removeMemoryFact(id).then(loadMemoryUI);
     });
     div.appendChild(span);
     div.appendChild(btn);
@@ -1065,13 +1065,13 @@ function updateTokenHint(mem) {
 memToggle.addEventListener("change", function () {
   var enabled = memToggle.checked;
   if (memBody) memBody.style.display = enabled ? "" : "none";
-  window.openhub.setMemoryEnabled(enabled);
+  window.openaxis.setMemoryEnabled(enabled);
 });
 
 if (memAutoExtractToggle) {
   memAutoExtractToggle.addEventListener("change", function () {
-    if (window.openhub.setMemoryAutoExtract) {
-      window.openhub.setMemoryAutoExtract(memAutoExtractToggle.checked);
+    if (window.openaxis.setMemoryAutoExtract) {
+      window.openaxis.setMemoryAutoExtract(memAutoExtractToggle.checked);
     }
   });
 }
@@ -1079,8 +1079,8 @@ if (memAutoExtractToggle) {
 var autoUpdateToggle = document.getElementById("auto-update-toggle");
 if (autoUpdateToggle) {
   autoUpdateToggle.addEventListener("change", function () {
-    if (window.openhub.setAutoUpdate) {
-      window.openhub.setAutoUpdate(autoUpdateToggle.checked);
+    if (window.openaxis.setAutoUpdate) {
+      window.openaxis.setAutoUpdate(autoUpdateToggle.checked);
     }
   });
 }
@@ -1088,28 +1088,28 @@ if (autoUpdateToggle) {
 var notifyModeSelect = document.getElementById("notify-mode");
 if (notifyModeSelect) {
   notifyModeSelect.addEventListener("change", function () {
-    if (window.openhub.setNotifyMode) {
-      window.openhub.setNotifyMode(notifyModeSelect.value);
+    if (window.openaxis.setNotifyMode) {
+      window.openaxis.setNotifyMode(notifyModeSelect.value);
     }
   });
 }
 
 document.querySelectorAll("[data-notify-source]").forEach(function (input) {
   input.addEventListener("change", function () {
-    if (!window.openhub.setNotifySources) return;
+    if (!window.openaxis.setNotifySources) return;
     var sources = {};
     document.querySelectorAll("[data-notify-source]").forEach(function (el) {
       sources[el.dataset.notifySource] = el.checked;
     });
-    window.openhub.setNotifySources(sources);
+    window.openaxis.setNotifySources(sources);
   });
 });
 
 var webSearchToggle = document.getElementById("web-search-toggle");
 if (webSearchToggle) {
   webSearchToggle.addEventListener("change", function () {
-    if (window.openhub.setWebSearchEnabled) {
-      window.openhub.setWebSearchEnabled(webSearchToggle.checked);
+    if (window.openaxis.setWebSearchEnabled) {
+      window.openaxis.setWebSearchEnabled(webSearchToggle.checked);
     }
   });
 }
@@ -1120,8 +1120,8 @@ if (visionProxyToggle) {
   visionProxyToggle.addEventListener("change", function () {
     if (visionOptionsGroup)
       visionOptionsGroup.style.display = visionProxyToggle.checked ? "" : "none";
-    if (window.openhub.setVisionProxyEnabled) {
-      window.openhub.setVisionProxyEnabled(visionProxyToggle.checked);
+    if (window.openaxis.setVisionProxyEnabled) {
+      window.openaxis.setVisionProxyEnabled(visionProxyToggle.checked);
     }
   });
 }
@@ -1129,8 +1129,8 @@ if (visionProxyToggle) {
 var aiClassifierInput = document.getElementById("ai-classifier");
 if (aiClassifierInput) {
   aiClassifierInput.addEventListener("change", function () {
-    if (window.openhub.setAiClassifierModel) {
-      window.openhub.setAiClassifierModel(aiClassifierInput.value);
+    if (window.openaxis.setAiClassifierModel) {
+      window.openaxis.setAiClassifierModel(aiClassifierInput.value);
     }
   });
 }
@@ -1138,8 +1138,8 @@ if (aiClassifierInput) {
 var visionModelInput = document.getElementById("vision-model");
 if (visionModelInput) {
   visionModelInput.addEventListener("change", function () {
-    if (window.openhub.setVisionModel) {
-      window.openhub.setVisionModel(visionModelInput.value);
+    if (window.openaxis.setVisionModel) {
+      window.openaxis.setVisionModel(visionModelInput.value);
     }
   });
 }
@@ -1147,8 +1147,8 @@ if (visionModelInput) {
 var visionDetailSelect = document.getElementById("vision-detail-level");
 if (visionDetailSelect) {
   visionDetailSelect.addEventListener("change", function () {
-    if (window.openhub.setVisionDetailLevel) {
-      window.openhub.setVisionDetailLevel(visionDetailSelect.value);
+    if (window.openaxis.setVisionDetailLevel) {
+      window.openaxis.setVisionDetailLevel(visionDetailSelect.value);
     }
   });
 }
@@ -1157,12 +1157,12 @@ var defaultReasoningSelect = document.getElementById("default-reasoning-effort")
 if (defaultReasoningSelect) {
   defaultReasoningSelect.addEventListener("change", function () {
     var val = defaultReasoningSelect.value;
-    if (window.openhub.setDefaultReasoningEffort) {
-      window.openhub.setDefaultReasoningEffort(val);
+    if (window.openaxis.setDefaultReasoningEffort) {
+      window.openaxis.setDefaultReasoningEffort(val);
     }
     // Sync to localStorage for OpenCode indicator
     try {
-      localStorage.setItem("openhub-default-reasoning-effort", val);
+      localStorage.setItem("openaxis-default-reasoning-effort", val);
     } catch (e) {}
     // Also sync to proxy for OpenCode indicator
     getProxyToken().then(function (__token) {
@@ -1193,14 +1193,14 @@ var profileTimer = null;
 memProfile.addEventListener("input", function () {
   clearTimeout(profileTimer);
   profileTimer = setTimeout(function () {
-    window.openhub.setMemoryProfile(memProfile.value);
+    window.openaxis.setMemoryProfile(memProfile.value);
     loadMemoryUI();
     showSaveToast(t("toast.profileSaved"));
   }, 600);
 });
 memProfile.addEventListener("blur", function () {
   clearTimeout(profileTimer);
-  window.openhub.setMemoryProfile(memProfile.value);
+  window.openaxis.setMemoryProfile(memProfile.value);
   loadMemoryUI();
 });
 
@@ -1221,7 +1221,7 @@ document.getElementById("btn-add-fact").addEventListener("click", function () {
     return;
   }
   newFactInput.value = "";
-  window.openhub
+  window.openaxis
     .addMemoryFact(text, [])
     .then(loadMemoryUI)
     .catch(function (err) {
@@ -1247,9 +1247,9 @@ var ollamaManagerEl = document.getElementById("ollama-model-manager");
 var ollamaModelListEl = document.getElementById("ollama-model-list");
 
 async function loadOllamaStatus() {
-  if (!window.openhub.ollamaCheckModels) return;
+  if (!window.openaxis.ollamaCheckModels) return;
   try {
-    const status = await window.openhub.ollamaCheckModels();
+    const status = await window.openaxis.ollamaCheckModels();
     if (!status.running || status.missing.length === 0) {
       ollamaManagerEl.style.display = "none";
       return;
@@ -1302,10 +1302,10 @@ async function loadOllamaStatus() {
       btn.textContent = isPulling ? t("common.cancel") : t("common.install");
       btn.addEventListener("click", () => {
         if (isPulling) {
-          window.openhub.ollamaCancelPull(model);
+          window.openaxis.ollamaCancelPull(model);
           hideOllamaProgress(model);
         } else {
-          window.openhub.ollamaPullModel(model);
+          window.openaxis.ollamaPullModel(model);
           showOllamaProgress(model);
         }
       });
@@ -1316,7 +1316,7 @@ async function loadOllamaStatus() {
 
       // Auto-trigger installation if not already pulling
       if (!isPulling) {
-        window.openhub.ollamaPullModel(model);
+        window.openaxis.ollamaPullModel(model);
         showOllamaProgress(model);
       }
     });
@@ -1336,7 +1336,7 @@ function showOllamaProgress(model) {
   btn.className = "btn-ollama cancel";
   btn.textContent = t("common.cancel");
   btn.addEventListener("click", () => {
-    window.openhub.ollamaCancelPull(model);
+    window.openaxis.ollamaCancelPull(model);
     hideOllamaProgress(model);
   });
   actions.appendChild(btn);
@@ -1352,14 +1352,14 @@ function hideOllamaProgress(model) {
   btn.className = "btn-ollama";
   btn.textContent = t("common.install");
   btn.addEventListener("click", () => {
-    window.openhub.ollamaPullModel(model);
+    window.openaxis.ollamaPullModel(model);
     showOllamaProgress(model);
   });
   actions.appendChild(btn);
 }
 
-if (window.openhub.onOllamaPullProgress) {
-  window.openhub.onOllamaPullProgress((progress) => {
+if (window.openaxis.onOllamaPullProgress) {
+  window.openaxis.onOllamaPullProgress((progress) => {
     const id = progress.model.replace(/[:.]/g, "-");
     const statusEl = document.getElementById("ollama-status-" + id);
     const barEl = document.getElementById("ollama-progress-bar-" + id);
@@ -1388,7 +1388,7 @@ if (window.openhub.onOllamaPullProgress) {
         retryBtn.className = "btn-ollama";
         retryBtn.textContent = t("common.retry");
         retryBtn.addEventListener("click", () => {
-          window.openhub.ollamaPullModel(model);
+          window.openaxis.ollamaPullModel(model);
           showOllamaProgress(model);
         });
         actionsEl.replaceChildren(retryBtn);
@@ -1410,12 +1410,12 @@ if (window.openhub.onOllamaPullProgress) {
 
 // Dynamic service status polling
 function pollServiceStatuses() {
-  if (!window.openhub || !window.openhub.getSlotStatus) return;
+  if (!window.openaxis || !window.openaxis.getSlotStatus) return;
   // Skip the round-trip while the shell window is hidden/occluded: the slot
   // badges aren't visible, so polling main + the proxy every 3s would be pure
   // wasted IPC and HTTP. Resumes automatically when the window is shown again.
   if (document.hidden) return;
-  window.openhub
+  window.openaxis
     .getSlotStatus()
     .then(function (status) {
       if (!status) return;
@@ -1671,12 +1671,12 @@ function renderCustomProviders(providers) {
 }
 
 function deleteCustomProvider(id) {
-  if (!window.openhub.getCustomProviders || !window.openhub.saveCustomProviders) return;
-  window.openhub.getCustomProviders().then(function (providers) {
+  if (!window.openaxis.getCustomProviders || !window.openaxis.saveCustomProviders) return;
+  window.openaxis.getCustomProviders().then(function (providers) {
     var list = (providers || []).filter(function (p) {
       return p.id !== id;
     });
-    window.openhub
+    window.openaxis
       .saveCustomProviders(list)
       .then(function () {
         showSaveToast("Fournisseur supprimé.");
@@ -1724,7 +1724,7 @@ if (btnAddCustom) {
 
     var id = "custom-" + name.toLowerCase().replace(/[^a-z0-9]/g, "-");
 
-    window.openhub.getCustomProviders().then(function (providers) {
+    window.openaxis.getCustomProviders().then(function (providers) {
       var list = providers || [];
       if (
         list.some(function (p) {
@@ -1741,10 +1741,10 @@ if (btnAddCustom) {
       var keyData = {};
       keyData["custom-provider-key-" + id] = key;
 
-      window.openhub
+      window.openaxis
         .saveApiKeys(keyData)
         .then(function () {
-          return window.openhub.saveCustomProviders(list);
+          return window.openaxis.saveCustomProviders(list);
         })
         .then(function () {
           showSaveToast("Fournisseur enregistré !");

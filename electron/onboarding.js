@@ -1,4 +1,4 @@
-// OpenHub onboarding stepper — first-run wizard.
+// OpenAxis onboarding stepper — first-run wizard.
 // Loaded by sidebar.html as an external script (CSP: script-src 'self').
 (function () {
   "use strict";
@@ -12,14 +12,14 @@
 
   // ── Boot check ──────────────────────────────────────────────────────────
   function boot() {
-    if (!window.openhub || !window.openhub.onboardingPending) return;
-    if (!window.openhub.onboardingPending()) return;
+    if (!window.openaxis || !window.openaxis.onboardingPending) return;
+    if (!window.openaxis.onboardingPending()) return;
 
     var overlay = document.getElementById("onboarding-overlay");
     if (!overlay) return;
 
     overlay.classList.add("open");
-    window.openhub.notifyOnboardingVisibility(true);
+    window.openaxis.notifyOnboardingVisibility(true);
 
     renderStep();
     subscribePullProgress();
@@ -96,8 +96,8 @@
   }
 
   async function finish() {
-    if (!window.openhub) return;
-    await window.openhub.completeOnboarding();
+    if (!window.openaxis) return;
+    await window.openaxis.completeOnboarding();
     var overlay = document.getElementById("onboarding-overlay");
     if (overlay) overlay.classList.remove("open");
 
@@ -113,19 +113,19 @@
     btns.forEach(function (btn) {
       btn.addEventListener("click", function () {
         var lang = btn.getAttribute("data-lang");
-        if (!lang || !window.openhub) return;
+        if (!lang || !window.openaxis) return;
 
         btns.forEach(function (b) {
           b.classList.remove("selected");
         });
         btn.classList.add("selected");
-        window.openhub.setLanguage(lang);
+        window.openaxis.setLanguage(lang);
       });
     });
 
     // Pre-select current language
-    if (window.openhub && window.openhub.getLanguage) {
-      window.openhub.getLanguage().then(function (lang) {
+    if (window.openaxis && window.openaxis.getLanguage) {
+      window.openaxis.getLanguage().then(function (lang) {
         btns.forEach(function (b) {
           b.classList.toggle("selected", b.getAttribute("data-lang") === lang);
         });
@@ -187,10 +187,10 @@
   }
 
   async function refreshModelSelects() {
-    if (!window.openhub || !window.openhub.getAvailableModels) return;
+    if (!window.openaxis || !window.openaxis.getAvailableModels) return;
     var models;
     try {
-      models = await window.openhub.getAvailableModels();
+      models = await window.openaxis.getAvailableModels();
     } catch {
       return;
     }
@@ -198,11 +198,11 @@
 
     var proSelect = document.getElementById("ob-pro-model");
     var flashSelect = document.getElementById("ob-flash-model");
-    var proValue = window.openhub.getAiWorkflowProModel
-      ? await window.openhub.getAiWorkflowProModel()
+    var proValue = window.openaxis.getAiWorkflowProModel
+      ? await window.openaxis.getAiWorkflowProModel()
       : "";
-    var flashValue = window.openhub.getAiWorkflowFlashModel
-      ? await window.openhub.getAiWorkflowFlashModel()
+    var flashValue = window.openaxis.getAiWorkflowFlashModel
+      ? await window.openaxis.getAiWorkflowFlashModel()
       : "";
 
     if (proSelect) populateSelect(proSelect, models, proValue);
@@ -223,10 +223,10 @@
       var input = document.getElementById(field.id);
       if (!input) return;
       input.addEventListener("blur", function () {
-        if (!input.value.trim() || !window.openhub) return;
+        if (!input.value.trim() || !window.openaxis) return;
         var keys = {};
         keys[field.key] = input.value.trim();
-        window.openhub.saveApiKeys(keys).then(function () {
+        window.openaxis.saveApiKeys(keys).then(function () {
           refreshModelSelects();
         });
       });
@@ -252,14 +252,14 @@
     var proSelect = document.getElementById("ob-pro-model");
     if (proSelect) {
       proSelect.addEventListener("change", function () {
-        if (window.openhub) window.openhub.setAiWorkflowProModel(proSelect.value);
+        if (window.openaxis) window.openaxis.setAiWorkflowProModel(proSelect.value);
       });
     }
 
     var flashSelect = document.getElementById("ob-flash-model");
     if (flashSelect) {
       flashSelect.addEventListener("change", function () {
-        if (window.openhub) window.openhub.setAiWorkflowFlashModel(flashSelect.value);
+        if (window.openaxis) window.openaxis.setAiWorkflowFlashModel(flashSelect.value);
       });
     }
 
@@ -267,33 +267,33 @@
 
     // Notify mode
     var notifySelect = document.getElementById("ob-notify-mode");
-    if (notifySelect && window.openhub) {
-      window.openhub.getNotifyMode().then(function (v) {
+    if (notifySelect && window.openaxis) {
+      window.openaxis.getNotifyMode().then(function (v) {
         notifySelect.value = v;
       });
       notifySelect.addEventListener("change", function () {
-        window.openhub.setNotifyMode(notifySelect.value);
+        window.openaxis.setNotifyMode(notifySelect.value);
       });
     }
 
     // Memory toggles
     var memToggle = document.getElementById("ob-memory-enabled");
-    if (memToggle && window.openhub) {
-      window.openhub.getMemory().then(function (mem) {
+    if (memToggle && window.openaxis) {
+      window.openaxis.getMemory().then(function (mem) {
         if (mem) memToggle.checked = !!mem.enabled;
       });
       memToggle.addEventListener("change", function () {
-        window.openhub.setMemoryEnabled(memToggle.checked);
+        window.openaxis.setMemoryEnabled(memToggle.checked);
       });
     }
 
     var autoToggle = document.getElementById("ob-memory-auto");
-    if (autoToggle && window.openhub) {
-      window.openhub.getMemory().then(function (mem) {
+    if (autoToggle && window.openaxis) {
+      window.openaxis.getMemory().then(function (mem) {
         if (mem) autoToggle.checked = !!mem.autoExtract;
       });
       autoToggle.addEventListener("change", function () {
-        window.openhub.setMemoryAutoExtract(autoToggle.checked);
+        window.openaxis.setMemoryAutoExtract(autoToggle.checked);
       });
     }
   }
@@ -302,14 +302,14 @@
   async function loadOllamaStep() {
     var notice = document.getElementById("ob-ollama-notice");
     var models = document.getElementById("ob-ollama-models");
-    if (!notice || !models || !window.openhub) return;
+    if (!notice || !models || !window.openaxis) return;
 
     notice.style.display = "none";
     models.style.display = "none";
 
     var status;
     try {
-      status = await window.openhub.ollamaCheckModels();
+      status = await window.openaxis.ollamaCheckModels();
     } catch {
       notice.style.display = "";
       return;
@@ -378,7 +378,7 @@
 
   function startPull(cardId, model) {
     var card = document.getElementById(cardId);
-    if (!card || !window.openhub) return;
+    if (!card || !window.openaxis) return;
 
     var actionBtn = card.querySelector(".ob-ollama-action");
     var progressWrap = card.querySelector(".ob-ollama-progress");
@@ -396,11 +396,11 @@
       statusEl.textContent = window.t ? window.t("ollama.pulling") : "In progress...";
     }
 
-    window.openhub.ollamaPullModel(model);
+    window.openaxis.ollamaPullModel(model);
   }
 
   function cancelPull(cardId, model) {
-    if (window.openhub) window.openhub.ollamaCancelPull(model);
+    if (window.openaxis) window.openaxis.ollamaCancelPull(model);
 
     var card = document.getElementById(cardId);
     if (!card) return;
@@ -422,9 +422,9 @@
   }
 
   function subscribePullProgress() {
-    if (!window.openhub || !window.openhub.onOllamaPullProgress) return;
+    if (!window.openaxis || !window.openaxis.onOllamaPullProgress) return;
 
-    pullUnsub = window.openhub.onOllamaPullProgress(function (progress) {
+    pullUnsub = window.openaxis.onOllamaPullProgress(function (progress) {
       if (!progress || !progress.model) return;
 
       var cardId =
@@ -492,8 +492,8 @@
     var btnDownload = document.getElementById("ob-ollama-download");
     if (btnDownload) {
       btnDownload.addEventListener("click", function () {
-        if (window.openhub) {
-          window.openhub.openExternal("https://ollama.com/download");
+        if (window.openaxis) {
+          window.openaxis.openExternal("https://ollama.com/download");
         }
       });
     }
@@ -518,10 +518,10 @@
     var overlay = document.getElementById("onboarding-overlay");
     if (!overlay) return;
     overlay.addEventListener("onboarding-restart", function () {
-      localStorage.removeItem("openhub-chat-welcome-shown");
+      localStorage.removeItem("openaxis-chat-welcome-shown");
       overlay.classList.add("open");
-      if (window.openhub && window.openhub.notifyOnboardingVisibility) {
-        window.openhub.notifyOnboardingVisibility(true);
+      if (window.openaxis && window.openaxis.notifyOnboardingVisibility) {
+        window.openaxis.notifyOnboardingVisibility(true);
       }
       currentStep = 1;
       renderStep();

@@ -1,11 +1,11 @@
 **English** · [Français](USAGE.fr.md)
 
-# OpenHub — Usage Guide
+# OpenAxis — Usage Guide
 
-This guide explains how to use OpenHub day to day, once the app is installed
+This guide explains how to use OpenAxis day to day, once the app is installed
 (see the [README](../README.md#installation) for installation).
 
-> OpenHub is a shell: it wraps OpenWork, OpenCode, and Open Design in a single
+> OpenAxis is a shell: it wraps OpenWork, OpenCode, and Open Design in a single
 > window, adds a chat and orchestrator on top, and routes everything through one LLM
 > proxy. You enter your API keys once and all five slots share them.
 
@@ -73,7 +73,7 @@ project defines:
 - **settings** (`orchSettings`): auto-distribution, consistency checking, retry on
   error, adaptation to weaker models.
 
-Projects are stored in `~/.config/openhub/projects.json`. A project's instructions
+Projects are stored in `~/.config/openaxis/projects.json`. A project's instructions
 are prepended to the system prompt of the relevant calls (unless memory is explicitly
 bypassed for that project).
 
@@ -130,13 +130,13 @@ Configurable in **Config → Memory**.
 - **Disabling**: a global switch turns off all memory injection; a project can also
   bypass it individually.
 
-Storage: `~/.config/openhub/memory.json`.
+Storage: `~/.config/openaxis/memory.json`.
 
 ---
 
 ## 6. Config (API keys & models)
 
-The **Config** ⚙️ slot. Your keys are stored in an encrypted file at **`~/Library/Application Support/openhub/secrets.enc`** (AES-256-GCM), never in plaintext
+The **Config** ⚙️ slot. Your keys are stored in an encrypted file at **`~/Library/Application Support/openaxis/secrets.enc`** (AES-256-GCM), never in plaintext
 or in local storage.
 
 - **API keys**: Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search.
@@ -150,7 +150,7 @@ or in local storage.
 
 ## 7. Updating the upstream apps
 
-OpenHub updates the bundled tools automatically when a new `.dmg` is released. The
+OpenAxis updates the bundled tools automatically when a new `.dmg` is released. The
 source code of the 3 apps is never modified: all customization lives in
 `electron/overrides/`, so upstream updates don't break anything.
 

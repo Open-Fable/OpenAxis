@@ -94,13 +94,13 @@ async function deleteProject(id) {
     modal.classList.add("open");
     document.getElementById("confirmDeleteBtn").onclick = async function () {
       modal.classList.remove("open");
-      await window.openhub.deleteProject(id);
+      await window.openaxis.deleteProject(id);
       projects.forEach(async function (p) {
         if (p.type === "orchestrator" && p.linked && p.linked.includes(id)) {
           p.linked = p.linked.filter(function (lid) {
             return lid !== id;
           });
-          await window.openhub.saveProject(p);
+          await window.openaxis.saveProject(p);
         }
       });
       showToast(t("proj.toast.agentDeleted"), "success");
@@ -128,7 +128,7 @@ async function duplicateProject(id) {
   delete copy.id;
   delete copy.createdAt;
   delete copy.updatedAt;
-  var saved = await window.openhub.saveProject(copy);
+  var saved = await window.openaxis.saveProject(copy);
   await loadProjects();
   showToast(t("proj.toast.agentDuplicated", { name: copy.name }), "success");
   return saved;
@@ -137,7 +137,7 @@ async function duplicateProject(id) {
 async function importDemoTemplate() {
   try {
     showToast(t("proj.toast.generatingDemo"), "info");
-    var p1 = await window.openhub.saveProject({
+    var p1 = await window.openaxis.saveProject({
       name: "API Backend — Authentification",
       instructions:
         "Tu es un développeur backend senior spécialisé Node.js/TypeScript.\n\nCOMPÉTENCES :\n- Architecture REST, validation de données, gestion d'erreurs robuste\n- Tests unitaires Jest, couverture 80%+\n- PostgreSQL, requêtes paramétrées, migrations\n\nRÈGLES :\n- Code TypeScript strict, pas de `any`\n- Fonctions < 50 lignes, fichiers < 400 lignes\n- Gestion d'erreurs explicite, pas de secrets en dur\n\nFORMAT DE SORTIE :\n- Code complet et fonctionnel (pas de placeholders)\n- Nomme chaque fichier avec son chemin relatif\n- Inclus tous les imports nécessaires",
@@ -147,7 +147,7 @@ async function importDemoTemplate() {
       y: 120,
       task: "Implémenter le flux OAuth2 avec refresh tokens.",
     });
-    var p2 = await window.openhub.saveProject({
+    var p2 = await window.openaxis.saveProject({
       name: "Design System — Composants",
       instructions:
         "Tu es un designer UI/UX senior expert en design systems.\n\nCOMPÉTENCES :\n- Design systems, tokens, composants réutilisables\n- Accessibilité WCAG AA, contrastes, navigation clavier\n- CSS moderne (variables, grid, flexbox), responsive mobile-first\n\nRÈGLES :\n- Variables CSS pour couleurs, tailles et espacements\n- Composants accessibles par défaut\n\nFORMAT DE SORTIE :\n- Code CSS/HTML complet et fonctionnel\n- Documenter les tokens de design\n- Fournir les variantes (hover, focus, disabled)",
@@ -157,7 +157,7 @@ async function importDemoTemplate() {
       y: 280,
       task: "Créer les composants de boutons et inputs v1.0.",
     });
-    var p3 = await window.openhub.saveProject({
+    var p3 = await window.openaxis.saveProject({
       name: "Pipeline CI/CD — Déploiement",
       instructions:
         "Tu es un ingénieur DevOps senior spécialisé CI/CD.\n\nCOMPÉTENCES :\n- GitHub Actions, workflows YAML, matrices de build\n- Optimisation de cache, déploiement automatisé\n\nRÈGLES :\n- Pipelines idempotents et reproductibles\n- Séparer lint, test, build, deploy\n- Pas de secrets en dur\n\nFORMAT DE SORTIE :\n- Fichiers YAML complets et valides\n- Nommer chaque fichier avec son chemin",
@@ -167,7 +167,7 @@ async function importDemoTemplate() {
       y: 440,
       task: "Mettre en place le pipeline GitHub Actions de vérification.",
     });
-    var p5 = await window.openhub.saveProject({
+    var p5 = await window.openaxis.saveProject({
       name: "Tests E2E — Playwright",
       instructions:
         "Tu es un ingénieur QA senior spécialisé tests automatisés.\n\nCOMPÉTENCES :\n- Tests E2E Playwright, sélecteurs robustes, assertions\n- Couverture des flux critiques\n\nRÈGLES :\n- Tests indépendants et reproductibles\n- Sélecteurs stables (data-testid, rôles ARIA)\n- Couvrir chemin nominal ET cas d'erreur\n\nFORMAT DE SORTIE :\n- Fichiers de test complets avec imports\n- Nommer les tests de manière descriptive",
@@ -178,7 +178,7 @@ async function importDemoTemplate() {
       y: 120,
       task: "Écrire les tests E2E de connexion et inscription.",
     });
-    var p6 = await window.openhub.saveProject({
+    var p6 = await window.openaxis.saveProject({
       name: "Vérification qualité globale",
       instructions:
         "Tu es un vérificateur qualité senior.\n\nCOMPÉTENCES :\n- Revue de code (sécurité, performance, maintenabilité)\n- Vérification de cohérence visuelle et d'accessibilité\n- Validation de conformité aux spécifications\n\nRÈGLES :\n- Critères objectifs et mesurables, classés par sévérité (CRITICAL/WARNING/INFO)\n- Exemple concret et correction proposée pour chaque problème\n- Ne pas inventer de problèmes\n\nFORMAT DE SORTIE :\n- Liste structurée avec sévérité, description et correction\n- Score global sur 100, verdict VALIDÉ ou REJETÉ",
@@ -190,7 +190,7 @@ async function importDemoTemplate() {
       bypassMemory: true,
       task: "Vérifier le code généré, les rendus CSS et les tests.",
     });
-    var orch = await window.openhub.saveProject({
+    var orch = await window.openaxis.saveProject({
       name: "Refonte onboarding",
       instructions: "Tu es un chef de projet IA.",
       color: "#0d9488",
@@ -217,7 +217,7 @@ async function importDemoTemplate() {
 async function importWebsiteTemplate() {
   try {
     showToast(t("proj.toast.creatingWebsite"), "info");
-    var p1 = await window.openhub.saveProject({
+    var p1 = await window.openaxis.saveProject({
       name: "Styles & Design CSS",
       instructions:
         "Tu es un designer CSS senior.\n\nCOMPÉTENCES :\n- CSS moderne (variables, grid, flexbox), responsive mobile-first\n- Chartes graphiques, palettes de couleurs, typographies\n- Animations CSS, transitions fluides\n\nRÈGLES :\n- Variables CSS pour tous les tokens de design\n- Mobile-first, accessibilité WCAG AA\n\nFORMAT DE SORTIE :\n- Fichiers CSS complets avec variables définies\n- Documenter la palette et les choix typographiques",
@@ -227,7 +227,7 @@ async function importWebsiteTemplate() {
       y: 120,
       task: "Créer une charte graphique moderne.",
     });
-    var p2 = await window.openhub.saveProject({
+    var p2 = await window.openaxis.saveProject({
       name: "Intégration HTML/JS",
       instructions:
         "Tu es un développeur frontend senior.\n\nCOMPÉTENCES :\n- HTML5 sémantique, intégration CSS, JavaScript vanilla/framework\n- Responsive design, optimisation des performances\n- SEO de base (balises meta, structure de titres, alt text)\n\nRÈGLES :\n- HTML sémantique et valide\n- Code propre, indenté, sans redondance\n- Intégration fidèle aux maquettes\n\nFORMAT DE SORTIE :\n- Fichiers HTML/JS complets et fonctionnels\n- Nommer chaque fichier avec son chemin relatif",
@@ -238,7 +238,7 @@ async function importWebsiteTemplate() {
       y: 120,
       task: "Créer l'ossature HTML5 du site.",
     });
-    var p3 = await window.openhub.saveProject({
+    var p3 = await window.openaxis.saveProject({
       name: "Vérificateur Accessibilité & RGPD",
       instructions:
         "Tu es un expert senior en conformité web.\n\nCOMPÉTENCES :\n- Accessibilité WCAG 2.1 AA, audit et correction\n- Conformité RGPD (bannière cookies, politique de confidentialité)\n- Validation HTML/CSS, performances web\n\nRÈGLES :\n- Critères objectifs et mesurables\n- Classer par sévérité (CRITICAL/WARNING/INFO)\n- Proposer une correction pour chaque problème\n\nFORMAT DE SORTIE :\n- Rapport structuré avec liste de problèmes\n- Score de conformité, verdict CONFORME ou NON CONFORME",
@@ -250,7 +250,7 @@ async function importWebsiteTemplate() {
       bypassMemory: true,
       task: "Vérifier l'accessibilité WCAG du code.",
     });
-    var orch = await window.openhub.saveProject({
+    var orch = await window.openaxis.saveProject({
       name: "Site Web Vitrine",
       instructions:
         "Tu es un coordinateur de projet web senior.\n\nCOMPÉTENCES :\n- Décomposition de tâches, coordination inter-agents\n- Gestion des dépendances et des priorités\n\nRÈGLES :\n- Chaque sous-tâche = un livrable vérifiable\n- Préciser objectif, contraintes, format et critères de réussite",
@@ -278,7 +278,7 @@ async function importWebsiteTemplate() {
 async function importSEOContentTemplate() {
   try {
     showToast(t("proj.toast.creatingSeo"), "info");
-    var p1 = await window.openhub.saveProject({
+    var p1 = await window.openaxis.saveProject({
       name: "Rédaction de l'article (FR)",
       instructions:
         "Tu es un rédacteur web professionnel senior.\n\nCOMPÉTENCES :\n- Rédaction SEO, structure H1-H6, maillage interne\n- Ton éditorial adapté à la cible, storytelling\n- Optimisation de la densité de mots-clés sans sur-optimisation\n\nRÈGLES :\n- Articles structurés (introduction, corps, conclusion)\n- Paragraphes courts (3-4 phrases max)\n- Inclure un meta-title et meta-description\n\nFORMAT DE SORTIE :\n- Article complet en markdown avec balisage H1-H6\n- Meta-title (< 60 chars) et meta-description (< 160 chars) en en-tête",
@@ -288,7 +288,7 @@ async function importSEOContentTemplate() {
       y: 120,
       task: "Rédiger un article complet d'environ 800 mots en français.",
     });
-    var p2 = await window.openhub.saveProject({
+    var p2 = await window.openaxis.saveProject({
       name: "Traduction Anglaise (EN)",
       instructions:
         "Tu es un traducteur professionnel bilingue français-anglais.\n\nCOMPÉTENCES :\n- Traduction littéraire et technique, adaptation culturelle\n- Préservation du ton, du style et de la structure SEO\n- Localisation (formats de date, monnaie, expressions idiomatiques)\n\nRÈGLES :\n- Traduire fidèlement sans reformuler le sens\n- Conserver la structure H1-H6 et le balisage markdown\n- Adapter les meta-title/description pour le marché cible\n\nFORMAT DE SORTIE :\n- Texte traduit complet en markdown\n- Meta-title et meta-description traduits en en-tête",
@@ -299,7 +299,7 @@ async function importSEOContentTemplate() {
       y: 120,
       task: "Traduire fidèlement l'article généré en anglais.",
     });
-    var p3 = await window.openhub.saveProject({
+    var p3 = await window.openaxis.saveProject({
       name: "Audit & Optimisation SEO",
       instructions:
         "Tu es un expert senior en référencement naturel (SEO).\n\nCOMPÉTENCES :\n- Audit SEO on-page (titres, metas, densité, maillage)\n- Analyse de mots-clés, intention de recherche\n- Optimisation technique (vitesse, mobile, structured data)\n\nRÈGLES :\n- Critères objectifs et mesurables\n- Recommandations actionnables avec priorité\n- Ne pas sur-optimiser au détriment de la lisibilité\n\nFORMAT DE SORTIE :\n- Rapport structuré avec score par critère\n- Liste de recommandations classées par impact",
@@ -311,7 +311,7 @@ async function importSEOContentTemplate() {
       bypassMemory: true,
       task: "Vérifier la densité des mots-clés stratégiques.",
     });
-    var orch = await window.openhub.saveProject({
+    var orch = await window.openaxis.saveProject({
       name: "Campagne Contenu SEO",
       instructions:
         "Tu es un responsable éditorial senior.\n\nCOMPÉTENCES :\n- Stratégie de contenu, calendrier éditorial\n- Coordination rédaction/traduction/SEO\n- Contrôle qualité éditorial\n\nRÈGLES :\n- Chaque sous-tâche = un livrable vérifiable\n- Préciser objectif, contraintes, format et critères de réussite",
@@ -339,7 +339,7 @@ async function importSEOContentTemplate() {
 async function importSimpleOrchestrator() {
   try {
     showToast(t("proj.toast.creatingOrch"), "info");
-    var orch = await window.openhub.saveProject({
+    var orch = await window.openaxis.saveProject({
       name: "Mon Orchestrateur",
       instructions:
         "Tu es un coordinateur de projet IA senior.\n\nCOMPÉTENCES :\n- Décomposition de tâches complexes en sous-tâches autonomes\n- Coordination inter-agents, gestion des dépendances\n- Vérification de cohérence globale des livrables\n\nRÈGLES :\n- Chaque sous-tâche = un livrable vérifiable par un seul agent\n- Préciser objectif, contraintes, format et critères de réussite\n- Détecter les contradictions et chevauchements entre agents",
@@ -377,7 +377,7 @@ async function applyTaskSuggestion(text) {
   }
   if (activeOrch) {
     activeOrch.task = text;
-    await window.openhub.saveProject(activeOrch);
+    await window.openaxis.saveProject(activeOrch);
     document.getElementById("sharedTaskText").value = text;
     showToast(t("proj.toast.suggestionApplied"), "success");
     updateDetailPanel();
@@ -444,8 +444,8 @@ function initModals() {
   };
 
   document.getElementById("btnPickPath").onclick = async function () {
-    if (window.openhub.pickProjectPath) {
-      var p = await window.openhub.pickProjectPath();
+    if (window.openaxis.pickProjectPath) {
+      var p = await window.openaxis.pickProjectPath();
       if (p) {
         _selectedProjectPath = p;
         document.getElementById("projPath").value = p;
@@ -532,7 +532,7 @@ function initModals() {
     var saveBtn = document.getElementById("btnSaveProjectConfirm");
     saveBtn.disabled = true;
     try {
-      var saved = await window.openhub.saveProject(data);
+      var saved = await window.openaxis.saveProject(data);
       if (!editId && selectedOrchestratorId && type !== "orchestrator") {
         var activeOrch = projects.find(function (p) {
           return p.id === selectedOrchestratorId;
@@ -540,7 +540,7 @@ function initModals() {
         if (activeOrch) {
           if (!activeOrch.linked) activeOrch.linked = [];
           activeOrch.linked.push(saved.id);
-          await window.openhub.saveProject(activeOrch);
+          await window.openaxis.saveProject(activeOrch);
         }
         var activeWf = workflows.find(function (w) {
           return w.id === activeWorkflowId;
@@ -549,7 +549,7 @@ function initModals() {
           if (!activeWf.linkedProjectIds) activeWf.linkedProjectIds = [];
           if (!activeWf.linkedProjectIds.includes(saved.id)) {
             activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [saved.id]);
-            await window.openhub.saveWorkflow(activeWf);
+            await window.openaxis.saveWorkflow(activeWf);
           }
         }
       }

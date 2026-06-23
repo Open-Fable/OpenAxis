@@ -1,4 +1,4 @@
-// OpenHub — Shared type definitions
+// OpenAxis — Shared type definitions
 
 export type SlotName = "work" | "code" | "design" | "chat" | "config" | "projects";
 

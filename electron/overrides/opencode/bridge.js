@@ -1,5 +1,5 @@
 /*
- * OpenHub → OpenCode — native directory picker bridge
+ * OpenAxis → OpenCode — native directory picker bridge
  *
  * Intercepts OpenCode's web-based DialogSelectDirectory and opens the
  * native macOS Finder instead. Uses OpenCode's deep link mechanism
@@ -7,9 +7,9 @@
  * fallback if the deep link doesn't trigger within 600ms.
  */
 (function () {
-  if (!window.openhub) return;
-  if (window.__OPENHUB_OPENCODE_BRIDGE_INJECTED__) return;
-  window.__OPENHUB_OPENCODE_BRIDGE_INJECTED__ = true;
+  if (!window.openaxis) return;
+  if (window.__OPENAXIS_OPENCODE_BRIDGE_INJECTED__) return;
+  window.__OPENAXIS_OPENCODE_BRIDGE_INJECTED__ = true;
 
   var picking = false;
   var DEEP_LINK_EVENT = "opencode:deep-link";
@@ -56,7 +56,7 @@
   function pickAndOpen() {
     if (picking) return;
     picking = true;
-    window.openhub
+    window.openaxis
       .openworkDesktopInvoke("pickDirectory")
       .then(function (dir) {
         picking = false;

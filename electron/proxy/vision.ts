@@ -94,7 +94,7 @@ export function shouldBypassVisionProxy(modelName: string): boolean {
 export async function getVisionConfig(
   overrideOllamaUrl?: string | null,
 ): Promise<VisionConfig> {
-  const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+  const settingsPath = path.join(homedir(), ".config", "openaxis", "settings.json");
   const defaultConfig: VisionConfig = {
     visionProxyEnabled: true,
     visionModel: "openbmb/minicpm-v4.6",

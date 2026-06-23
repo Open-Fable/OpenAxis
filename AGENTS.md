@@ -1,4 +1,4 @@
-# AGENTS.md — OpenHub (Opencode)
+# AGENTS.md — OpenAxis (Opencode)
 
 Agent definitions for multi-agent workflows using Opencode.
 

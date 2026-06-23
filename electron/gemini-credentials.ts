@@ -9,8 +9,8 @@ import os from "os";
 
 function loadEnvSync() {
   const paths = [
-    path.join(os.homedir(), ".config", "openhub", ".env"),
-    path.join(os.homedir(), "Documents", "Application", "OpenHub", ".env"),
+    path.join(os.homedir(), ".config", "openaxis", ".env"),
+    path.join(os.homedir(), "Documents", "Application", "OpenAxis", ".env"),
   ];
 
   for (const p of paths) {

@@ -18,7 +18,7 @@ var activeWorkflowId = null;
 var _proxyTokenPromise = null;
 function getProxyToken() {
   if (!_proxyTokenPromise) {
-    _proxyTokenPromise = window.openhub
+    _proxyTokenPromise = window.openaxis
       .getChatConfig()
       .then(function (c) {
         return (c && c.token) || "";
@@ -203,7 +203,7 @@ async function loadModels() {
       '<option value="">' + escapeHtml(t("proj.model.loading")) + "</option>";
   }
   try {
-    var config = await window.openhub.getChatConfig();
+    var config = await window.openaxis.getChatConfig();
     var headers = { Authorization: "Bearer " + config.token };
     var [res, selRes] = await Promise.all([
       fetch(config.proxyUrl + "/v1/models/full", { headers: headers }),
@@ -267,11 +267,11 @@ async function loadModels() {
 }
 
 async function loadProjects() {
-  projects = await window.openhub.getProjects();
+  projects = await window.openaxis.getProjects();
   // When a workflow is active, its orchProjectId is authoritative —
   // don't let the store's activeProject overwrite it.
   if (!activeWorkflowId) {
-    var active = await window.openhub.getActiveProject();
+    var active = await window.openaxis.getActiveProject();
     if (active && active.type === "orchestrator") {
       selectedOrchestratorId = active.id;
     } else if (!selectedOrchestratorId) {

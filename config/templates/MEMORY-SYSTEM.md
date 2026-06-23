@@ -1,6 +1,6 @@
 # MEMORY-SYSTEM.md — Documentation du Système de Mémoire
 
-Ce document décrit le système de mémoire automatique d'OpenHub.
+Ce document décrit le système de mémoire automatique d'OpenAxis.
 
 ## Fonctionnement
 

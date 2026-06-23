@@ -1,13 +1,13 @@
 /*
- * OpenHub → Open Design — palette de marque OpenHub
- * Remplace les couleurs natives (terracotta) par la palette teal OpenHub.
+ * OpenAxis → Open Design — palette de marque OpenAxis
+ * Remplace les couleurs natives (terracotta) par la palette teal OpenAxis.
  * Open Design utilise [data-theme="dark"] en mode sombre (toujours actif
  * car nativeTheme.themeSource = "dark" dans main.ts).
  */
 
-/* ── Mode sombre (toujours actif dans OpenHub) ── */
+/* ── Mode sombre (toujours actif dans OpenAxis) ── */
 [data-theme="dark"] {
-  /* Fond — neutre anthracite OpenHub */
+  /* Fond — neutre anthracite OpenAxis */
   --bg: #0a0a0a !important;
   --bg-app: #0a0a0a !important;
   --bg-panel: #141414 !important;
@@ -30,7 +30,7 @@
   --text-soft: #444444 !important;
   --text-faint: #3a3a3a !important;
 
-  /* Accent — teal OpenHub */
+  /* Accent — teal OpenAxis */
   --accent: #14b8a6 !important;
   --accent-strong: #2dd4bf !important;
   --accent-soft: rgba(20, 184, 166, 0.12) !important;
@@ -100,14 +100,14 @@
 
 /* ── Structurel ── */
 
-/* Désactivation de la zone de glissement (OpenHub gère le drag via sidebar.html) */
+/* Désactivation de la zone de glissement (OpenAxis gère le drag via sidebar.html) */
 html,
 body,
 * {
   -webkit-app-region: no-drag !important;
 }
 
-/* Sidebar trigger — masqué (inutile dans OpenHub) */
+/* Sidebar trigger — masqué (inutile dans OpenAxis) */
 [data-sidebar="trigger"],
 [data-slot="sidebar-trigger"],
 button[data-sidebar="trigger"] {
@@ -130,13 +130,13 @@ button[data-sidebar="trigger"] {
   background: rgba(255, 255, 255, 0.14) !important;
 }
 
-/* Focus visible — teal OpenHub */
+/* Focus visible — teal OpenAxis */
 :focus-visible {
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px !important;
 }
 
-/* Sélection de texte — teal OpenHub */
+/* Sélection de texte — teal OpenAxis */
 ::selection {
   background: rgba(20, 184, 166, 0.25) !important;
 }

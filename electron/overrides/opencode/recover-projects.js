@@ -1,6 +1,6 @@
 (function () {
-  if (window.__OPENHUB_RECOVER_PROJECTS__) return;
-  window.__OPENHUB_RECOVER_PROJECTS__ = true;
+  if (window.__OPENAXIS_RECOVER_PROJECTS__) return;
+  window.__OPENAXIS_RECOVER_PROJECTS__ = true;
 
   var STORAGE_KEY = "opencode.global.dat:server";
   var raw = localStorage.getItem(STORAGE_KEY);
@@ -13,7 +13,10 @@
     } catch {}
   }
 
-  var directory = (typeof __OPENHUB_WORKSPACE_DIR__ !== "undefined" ? __OPENHUB_WORKSPACE_DIR__ : null) || "";
+  var directory =
+    (typeof __OPENAXIS_WORKSPACE_DIR__ !== "undefined"
+      ? __OPENAXIS_WORKSPACE_DIR__
+      : null) || "";
   var value = JSON.stringify({
     projects: (function () {
       var p = {};

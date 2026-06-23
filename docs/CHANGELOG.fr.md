@@ -18,7 +18,7 @@ Première version publique. Shell desktop macOS unifiant trois outils IA open-so
   préservé.
 - **Proxy LLM unifié** sur `127.0.0.1:9999` (OpenAI-compatible, Bearer obligatoire)
   routant vers Anthropic, OpenAI, OpenRouter, Ollama et Google Gemini.
-- **Stockage des secrets dans un fichier chiffré** dans `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM) — jamais en clair ;
+- **Stockage des secrets dans un fichier chiffré** dans `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM) — jamais en clair ;
   les apps ne reçoivent qu'un faux jeton local.
 - **Chat intégré** : sélecteur de modèles, effort de raisonnement par modèle,
   historique sauvegardé, recherche web, pièces jointes, contexte projet.
@@ -41,4 +41,4 @@ Première version publique. Shell desktop macOS unifiant trois outils IA open-so
   jamais loggé.
 - Bridge `contextBridge` minimal, sans paramètre de chemin disque.
 
-[0.1.0]: https://github.com/Open-Fable/OpenHub/releases/tag/v0.1.0
+[0.1.0]: https://github.com/Open-Fable/OpenAxis/releases/tag/v0.1.0

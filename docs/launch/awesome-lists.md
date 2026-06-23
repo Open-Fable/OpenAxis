@@ -23,7 +23,7 @@ a few stars so the PR looks legitimate).
 ## Submission template
 
 ```markdown
-- [OpenHub](https://github.com/Open-Fable/OpenHub) - macOS desktop app that unifies chat, code agents, design tools, and multi-agent orchestration. Supports Anthropic, OpenAI, Ollama, Gemini. MIT.
+- [OpenAxis](https://github.com/Open-Fable/OpenAxis) - macOS desktop app that unifies chat, code agents, design tools, and multi-agent orchestration. Supports Anthropic, OpenAI, Ollama, Gemini. MIT.
 ```
 
 ## Tips

@@ -1,6 +1,6 @@
 **English** · [Français](ARCHITECTURE.fr.md)
 
-# OpenHub — Architecture (frozen canonical spec)
+# OpenAxis — Architecture (frozen canonical spec)
 
 > macOS desktop Super-Hub that brings together several open-source AI tools in a
 > single interface inspired by the native Claude macOS app. Each tool keeps its
@@ -19,7 +19,7 @@
 
 ## 1. V1 scope
 
-The sidebar ships **five slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrator** — plus a Config panel. The three slots in the table below are backed by an embedded upstream app; **Chat** and **Orchestrator** are OpenHub-native (no external app, no webview) and landed after this V1 spec was frozen.
+The sidebar ships **five slots** — **Chat**, **Code**, **Work**, **Design**, **Orchestrator** — plus a Config panel. The three slots in the table below are backed by an embedded upstream app; **Chat** and **Orchestrator** are OpenAxis-native (no external app, no webview) and landed after this V1 spec was frozen.
 
 | Slot   | Repository                                         | Embedded mode       | Port              |
 | ------ | -------------------------------------------------- | ------------------- | ----------------- |
@@ -33,16 +33,16 @@ Out of V1 scope: openwork's "den"/EE cloud stack (MySQL, better-auth), Docker.
 
 ## 2. Tech stack
 
-| Component      | Choice                                                                            | Rationale                                                                                |
-| -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Desktop shell  | **Electron** (not Tauri)                                                          | Mature multi-`WebContentsView`; openwork is already Tauri → Electron avoids the conflict |
-| App views      | `WebContentsView` (1 per app, lazy, kept alive)                                   | State/sessions preserved when switching slots                                            |
-| App runtime    | **Native only** (zero Docker)                                                     | The apps need filesystem access (they edit code/design)                                  |
-| LLM proxy      | Express server embedded in main, `127.0.0.1:9999`                                 | Single OpenAI-compatible gateway + holds the secrets                                     |
-| Secrets        | AES-256-GCM encrypted file at `~/Library/Application Support/openhub/secrets.enc` | Never unencrypted on disk, never in the apps                                             |
-| Config cascade | `~/.config/opencode/opencode.json`                                                | A single file configures all 3 apps (they all drive opencode)                            |
-| Customization  | Runtime CSS/JS injection (`insertCSS` / bridge)                                   | Independent of upstream updates                                                          |
-| Updates        | `git pull` / `npm update` per folder                                              | Source code never modified                                                               |
+| Component      | Choice                                                                             | Rationale                                                                                |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Desktop shell  | **Electron** (not Tauri)                                                           | Mature multi-`WebContentsView`; openwork is already Tauri → Electron avoids the conflict |
+| App views      | `WebContentsView` (1 per app, lazy, kept alive)                                    | State/sessions preserved when switching slots                                            |
+| App runtime    | **Native only** (zero Docker)                                                      | The apps need filesystem access (they edit code/design)                                  |
+| LLM proxy      | Express server embedded in main, `127.0.0.1:9999`                                  | Single OpenAI-compatible gateway + holds the secrets                                     |
+| Secrets        | AES-256-GCM encrypted file at `~/Library/Application Support/openaxis/secrets.enc` | Never unencrypted on disk, never in the apps                                             |
+| Config cascade | `~/.config/opencode/opencode.json`                                                 | A single file configures all 3 apps (they all drive opencode)                            |
+| Customization  | Runtime CSS/JS injection (`insertCSS` / bridge)                                    | Independent of upstream updates                                                          |
+| Updates        | `git pull` / `npm update` per folder                                               | Source code never modified                                                               |
 
 ---
 
@@ -59,8 +59,8 @@ ELECTRON (shell + proxy + secrets) ─ seul détenteur des clés réelles
 │    Design → open-design daemon       :port capturé au spawn
 │
 ├─ CASCADE DE CONFIG ("configurer une fois") :
-│    OpenHub écrit ~/.config/opencode/opencode.json
-│      provider "openhub" → baseURL http://localhost:9999/v1
+│    OpenAxis écrit ~/.config/opencode/opencode.json
+│      provider "openaxis" → baseURL http://localhost:9999/v1
 │      hérité par Work + Code + Design (tous pilotent opencode)
 │
 ├─ PROXY LLM :9999 (127.0.0.1, Bearer token requis, OpenAI-compatible)
@@ -90,12 +90,12 @@ So a single `opencode.json` cascades to all 3. Custom OpenAI-compatible provider
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "openhub": {
+    "openaxis": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "OpenHub Proxy",
+      "name": "OpenAxis Proxy",
       "options": {
         "baseURL": "http://localhost:9999/v1",
-        "apiKey": "{env:OPENHUB_TOKEN}"
+        "apiKey": "{env:OPENAXIS_TOKEN}"
       },
       "models": { "claude-sonnet-4-6": { "name": "Claude Sonnet 4.6" } }
     }
@@ -103,7 +103,7 @@ So a single `opencode.json` cascades to all 3. Custom OpenAI-compatible provider
 }
 ```
 
-The apps only receive a **fake local token** (`OPENHUB_TOKEN`). The proxy `:9999`
+The apps only receive a **fake local token** (`OPENAXIS_TOKEN`). The proxy `:9999`
 holds the real keys (Anthropic/OpenAI/OAuth) read from the encrypted secrets file.
 
 ---

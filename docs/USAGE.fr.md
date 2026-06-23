@@ -1,11 +1,11 @@
 [English](USAGE.md) · **Français**
 
-# OpenHub — Guide d'usage
+# OpenAxis — Guide d'usage
 
-Ce guide explique comment se servir d'OpenHub au quotidien, une fois l'app
+Ce guide explique comment se servir d'OpenAxis au quotidien, une fois l'app
 installée (voir [README](../README.fr.md#installation) pour l'installation).
 
-> OpenHub est un shell : il emballe OpenWork, OpenCode et Open Design dans une seule
+> OpenAxis est un shell : il emballe OpenWork, OpenCode et Open Design dans une seule
 > fenêtre, ajoute un chat et un orchestrateur par-dessus, et route tout via un seul
 > proxy LLM. Tu saisis tes clés API une fois et les cinq slots les partagent.
 
@@ -73,7 +73,7 @@ orchestrateur définit :
 - des **réglages** (`orchSettings`) : auto-distribution, vérification de cohérence,
   relance en cas d'erreur, adaptation aux modèles faibles.
 
-Les projets sont stockés dans `~/.config/openhub/projects.json`. Les instructions
+Les projets sont stockés dans `~/.config/openaxis/projects.json`. Les instructions
 d'un projet sont préfixées au prompt système des appels concernés (sauf si la
 mémoire est explicitement contournée pour ce projet).
 
@@ -130,13 +130,13 @@ Réglable dans **Config → Mémoire**.
 - **Désactivation** : un interrupteur global coupe toute injection mémoire ; un projet
   peut aussi la contourner individuellement.
 
-Stockage : `~/.config/openhub/memory.json`.
+Stockage : `~/.config/openaxis/memory.json`.
 
 ---
 
 ## 6. Config (clés API & modèles)
 
-Slot **Config** ⚙️. Tes clés sont stockées dans un fichier chiffré dans **`~/Library/Application Support/openhub/secrets.enc`** (AES-256-GCM),
+Slot **Config** ⚙️. Tes clés sont stockées dans un fichier chiffré dans **`~/Library/Application Support/openaxis/secrets.enc`** (AES-256-GCM),
 jamais en clair ni dans le stockage local.
 
 - **Clés API** : Anthropic, OpenAI, OpenRouter, Ollama (URL), GitHub, Brave Search.
@@ -150,7 +150,7 @@ jamais en clair ni dans le stockage local.
 
 ## 7. Mettre à jour les apps upstream
 
-OpenHub met à jour les outils intégrés automatiquement à chaque nouvelle version du
+OpenAxis met à jour les outils intégrés automatiquement à chaque nouvelle version du
 `.dmg`. Le code source des 3 apps n'est jamais modifié : toutes les personnalisations
 vivent dans `electron/overrides/`, donc les mises à jour upstream ne cassent rien.
 

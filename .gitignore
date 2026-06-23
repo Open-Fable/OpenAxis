@@ -41,9 +41,9 @@ coverage/
 *.tsbuildinfo
 
 # Runtime config templates (user-specific copies, not the shared templates)
-config/openhub-settings.json
-config/openhub-projects.json
-config/openhub-memory.json
+config/openaxis-settings.json
+config/openaxis-projects.json
+config/openaxis-memory.json
 config/selected-models.json
 config/opencode.local.json
 
@@ -74,7 +74,7 @@ salvaged_regex.json
 test_script_*.js
 
 # Unrelated scratch workspaces / screenshots / external projects accidentally
-# placed at the repo root — keep them out of OpenHub.
+# placed at the repo root — keep them out of OpenAxis.
 fi/
 oui/
 pokjh/
@@ -121,7 +121,7 @@ test-models.js
 # User-specific memory / personal data (never share between users)
 /AGENT-MEMORY.md
 /MEMORY-SYSTEM.md
-/openhub-projects.html
+/openaxis-projects.html
 
 # AI agent config (user-specific)
 .claude/

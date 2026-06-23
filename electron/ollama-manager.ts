@@ -20,7 +20,7 @@ interface PullState {
 const activePulls = new Map<string, PullState>();
 
 async function getOllamaUrl(): Promise<string> {
-  const url = await readSecret("openhub", "ollama-url");
+  const url = await readSecret("openaxis", "ollama-url");
   // Reject unsafe (cloud-metadata / link-local) hosts even if one slipped into the
   // store — falls back to loopback rather than letting fetch() pivot internally.
   if (url && isSafeOllamaUrl(url)) return url;

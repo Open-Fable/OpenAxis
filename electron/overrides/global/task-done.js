@@ -1,16 +1,16 @@
 /*
- * OpenHub — shared task completion detector factory
+ * OpenAxis — shared task completion detector factory
  *
- * Exposes window.__openhubTaskDone(selector, source) for per-app task-done
+ * Exposes window.__openaxisTaskDone(selector, source) for per-app task-done
  * scripts to call with their own busy-state selector and source name.
  */
 (function () {
-  if (window.__openhubTaskDone) return;
+  if (window.__openaxisTaskDone) return;
 
-  window.__openhubTaskDone = function (selector, source) {
-    if (!window.openhub || !window.openhub.notifyTaskDone) return;
-    if (window.__OPENHUB_TASK_DONE_INJECTED__) return;
-    window.__OPENHUB_TASK_DONE_INJECTED__ = true;
+  window.__openaxisTaskDone = function (selector, source) {
+    if (!window.openaxis || !window.openaxis.notifyTaskDone) return;
+    if (window.__OPENAXIS_TASK_DONE_INJECTED__) return;
+    window.__OPENAXIS_TASK_DONE_INJECTED__ = true;
 
     var POLL_MS = 1500;
     var MIN_RUN_MS = 2000;
@@ -33,7 +33,7 @@
         runningSince = 0;
         if (ranFor >= MIN_RUN_MS && Date.now() - lastNotifiedAt >= COOLDOWN_MS) {
           lastNotifiedAt = Date.now();
-          window.openhub.notifyTaskDone(source);
+          window.openaxis.notifyTaskDone(source);
         }
       }
       sawIdle = true;

@@ -1,4 +1,4 @@
-// OpenHub shell translations (sidebar, config panel, nav popup).
+// OpenAxis shell translations (sidebar, config panel, nav popup).
 // fr values MUST match the original French markup exactly so French users see
 // no change. Registered into the i18n runtime; resolve with window.t("key").
 (function () {
@@ -43,7 +43,7 @@
       "cfg.nav.hint": "Secrets",
       "cfg.close.aria": "Fermer les réglages",
       "cfg.keys.desc":
-        "Chiffrées dans ~/Library/Application Support/openhub/secrets.enc (AES-256-GCM).",
+        "Chiffrées dans ~/Library/Application Support/openaxis/secrets.enc (AES-256-GCM).",
       "cfg.models.desc": "Configuration des modèles et fonctionnalités.",
       "cfg.memory.desc": "Profil utilisateur et base de connaissances.",
       "cfg.updates.desc": "Gérer l'apparence, l'onboarding et les mises à jour.",
@@ -211,7 +211,7 @@
       "onboarding.finish": "Terminer",
       "onboarding.start": "Commencer",
 
-      "onboarding.welcome.title": "Bienvenue sur OpenHub",
+      "onboarding.welcome.title": "Bienvenue sur OpenAxis",
       "onboarding.welcome.subtitle":
         "Votre environnement IA unifié — chat, code, work, design, orchestration, une seule interface.",
       "onboarding.welcome.work.title": "Work",
@@ -302,7 +302,7 @@
       "cfg.nav.hint": "Secrets",
       "cfg.close.aria": "Close settings",
       "cfg.keys.desc":
-        "Encrypted in ~/Library/Application Support/openhub/secrets.enc (AES-256-GCM).",
+        "Encrypted in ~/Library/Application Support/openaxis/secrets.enc (AES-256-GCM).",
       "cfg.models.desc": "Model and feature configuration.",
       "cfg.memory.desc": "User profile and knowledge base.",
       "cfg.updates.desc": "Manage appearance, onboarding, and updates.",
@@ -469,7 +469,7 @@
       "onboarding.finish": "Finish",
       "onboarding.start": "Get started",
 
-      "onboarding.welcome.title": "Welcome to OpenHub",
+      "onboarding.welcome.title": "Welcome to OpenAxis",
       "onboarding.welcome.subtitle":
         "Your unified AI environment — chat, code, work, design, orchestration, one interface.",
       "onboarding.welcome.work.title": "Work",

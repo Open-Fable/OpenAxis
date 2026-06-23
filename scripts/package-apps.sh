@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# OpenHub — Package Apps (standalone .dmg)
+# OpenAxis — Package Apps (standalone .dmg)
 # ──────────────────────────────────────────────────────────────────────────────
 # Assemble les artefacts de PRODUCTION des 3 apps upstream dans build/bundle/,
 # dans le layout exact attendu par electron-builder (extraResources) :

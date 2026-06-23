@@ -27,7 +27,7 @@ jobs:
       - name: Enable pnpm via corepack
         run: corepack enable pnpm
 
-      - name: Install OpenHub dependencies
+      - name: Install OpenAxis dependencies
         run: npm ci
 
       # Clone les 3 apps upstream + installe le CLI opencode + leurs deps.

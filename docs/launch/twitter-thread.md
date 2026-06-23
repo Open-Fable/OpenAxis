@@ -8,7 +8,7 @@
 
 I got tired of juggling 5 AI windows with 5 API keys.
 
-So I built OpenHub — one macOS app that puts chat, code agents, design tools, and a multi-agent orchestrator in a single sidebar.
+So I built OpenAxis — one macOS app that puts chat, code agents, design tools, and a multi-agent orchestrator in a single sidebar.
 
 Open source. Free. MIT licensed.
 
@@ -26,7 +26,7 @@ OpenCode for coding. OpenWork for tasks. Open Design for mockups. A chat for qui
 
 **Tweet 3 (the solution):**
 
-OpenHub wraps all three + adds a built-in chat and orchestrator.
+OpenAxis wraps all three + adds a built-in chat and orchestrator.
 
 You enter your keys once (encrypted secrets file — never stored in plaintext).
 A local proxy routes everything. All tools share the same context.
@@ -62,7 +62,7 @@ How it works under the hood:
 MIT licensed. Download the .dmg (Apple Silicon) and you're running in 30 seconds.
 
 Star it, fork it, break it:
-→ github.com/Open-Fable/OpenHub
+→ github.com/Open-Fable/OpenAxis
 
 Feedback welcome — especially on the orchestrator engine.
 

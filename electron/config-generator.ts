@@ -51,11 +51,11 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
   }
 
   const existingProviders = (existing.provider ?? {}) as Record<string, unknown>;
-  const existingOhub = existingProviders.openhub as Record<string, unknown> | undefined;
+  const existingOhub = existingProviders.openaxis as Record<string, unknown> | undefined;
   const existingModels = existingOhub?.models as Record<string, unknown> | undefined;
 
   // Decide which models to use:
-  // If the user already has selected models in openhub (from Catalog), PRESERVE them.
+  // If the user already has selected models in openaxis (from Catalog), PRESERVE them.
   // Only use defaults for a fresh install (no existing models).
   let models: Record<string, Record<string, unknown>>;
 
@@ -139,9 +139,9 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
     $schema: "https://opencode.ai/config.json",
     provider: {
       ...existingProviders,
-      openhub: {
+      openaxis: {
         npm: "@ai-sdk/openai-compatible",
-        name: "OpenHub Proxy",
+        name: "OpenAxis Proxy",
         options: {
           baseURL: "http://localhost:9999/v1",
           apiKey: opts.proxyToken,

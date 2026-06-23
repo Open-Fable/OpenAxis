@@ -1,5 +1,5 @@
 // In-app Google OAuth login for Gemini, mirroring the `opencode-gemini-auth`
-// plugin so OpenHub writes the exact same ~/.local/share/opencode/auth.json the
+// plugin so OpenAxis writes the exact same ~/.local/share/opencode/auth.json the
 // proxy already reads. The packed refresh format is `refreshToken|projectId|managedProjectId`.
 
 import { createServer, type Server } from "http";
@@ -151,7 +151,7 @@ function startCallbackServer(expectedState: string): {
     sendPage(
       res,
       "Connexion réussie",
-      "Tu peux fermer cette fenêtre et revenir à OpenHub.",
+      "Tu peux fermer cette fenêtre et revenir à OpenAxis.",
     );
     resolveCode(authCode);
   });

@@ -1,11 +1,11 @@
-# Show HN: OpenHub — One macOS window for chat, code, design, and multi-agent orchestration
+# Show HN: OpenAxis — One macOS window for chat, code, design, and multi-agent orchestration
 
 **Post URL:** Submit to https://news.ycombinator.com/submit
 
 **Title (80 chars max):**
 
 ```
-Show HN: OpenHub – One macOS app for chat, code agents, design, and orchestration
+Show HN: OpenAxis – One macOS app for chat, code agents, design, and orchestration
 ```
 
 **Body:**
@@ -13,7 +13,7 @@ Show HN: OpenHub – One macOS app for chat, code agents, design, and orchestrat
 ```
 Hi HN,
 
-I built OpenHub, a free macOS desktop app that puts five AI tools in one sidebar:
+I built OpenAxis, a free macOS desktop app that puts five AI tools in one sidebar:
 a chat (any model), a multi-agent orchestrator, and three open-source tools —
 OpenCode (sst), OpenWork (different-ai), and Open Design (nexu-io).
 
@@ -38,7 +38,7 @@ Stack: Electron + TypeScript + Express proxy + AES-256-GCM encrypted secrets fil
 
 MIT licensed. Download the .dmg from Releases (Apple Silicon).
 
-https://github.com/Open-Fable/OpenHub
+https://github.com/Open-Fable/OpenAxis
 
 Would love feedback on the architecture and the orchestrator engine.
 ```

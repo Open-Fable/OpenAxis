@@ -1,6 +1,6 @@
 [English](ORCHESTRATOR.md) · **Français**
 
-# OpenHub — L'orchestrateur multi-agents
+# OpenAxis — L'orchestrateur multi-agents
 
 > L'orchestrateur est un **assistant interactif** qui transforme un objectif en
 > langage courant en un workflow multi-agents. Tu décris ce que tu veux — il
@@ -97,8 +97,8 @@ Les nœuds orchestrateur et les agents partagent un seul type `Project`
 - `adaptToWeakModel` — sélectionne le profil **tier faible** (plus d'itérations,
   décomposition forcée, prompts compacts) pour les modèles moins capables.
 
-Les projets sont stockés dans `~/.config/openhub/projects.json` (écriture atomique +
-verrou d'écriture). L'historique des runs vit dans `~/.config/openhub/orch-history.json`,
+Les projets sont stockés dans `~/.config/openaxis/projects.json` (écriture atomique +
+verrou d'écriture). L'historique des runs vit dans `~/.config/openaxis/orch-history.json`,
 plafonné à 50 runs.
 
 ---

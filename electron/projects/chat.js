@@ -2,8 +2,8 @@
 
 var conversations = [];
 var activeConvId = null;
-var CONV_KEY = "openhub-orch-convs";
-var ACTIVE_CONV_KEY = "openhub-last-conv";
+var CONV_KEY = "openaxis-orch-convs";
+var ACTIVE_CONV_KEY = "openaxis-last-conv";
 
 function getConvKey() {
   return activeWorkflowId ? CONV_KEY + "-" + activeWorkflowId : CONV_KEY;
@@ -79,8 +79,8 @@ function persistConvsToDisk() {
           dump[k] = JSON.parse(localStorage.getItem(k));
         } catch (e) {}
       });
-      if (window.openhub && window.openhub.writeOrchConversations) {
-        window.openhub.writeOrchConversations(JSON.stringify(dump));
+      if (window.openaxis && window.openaxis.writeOrchConversations) {
+        window.openaxis.writeOrchConversations(JSON.stringify(dump));
       }
     } catch (e) {}
   }, 2000);
@@ -555,8 +555,8 @@ function sendChat() {
       }
       addMessageToConv("assistant", fullText, fullReasoning);
 
-      if (window.openhub && window.openhub.notifyTaskDone) {
-        window.openhub.notifyTaskDone("chat");
+      if (window.openaxis && window.openaxis.notifyTaskDone) {
+        window.openaxis.notifyTaskDone("chat");
       }
 
       if (activeWorkflowId !== prevWorkflowId) {
@@ -849,7 +849,7 @@ async function linkRootAgentsToOrchestrator() {
     var deps = agent.dependencies || [];
     if (deps.length === 0) {
       agent.dependencies = [selectedOrchestratorId];
-      await window.openhub.saveProject(agent);
+      await window.openaxis.saveProject(agent);
     }
   }
 }
@@ -881,7 +881,7 @@ async function resolveBatchDependencies(actions) {
     });
     if (missing.length > 0) {
       proj.dependencies = current.concat(missing);
-      await window.openhub.saveProject(proj);
+      await window.openaxis.saveProject(proj);
     }
   }
 }
@@ -914,13 +914,13 @@ async function confirmAction(actionJson, silent) {
           var depIds = action.dependencies.map(resolveDepRef).filter(Boolean);
           if (depIds.length > 0) projData.dependencies = depIds;
         }
-        var p = await window.openhub.saveProject(projData);
+        var p = await window.openaxis.saveProject(projData);
         projects.push(p);
         if (action.linkToWf && activeWorkflowId && activeWf) {
           if (!activeWf.linkedProjectIds) activeWf.linkedProjectIds = [];
           if (!activeWf.linkedProjectIds.includes(p.id)) {
             activeWf.linkedProjectIds = [].concat(activeWf.linkedProjectIds, [p.id]);
-            await window.openhub.saveWorkflow(activeWf);
+            await window.openaxis.saveWorkflow(activeWf);
           }
           var activeOrch = projects.find(function (pp) {
             return pp.id === selectedOrchestratorId;
@@ -929,7 +929,7 @@ async function confirmAction(actionJson, silent) {
             if (!activeOrch.linked) activeOrch.linked = [];
             if (!activeOrch.linked.includes(p.id)) {
               activeOrch.linked.push(p.id);
-              await window.openhub.saveProject(activeOrch);
+              await window.openaxis.saveProject(activeOrch);
             }
           }
         }
@@ -948,7 +948,7 @@ async function confirmAction(actionJson, silent) {
           for (var si = 0; si < projects.length; si++) {
             if (linkedIdsSM.includes(projects[si].id)) {
               var updatedProj = Object.assign({}, projects[si], { model: modelId });
-              await window.openhub.saveProject(updatedProj);
+              await window.openaxis.saveProject(updatedProj);
               projects[si] = updatedProj;
             }
           }
@@ -960,7 +960,7 @@ async function confirmAction(actionJson, silent) {
             var updatedTarget = Object.assign({}, projects[targetIdx], {
               model: modelId,
             });
-            await window.openhub.saveProject(updatedTarget);
+            await window.openaxis.saveProject(updatedTarget);
             projects[targetIdx] = updatedTarget;
           }
         } else if (action.projectName) {
@@ -971,7 +971,7 @@ async function confirmAction(actionJson, silent) {
             var updatedByName = Object.assign({}, projects[targetIdxByName], {
               model: modelId,
             });
-            await window.openhub.saveProject(updatedByName);
+            await window.openaxis.saveProject(updatedByName);
             projects[targetIdxByName] = updatedByName;
           }
         }
@@ -984,7 +984,7 @@ async function confirmAction(actionJson, silent) {
         });
         if (orchForTask) {
           orchForTask.task = taskText;
-          await window.openhub.saveProject(orchForTask);
+          await window.openaxis.saveProject(orchForTask);
           var sharedTaskEl = document.getElementById("sharedTaskText");
           if (sharedTaskEl) sharedTaskEl.value = taskText;
         }
@@ -1014,7 +1014,7 @@ async function createWorkflowFromAssistant(name, batch) {
   var oldWorkflowId = activeWorkflowId;
   var oldConvId = activeConvId;
 
-  var orch = await window.openhub.saveProject({
+  var orch = await window.openaxis.saveProject({
     name: t("proj.node.typeOrchestrator"),
     instructions:
       "Tu es un coordinateur d'agents. Distribue les tâches et assure la cohérence globale.",
@@ -1026,7 +1026,7 @@ async function createWorkflowFromAssistant(name, batch) {
     y: 240,
     task: "",
   });
-  var wf = await window.openhub.saveWorkflow({
+  var wf = await window.openaxis.saveWorkflow({
     name: name,
     orchProjectId: orch.id,
     linkedProjectIds: [],
@@ -1075,9 +1075,9 @@ function suggestChat(text) {
 }
 
 async function restoreConvsFromDisk() {
-  if (!window.openhub || !window.openhub.readOrchConversations) return;
+  if (!window.openaxis || !window.openaxis.readOrchConversations) return;
   try {
-    var raw = await window.openhub.readOrchConversations();
+    var raw = await window.openaxis.readOrchConversations();
     if (!raw) return;
     var dump = JSON.parse(raw);
     var keys = Object.keys(dump);

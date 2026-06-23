@@ -1,6 +1,6 @@
 [English](CONTRIBUTING.md) · **Français**
 
-# Contribuer à OpenHub
+# Contribuer à OpenAxis
 
 Merci de vouloir contribuer ! Voici comment participer.
 
@@ -16,8 +16,8 @@ le respecter.
 ## Setup local
 
 ```bash
-git clone https://github.com/Open-Fable/OpenHub.git
-cd OpenHub
+git clone https://github.com/Open-Fable/OpenAxis.git
+cd OpenAxis
 bash scripts/setup.sh
 npm run dev
 ```
@@ -34,18 +34,18 @@ npm run dev
 ## Règles
 
 - **Ne modifie jamais le code source des apps upstream** (`apps/`). Toute personnalisation passe par `electron/overrides/`.
-- **Pas de secrets dans le code.** Les clés API sont stockées dans un fichier chiffré dans `~/Library/Application Support/openhub/secrets.enc` (AES-256-GCM).
+- **Pas de secrets dans le code.** Les clés API sont stockées dans un fichier chiffré dans `~/Library/Application Support/openaxis/secrets.enc` (AES-256-GCM).
 - **Commits conventionnels :** `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
 - **TypeScript strict.** Pas de `any` sauf aux frontières de sérialisation.
 - **Fichiers < 400 lignes, fonctions < 50 lignes.**
 
 ## Signaler un bug
 
-Utilise le template [Bug Report](https://github.com/Open-Fable/OpenHub/issues/new?template=bug_report.yml).
+Utilise le template [Bug Report](https://github.com/Open-Fable/OpenAxis/issues/new?template=bug_report.yml).
 
 ## Proposer une fonctionnalité
 
-Utilise le template [Feature Request](https://github.com/Open-Fable/OpenHub/issues/new?template=feature_request.yml).
+Utilise le template [Feature Request](https://github.com/Open-Fable/OpenAxis/issues/new?template=feature_request.yml).
 
 ## Licence
 

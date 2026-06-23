@@ -93,7 +93,7 @@ describe("callLLM", () => {
 
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers.Authorization).toBe("Bearer test-token-abc");
-    expect(init.headers["X-OpenHub-Project-Id"]).toBe("proj-42");
+    expect(init.headers["X-OpenAxis-Project-Id"]).toBe("proj-42");
     expect(init.headers["Content-Type"]).toBe("application/json");
   });
 

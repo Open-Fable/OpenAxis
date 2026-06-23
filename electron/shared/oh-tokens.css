@@ -1,5 +1,5 @@
 /* ============================================================================
-   OpenHub — Source UNIQUE de design tokens (--oh-*)
+   OpenAxis — Source UNIQUE de design tokens (--oh-*)
    Référence : reports/design-audit/08-design-tokens.md
    Mode SOMBRE par défaut (aussi forcé via nativeTheme.themeSource = "dark"
    dans electron/main.ts). Le mode clair est conservé via

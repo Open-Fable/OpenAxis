@@ -37,7 +37,7 @@ function selectOrchestrator(id) {
   applyTransform();
   selectedOrchestratorId = id;
   selectedNodeId = null;
-  window.openhub.setActiveProject(id);
+  window.openaxis.setActiveProject(id);
   renderCanvas();
   updateTaskCard();
 }
@@ -340,7 +340,7 @@ function drawConnections() {
         node.dependencies = node.dependencies.filter(function (id) {
           return id !== parentId;
         });
-        await window.openhub.saveProject(node);
+        await window.openaxis.saveProject(node);
         drawConnections();
         showToast(t("proj.toast.dependencyRemoved"), "success");
       });
@@ -593,7 +593,7 @@ document.addEventListener("mousemove", function (e) {
           if (p) {
             p.x = nodeEl.offsetLeft;
             p.y = nodeEl.offsetTop;
-            await window.openhub.saveProject(p);
+            await window.openaxis.saveProject(p);
           }
         }, 1000);
       }
@@ -653,7 +653,7 @@ function showLinkPopover(e, childNode, parentId) {
     childNode.dependencies = childNode.dependencies.filter(function (id) {
       return id !== parentId;
     });
-    await window.openhub.saveProject(childNode);
+    await window.openaxis.saveProject(childNode);
     drawConnections();
     showToast(t("proj.toast.linkRemoved"), "success");
   };
@@ -722,7 +722,7 @@ function removeNodeFromCanvas(node) {
     activeWf.linkedProjectIds = activeWf.linkedProjectIds.filter(function (id) {
       return id !== node.id;
     });
-    saves.push(window.openhub.saveWorkflow(activeWf));
+    saves.push(window.openaxis.saveWorkflow(activeWf));
   }
   var activeOrch = projects.find(function (p) {
     return p.id === selectedOrchestratorId;
@@ -731,14 +731,14 @@ function removeNodeFromCanvas(node) {
     activeOrch.linked = activeOrch.linked.filter(function (id) {
       return id !== node.id;
     });
-    saves.push(window.openhub.saveProject(activeOrch));
+    saves.push(window.openaxis.saveProject(activeOrch));
   }
   projects.forEach(function (p) {
     if (p.dependencies && p.dependencies.includes(node.id)) {
       p.dependencies = p.dependencies.filter(function (id) {
         return id !== node.id;
       });
-      saves.push(window.openhub.saveProject(p));
+      saves.push(window.openaxis.saveProject(p));
     }
   });
   Promise.all(saves)
@@ -763,7 +763,7 @@ function deleteNodeProject(node) {
       w.linkedProjectIds = w.linkedProjectIds.filter(function (id) {
         return id !== node.id;
       });
-      saves.push(window.openhub.saveWorkflow(w));
+      saves.push(window.openaxis.saveWorkflow(w));
     }
   });
   projects.forEach(function (p) {
@@ -771,18 +771,18 @@ function deleteNodeProject(node) {
       p.linked = p.linked.filter(function (id) {
         return id !== node.id;
       });
-      saves.push(window.openhub.saveProject(p));
+      saves.push(window.openaxis.saveProject(p));
     }
     if (p.dependencies && p.dependencies.includes(node.id)) {
       p.dependencies = p.dependencies.filter(function (id) {
         return id !== node.id;
       });
-      saves.push(window.openhub.saveProject(p));
+      saves.push(window.openaxis.saveProject(p));
     }
   });
   Promise.all(saves)
     .then(function () {
-      return window.openhub.deleteProject(node.id);
+      return window.openaxis.deleteProject(node.id);
     })
     .then(function () {
       if (selectedNodeId === node.id) closeDetail();
@@ -827,7 +827,7 @@ document.addEventListener("mouseup", async function (e) {
                 return;
               }
               childProject.dependencies.push(linkStartNode);
-              await window.openhub.saveProject(childProject);
+              await window.openaxis.saveProject(childProject);
               showToast(t("proj.toast.agentsLinked"), "success");
             }
           }
@@ -846,7 +846,7 @@ document.addEventListener("mouseup", async function (e) {
       if (p) {
         p.x = nodeEl.offsetLeft;
         p.y = nodeEl.offsetTop;
-        await window.openhub.saveProject(p);
+        await window.openaxis.saveProject(p);
       }
     }
     dragNode = null;

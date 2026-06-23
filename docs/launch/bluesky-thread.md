@@ -4,11 +4,11 @@
 
 **Post 1:**
 
-I built OpenHub — a free macOS app that puts chat, code agents, design tools, and a multi-agent orchestrator in one sidebar.
+I built OpenAxis — a free macOS app that puts chat, code agents, design tools, and a multi-agent orchestrator in one sidebar.
 
 Enter your API keys once. All tools share the same proxy. Open source, MIT licensed.
 
-github.com/Open-Fable/OpenHub
+github.com/Open-Fable/OpenAxis
 
 Thread →
 
@@ -37,7 +37,7 @@ Under the hood:
 - Electron + TypeScript
 - Local Express proxy on localhost:9999
 - Supports Anthropic, OpenAI, OpenRouter, Ollama, Gemini
-- Secrets in encrypted file (~/Library/Application Support/openhub/secrets.enc)
+- Secrets in encrypted file (~/Library/Application Support/openaxis/secrets.enc)
 - Zero Docker
 
 ---
@@ -48,4 +48,4 @@ MIT licensed. Download the .dmg (Apple Silicon) — no setup needed.
 
 Would love feedback — especially on the multi-agent orchestrator.
 
-github.com/Open-Fable/OpenHub
+github.com/Open-Fable/OpenAxis

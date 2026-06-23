@@ -84,7 +84,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Stop Chromium's os_crypt from using the macOS Keychain to encrypt cookies /
 // local storage for the webview partitions. Under ad-hoc signing (no Apple
 // Developer ID) macOS doesn't persistently trust the app, so it re-prompts for
-// the login password to access the "openhub Safe Storage" keychain item on
+// the login password to access the "openaxis Safe Storage" keychain item on
 // every launch. `use-mock-keychain` makes os_crypt use an in-process key
 // instead — no Keychain, no prompt. (`password-store` is a Linux-only switch and
 // is a no-op on macOS; kept for non-macOS runs.)
@@ -279,13 +279,13 @@ function createSlotView(
   // there appends a DUPLICATE stylesheet that accumulates unboundedly over a long
   // SPA session (memory + style-recalc cost). JS is re-run on both events because
   // an in-page route swap can drop our injected DOM; the overrides are guarded by
-  // window.__OPENHUB_*_INJECTED__ flags so re-running is idempotent.
+  // window.__OPENAXIS_*_INJECTED__ flags so re-running is idempotent.
   // Override injection is DEFERRED until after loadURL completes. Injecting
   // during did-navigate (while modules are loading) blocks the renderer's main
   // thread via IPC round-trips (insertCSS/executeJavaScript), turning a <1s
   // load into 17-27s.  The did-navigate-in-page listener handles SPA route
   // changes after the initial load.
-  if (process.env.OPENHUB_NO_OVERRIDES !== "1") {
+  if (process.env.OPENAXIS_NO_OVERRIDES !== "1") {
     let inPageTimer: ReturnType<typeof setTimeout> | null = null;
     view.webContents.on("did-navigate-in-page", () => {
       if (inPageTimer) clearTimeout(inPageTimer);
@@ -643,7 +643,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
     activeSlot = "chat";
     repositionViews();
     mainWindow.webContents.send("slot-changed", "chat");
-    mainWindow.setTitle("OpenHub — Chat");
+    mainWindow.setTitle("OpenAxis — Chat");
     return;
   }
 
@@ -686,7 +686,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
     activeSlot = "projects";
     repositionViews();
     mainWindow.webContents.send("slot-changed", "projects");
-    mainWindow.setTitle("OpenHub — Projets");
+    mainWindow.setTitle("OpenAxis — Projets");
     return;
   }
 
@@ -762,7 +762,7 @@ async function switchSlot(slot: SlotName): Promise<void> {
       __t("loadViewUrl done");
       // Inject overrides AFTER the page has fully loaded — injecting during
       // did-navigate blocks the renderer for 17-27s via IPC round-trips.
-      if (process.env.OPENHUB_NO_OVERRIDES !== "1") {
+      if (process.env.OPENAXIS_NO_OVERRIDES !== "1") {
         __t("injectOverrides start (post-load)");
         await injectOverrides(slot, view, true);
         __t("injectOverrides done (post-load)");
@@ -790,12 +790,12 @@ async function switchSlot(slot: SlotName): Promise<void> {
   mainWindow.webContents.send("slot-changed", slot);
 
   const slotTitles: Record<string, string> = {
-    work: "OpenHub — Work",
-    code: "OpenHub — Code",
-    design: "OpenHub — Design",
-    chat: "OpenHub — Chat",
+    work: "OpenAxis — Work",
+    code: "OpenAxis — Code",
+    design: "OpenAxis — Design",
+    chat: "OpenAxis — Chat",
   };
-  mainWindow.setTitle(slotTitles[slot] ?? "OpenHub");
+  mainWindow.setTitle(slotTitles[slot] ?? "OpenAxis");
 
   console.warn(`[main] ── switchSlot("${slot}") done ──\n`);
 }
@@ -874,7 +874,7 @@ ipcHandle("openwork-desktop-invoke", async (_e, command: string, ...args: unknow
     // (Electron path) which we handle with skipped=true → instant markReady().
     case "workspaceBootstrap": {
       const workspaces = getWorkspacesSync();
-      const activeId = getActiveWorkspaceIdSync() ?? "openhub-default";
+      const activeId = getActiveWorkspaceIdSync() ?? "openaxis-default";
       return {
         workspaces,
         selectedId: activeId,
@@ -1213,7 +1213,7 @@ ipcHandle("get-orch-status-buffer", () => {
 });
 
 // ── Chat backup (file-system persistence for conversations) ─────────────────
-const CHAT_BACKUP_PATH = path.join(homedir(), ".config", "openhub", "chat-backup.json");
+const CHAT_BACKUP_PATH = path.join(homedir(), ".config", "openaxis", "chat-backup.json");
 ipcHandle("read-chat-backup", async () => {
   try {
     return await fs.readFile(CHAT_BACKUP_PATH, "utf-8");
@@ -1235,7 +1235,7 @@ ipcHandle("write-chat-backup", async (_e, data: string) => {
 const ORCH_CONVS_PATH = path.join(
   homedir(),
   ".config",
-  "openhub",
+  "openaxis",
   "orch-conversations.json",
 );
 ipcHandle("read-orch-conversations", async () => {
@@ -1272,7 +1272,7 @@ ipcHandle(
 // ── Workspace Skills management ─────────────────────────────────────────────
 ipcHandle("get-skills", async () => {
   const workspaceDir = getActiveWorkspaceDir();
-  const skillsDir = path.join(workspaceDir, ".openhub", "skills");
+  const skillsDir = path.join(workspaceDir, ".openaxis", "skills");
   try {
     await fs.mkdir(skillsDir, { recursive: true });
     const files = await fs.readdir(skillsDir);
@@ -1296,7 +1296,7 @@ ipcHandle(
   "save-skill",
   async (_e, skill: { filename?: string; title: string; content: string }) => {
     const workspaceDir = getActiveWorkspaceDir();
-    const skillsDir = path.join(workspaceDir, ".openhub", "skills");
+    const skillsDir = path.join(workspaceDir, ".openaxis", "skills");
     await fs.mkdir(skillsDir, { recursive: true });
 
     const sanitize = (name: string): string => {
@@ -1326,7 +1326,7 @@ ipcHandle(
 
 ipcHandle("delete-skill", async (_e, filename: string) => {
   const workspaceDir = getActiveWorkspaceDir();
-  const skillsDir = path.join(workspaceDir, ".openhub", "skills");
+  const skillsDir = path.join(workspaceDir, ".openaxis", "skills");
   const cleanFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, "");
   if (!cleanFilename || cleanFilename.includes("..")) {
     throw new Error("Invalid filename");
@@ -1450,7 +1450,7 @@ ipcHandle("web-search", async (_e, query: string) => {
   // on ne cherche jamais — quel que soit l'état du chat (kill-switch global).
   if (!webSearchEnabled) return [];
   const { readSecret } = await import("./keychain.js");
-  const braveSearchKey = await readSecret("openhub", "brave-search-key");
+  const braveSearchKey = await readSecret("openaxis", "brave-search-key");
   if (braveSearchKey === null || braveSearchKey === "") {
     throw new Error(
       "Clé Brave Search manquante. Veuillez la configurer dans l'onglet Config ⚙️.",
@@ -1525,7 +1525,7 @@ ipcHandle("save-api-keys", async (_e, keys: Record<string, string>) => {
 
     const value = raw.trim().replace(/[\x00-\x1F\x7F]/g, "");
     if (value === "") {
-      await deleteSecret("openhub", account).catch((err) => {
+      await deleteSecret("openaxis", account).catch((err) => {
         console.warn(`[main] Failed to delete secret ${account}:`, err);
       });
       continue;
@@ -1542,7 +1542,7 @@ ipcHandle("save-api-keys", async (_e, keys: Record<string, string>) => {
       console.warn("[main] save-api-keys: ollama-url rejected (unsafe host)");
       continue;
     }
-    await writeSecret("openhub", account, value);
+    await writeSecret("openaxis", account, value);
   }
 
   // Save custom provider keys
@@ -1550,7 +1550,7 @@ ipcHandle("save-api-keys", async (_e, keys: Record<string, string>) => {
     if (field.startsWith("custom-provider-key-") && raw !== undefined) {
       const value = raw.trim().replace(/[\x00-\x1F\x7F]/g, "");
       if (value === "") {
-        await deleteSecret("openhub", field).catch((err) => {
+        await deleteSecret("openaxis", field).catch((err) => {
           console.warn(`[main] Failed to delete custom provider secret ${field}:`, err);
         });
         continue;
@@ -1560,7 +1560,7 @@ ipcHandle("save-api-keys", async (_e, keys: Record<string, string>) => {
         console.warn(`[main] save-api-keys: ${field} rejected (trop long)`);
         continue;
       }
-      await writeSecret("openhub", field, value);
+      await writeSecret("openaxis", field, value);
     }
   }
 
@@ -1618,7 +1618,7 @@ ipcHandle(
     const { deleteSecret } = await import("./keychain.js");
     for (const old of customProviders) {
       if (!validatedList.some((p) => p.id === old.id)) {
-        await deleteSecret("openhub", `custom-provider-key-${old.id}`).catch((err) => {
+        await deleteSecret("openaxis", `custom-provider-key-${old.id}`).catch((err) => {
           console.warn(`[main] Failed to delete custom provider key for ${old.id}:`, err);
         });
       }
@@ -2075,7 +2075,7 @@ let notifySources: NotifySources = defaultNotifySources();
 type AppLanguage = "fr" | "en";
 let language: AppLanguage = "fr";
 let onboardingCompleted = false;
-const SETTINGS_PATH = path.join(homedir(), ".config", "openhub", "settings.json");
+const SETTINGS_PATH = path.join(homedir(), ".config", "openaxis", "settings.json");
 
 // First-run default: follow the macOS UI language, French otherwise.
 function detectDefaultLanguage(): AppLanguage {
@@ -2808,11 +2808,11 @@ app
     bootT("readSecrets start");
     const [anthropicKey, openaiKey, deepseekKey, openrouterKey, googleAiKey] =
       await Promise.all([
-        readSecret("openhub", "anthropic-api-key"),
-        readSecret("openhub", "openai-api-key"),
-        readSecret("openhub", "deepseek-api-key"),
-        readSecret("openhub", "openrouter-api-key"),
-        readSecret("openhub", "google-ai-key"),
+        readSecret("openaxis", "anthropic-api-key"),
+        readSecret("openaxis", "openai-api-key"),
+        readSecret("openaxis", "deepseek-api-key"),
+        readSecret("openaxis", "openrouter-api-key"),
+        readSecret("openaxis", "google-ai-key"),
       ]);
     bootT("readSecrets done");
 
@@ -2898,7 +2898,7 @@ app
   .catch((err) => {
     console.error("[main] fatal startup error:", err);
     dialog.showErrorBox(
-      "OpenHub — Startup Error",
+      "OpenAxis — Startup Error",
       `The application failed to start:\n\n${err instanceof Error ? err.message : String(err)}`,
     );
     app.quit();

@@ -21,9 +21,9 @@ interface RemoteManifest {
 // Constants
 // ---------------------------------------------------------------------------
 
-const BASE_URL = "https://raw.githubusercontent.com/Open-Fable/OpenHub/remote-overrides";
+const BASE_URL = "https://raw.githubusercontent.com/Open-Fable/OpenAxis/remote-overrides";
 
-const CACHE_DIR = path.join(os.homedir(), ".config", "openhub", "remote-overrides");
+const CACHE_DIR = path.join(os.homedir(), ".config", "openaxis", "remote-overrides");
 
 const MANIFEST_FILENAME = "manifest.json";
 const FETCH_TIMEOUT_MS = 10_000;

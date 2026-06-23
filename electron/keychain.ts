@@ -6,7 +6,7 @@ import { execFileSync } from "child_process";
 import path from "path";
 import net from "net";
 
-const SERVICE = "openhub";
+const SERVICE = "openaxis";
 
 // Secrets are stored in a single AES-256-GCM encrypted file under userData.
 // The encryption key is derived from the machine's hardware UUID + a public,
@@ -117,7 +117,7 @@ let derivedKey: Buffer | null = null;
 // unreadable file aside first.
 let loadCorrupted = false;
 
-const APP_SALT = "openhub-secrets-v1";
+const APP_SALT = "openaxis-secrets-v1";
 
 function getSecretsPath(): string {
   if (!secretsPath) {
@@ -295,7 +295,7 @@ export async function readAllApiKeys(): Promise<{
 
   const customKeys: Record<string, string> = {};
   try {
-    const settingsPath = path.join(homedir(), ".config", "openhub", "settings.json");
+    const settingsPath = path.join(homedir(), ".config", "openaxis", "settings.json");
     const raw = await fs.readFile(settingsPath, "utf-8");
     const parsed = JSON.parse(raw);
     const providers = parsed.customProviders || [];

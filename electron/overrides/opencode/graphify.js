@@ -1,9 +1,9 @@
 (function () {
-  if (!window.openhub) return;
-  if (window.__OPENHUB_GRAPHIFY_INJECTED__) return;
-  window.__OPENHUB_GRAPHIFY_INJECTED__ = true;
+  if (!window.openaxis) return;
+  if (window.__OPENAXIS_GRAPHIFY_INJECTED__) return;
+  window.__OPENAXIS_GRAPHIFY_INJECTED__ = true;
 
-  var _lang = (window.openhub && window.openhub.language) || "fr";
+  var _lang = (window.openaxis && window.openaxis.language) || "fr";
 
   const ICONS = {
     // 4-node square graph (network/knowledge graph icon — distinctly NOT a share button)
@@ -79,7 +79,7 @@
       }
 
       try {
-        const res = await window.openhub.runGraphifyUpdate(worktree);
+        const res = await window.openaxis.runGraphifyUpdate(worktree);
         if (res && res.ok) {
           btn.innerHTML = ICONS.success;
           setTimeout(() => {
@@ -210,8 +210,8 @@
   injectButton();
   if (document.querySelector(".oh-graphify-btn")) observer.disconnect();
 
-  if (window.openhub && window.openhub.onLanguageChanged) {
-    window.openhub.onLanguageChanged(function (l) {
+  if (window.openaxis && window.openaxis.onLanguageChanged) {
+    window.openaxis.onLanguageChanged(function (l) {
       _lang = l === "en" ? "en" : "fr";
     });
   }

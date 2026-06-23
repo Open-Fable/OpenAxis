@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Contributing Guide
-    url: https://github.com/Open-Fable/OpenHub/blob/main/CONTRIBUTING.md
+    url: https://github.com/Open-Fable/OpenAxis/blob/main/CONTRIBUTING.md
     about: Read this before submitting a pull request.
   - name: Architecture & Docs
-    url: https://github.com/Open-Fable/OpenHub/blob/main/ARCHITECTURE.md
+    url: https://github.com/Open-Fable/OpenAxis/blob/main/ARCHITECTURE.md
     about: Full architecture spec — ports, security model, config cascade.

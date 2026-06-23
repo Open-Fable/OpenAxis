@@ -1,5 +1,5 @@
 /**
- * OpenHub — Brand theme sync
+ * OpenAxis — Brand theme sync
  * v2.0 — Grand public, respecte prefers-color-scheme macOS
  *
  * Garde les apps synchronisées avec le thème système.
@@ -11,11 +11,11 @@
 (function () {
   "use strict";
 
-  if (window.__OPENHUB_THEME_INJECTED__) return;
-  window.__OPENHUB_THEME_INJECTED__ = true;
+  if (window.__OPENAXIS_THEME_INJECTED__) return;
+  window.__OPENAXIS_THEME_INJECTED__ = true;
 
   var applying = false;
-  var _lang = (window.openhub && window.openhub.language) || "fr";
+  var _lang = (window.openaxis && window.openaxis.language) || "fr";
 
   function getSystemTheme() {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -215,7 +215,7 @@
             fileInput.files = dt.files;
             fileInput.dispatchEvent(new Event("change", { bubbles: true }));
           } catch (err) {
-            console.error("[openhub] Global drop handler failed to set files:", err);
+            console.error("[openaxis] Global drop handler failed to set files:", err);
           }
         }
       }
@@ -223,8 +223,8 @@
     false,
   );
 
-  if (window.openhub && window.openhub.onLanguageChanged) {
-    window.openhub.onLanguageChanged(function (l) {
+  if (window.openaxis && window.openaxis.onLanguageChanged) {
+    window.openaxis.onLanguageChanged(function (l) {
       _lang = l === "en" ? "en" : "fr";
     });
   }

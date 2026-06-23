@@ -2,55 +2,55 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/index.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/index.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/index.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/index.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/index.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/index.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/index.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/index.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/tools.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/tools.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/tools.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/tools.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/tools.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/tools.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/tools.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/tools.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/how-it-works.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/how-it-works.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/how-it-works.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/how-it-works.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/how-it-works.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/privacy.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/privacy.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/privacy.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/privacy.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/privacy.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/privacy.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/privacy.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/faq.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/faq.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/faq.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/faq.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/faq.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/faq.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/faq.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/faq.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://open-fable.github.io/OpenHub/landing/get-started.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenHub/landing/get-started.html" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenHub/landing/get-started.fr.html" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenHub/landing/get-started.html" />
+    <loc>https://open-fable.github.io/OpenAxis/landing/get-started.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://open-fable.github.io/OpenAxis/landing/get-started.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://open-fable.github.io/OpenAxis/landing/get-started.fr.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://open-fable.github.io/OpenAxis/landing/get-started.html" />
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

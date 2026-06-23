@@ -1,4 +1,4 @@
-// OpenHub chat surface translations (conversations, composer, catalog, projects hub).
+// OpenAxis chat surface translations (conversations, composer, catalog, projects hub).
 // fr values MUST match the original French markup exactly so French users see
 // no change. Registered into the i18n runtime; resolve with window.t("key").
 (function () {
@@ -23,7 +23,7 @@
       // ── Chat header / empty state ──
       "chat.title.new": "Nouvelle conversation",
       "chat.title.newSearch": "Nouvelle recherche",
-      "chat.empty.welcome": "Bienvenue sur OpenHub !",
+      "chat.empty.welcome": "Bienvenue sur OpenAxis !",
       "chat.empty.welcomeDesc": "",
       "chat.empty.help": "Par quoi commence-t-on ?",
       "chat.empty.helpDesc": "",
@@ -92,7 +92,7 @@
       "chat.catalog.initializing":
         "Application en cours d'initialisation, veuillez réessayer…",
       "chat.catalog.loadError": "Erreur de chargement",
-      "chat.catalog.group.direct": "Connexion Directe (OpenHub)",
+      "chat.catalog.group.direct": "Connexion Directe (OpenAxis)",
       "chat.catalog.group.local": "Modèles Locaux (Ollama)",
       "chat.catalog.group.gemini": "Google Gemini",
       "chat.catalog.group.workflow": "Workflow Agentique",
@@ -346,7 +346,7 @@
       // ── Chat header / empty state ──
       "chat.title.new": "New conversation",
       "chat.title.newSearch": "New search",
-      "chat.empty.welcome": "Welcome to OpenHub!",
+      "chat.empty.welcome": "Welcome to OpenAxis!",
       "chat.empty.welcomeDesc": "",
       "chat.empty.help": "Where shall we begin?",
       "chat.empty.helpDesc": "",
@@ -412,7 +412,7 @@
       "chat.catalog.open": "Open the catalog…",
       "chat.catalog.initializing": "Application is initializing, please try again…",
       "chat.catalog.loadError": "Loading error",
-      "chat.catalog.group.direct": "Direct Connection (OpenHub)",
+      "chat.catalog.group.direct": "Direct Connection (OpenAxis)",
       "chat.catalog.group.local": "Local Models (Ollama)",
       "chat.catalog.group.gemini": "Google Gemini",
       "chat.catalog.group.workflow": "Agentic Workflow",

@@ -56,7 +56,7 @@ async function setProjectModelFromMgmt(projectId, model) {
   });
   if (idx === -1) return;
   var updated = Object.assign({}, projects[idx], { model: model || undefined });
-  await window.openhub.saveProject(updated);
+  await window.openaxis.saveProject(updated);
   projects[idx] = updated;
 }
 
@@ -349,7 +349,7 @@ function linkProjectToWf(wfId, projectId) {
   if (!wf.linkedProjectIds) wf.linkedProjectIds = [];
   if (wf.linkedProjectIds.includes(projectId)) return;
   wf.linkedProjectIds = [].concat(wf.linkedProjectIds, [projectId]);
-  window.openhub.saveWorkflow(wf).then(function () {
+  window.openaxis.saveWorkflow(wf).then(function () {
     renderMgmtDetail(wfId);
     renderMgmtWfList();
     switchWorkflow(wfId);
@@ -365,7 +365,7 @@ function unlinkProjectFromWf(wfId, projectId) {
   wf.linkedProjectIds = (wf.linkedProjectIds || []).filter(function (id) {
     return id !== projectId;
   });
-  window.openhub.saveWorkflow(wf).then(function () {
+  window.openaxis.saveWorkflow(wf).then(function () {
     renderMgmtDetail(wfId);
     renderMgmtWfList();
     switchWorkflow(wfId);
@@ -385,21 +385,21 @@ function openWorkflowInOrch() {
 }
 
 function pickWfWorkdir(wfId) {
-  if (!window.openhub.pickProjectPath) return;
-  window.openhub.pickProjectPath().then(function (p) {
+  if (!window.openaxis.pickProjectPath) return;
+  window.openaxis.pickProjectPath().then(function (p) {
     if (!p) return;
     var wf = workflows.find(function (w) {
       return w.id === wfId;
     });
     if (!wf) return;
     wf.workDir = p;
-    window.openhub.saveWorkflow(wf);
+    window.openaxis.saveWorkflow(wf);
     var orch = projects.find(function (proj) {
       return proj.id === wf.orchProjectId;
     });
     if (orch) {
       orch.path = p;
-      window.openhub.saveProject(orch);
+      window.openaxis.saveProject(orch);
     }
     renderMgmtDetail(wfId);
     showToast(t("proj.toast.workdirUpdatedMgmt"), "success");
@@ -430,7 +430,7 @@ function deleteCurrentWorkflow() {
     return w.id === mgmtSelectedWfId;
   });
   if (!wf) return;
-  window.openhub.deleteWorkflow(mgmtSelectedWfId).then(function () {
+  window.openaxis.deleteWorkflow(mgmtSelectedWfId).then(function () {
     workflows = workflows.filter(function (w) {
       return w.id !== mgmtSelectedWfId;
     });
@@ -452,8 +452,8 @@ function deleteCurrentWorkflow() {
 function showAllProjectsModal() {
   selectedProjectIds = [];
   allProjFilter = { query: "", type: "", noWorkflow: false };
-  if (!window.openhub.getProjects) return;
-  window.openhub.getProjects().then(function (allProjs) {
+  if (!window.openaxis.getProjects) return;
+  window.openaxis.getProjects().then(function (allProjs) {
     var nonOrchProjs = (allProjs || []).filter(function (p) {
       return p.type !== "orchestrator";
     });
@@ -656,7 +656,7 @@ async function linkSelectedProjects() {
     return;
   }
   wf.linkedProjectIds = [].concat(alreadyLinked, toAdd);
-  await window.openhub.saveWorkflow(wf);
+  await window.openaxis.saveWorkflow(wf);
   selectedProjectIds = [];
   closeModal("modal-all-projects");
   renderMgmtDetail(wf.id);
@@ -692,13 +692,13 @@ async function deleteSelectedProjects() {
       selectedProjectIds = [];
       for (var i = 0; i < idsToDelete.length; i++) {
         var id = idsToDelete[i];
-        await window.openhub.deleteProject(id);
+        await window.openaxis.deleteProject(id);
         projects.forEach(async function (p) {
           if (p.type === "orchestrator" && p.linked && p.linked.includes(id)) {
             p.linked = p.linked.filter(function (lid) {
               return lid !== id;
             });
-            await window.openhub.saveProject(p);
+            await window.openaxis.saveProject(p);
           }
         });
         if (selectedOrchestratorId === id) selectedOrchestratorId = null;

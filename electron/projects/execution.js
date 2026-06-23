@@ -224,8 +224,8 @@ function isOrchestrationRunning() {
 }
 
 function stopOrchestration() {
-  if (!window.openhub.cancelOrchestration) return;
-  window.openhub.cancelOrchestration();
+  if (!window.openaxis.cancelOrchestration) return;
+  window.openaxis.cancelOrchestration();
   appendOrchLog(t("proj.exec.orchStopped"), "error");
   showTopbarProgress(false);
   document.getElementById("btnExecuteOrch").style.display = "inline-flex";
@@ -308,7 +308,7 @@ function startOrchestration() {
   var consoleAcc = document.getElementById("consoleAccordion");
   if (consoleAcc) consoleAcc.open = true;
   if (orchUnsubscribe) orchUnsubscribe();
-  orchUnsubscribe = window.openhub.onOrchestrationStatus(function (data) {
+  orchUnsubscribe = window.openaxis.onOrchestrationStatus(function (data) {
     appendActivityItem(data);
     if (data.chunk) appendOrchLog(data.chunk);
     if (data.workspaceDir && data.projectId === selectedOrchestratorId) {
@@ -363,7 +363,7 @@ function startOrchestration() {
   });
   var workDir = activeWf ? activeWf.workDir || "" : "";
   var wfName = activeWf ? activeWf.name || "" : "";
-  window.openhub
+  window.openaxis
     .executeOrchestration(selectedOrchestratorId, task, workDir, wfName)
     .catch(function () {
       showTopbarProgress(false);
@@ -414,7 +414,7 @@ function saveOrchRun(finalStatus) {
     run.feedback = pendingIteration.feedback;
     run.iteration = pendingIteration.iteration;
   }
-  window.openhub.saveOrchRun(run).then(function (created) {
+  window.openaxis.saveOrchRun(run).then(function (created) {
     var iter =
       (pendingIteration && pendingIteration.iteration) ||
       (created && created.iteration) ||
@@ -427,8 +427,8 @@ function saveOrchRun(finalStatus) {
 }
 
 function loadOrchHistory() {
-  if (!activeWorkflowId || !window.openhub.getOrchRuns) return;
-  window.openhub.getOrchRuns(activeWorkflowId).then(function (runs) {
+  if (!activeWorkflowId || !window.openaxis.getOrchRuns) return;
+  window.openaxis.getOrchRuns(activeWorkflowId).then(function (runs) {
     var list = runs || [];
     renderOrchHistory(list);
     if (list.length > 0) {
@@ -632,7 +632,7 @@ function showRunDetail(run) {
   delBtn.className = "btn btn--ghost history-delete-btn";
   delBtn.textContent = t("proj.history.deleteRun");
   delBtn.onclick = function () {
-    window.openhub.deleteOrchRun(run.id).then(function () {
+    window.openaxis.deleteOrchRun(run.id).then(function () {
       loadOrchHistory();
     });
   };
@@ -696,7 +696,7 @@ function startIteration() {
   updateIterateBar();
 
   if (orchUnsubscribe) orchUnsubscribe();
-  orchUnsubscribe = window.openhub.onOrchestrationStatus(function (data) {
+  orchUnsubscribe = window.openaxis.onOrchestrationStatus(function (data) {
     appendActivityItem(data);
     if (data.chunk) appendOrchLog(data.chunk);
     if (data.workspaceDir && data.projectId === selectedOrchestratorId) {
@@ -747,7 +747,7 @@ function startIteration() {
     }
   });
 
-  window.openhub
+  window.openaxis
     .iterateOrchestration(selectedOrchestratorId, feedback, activeWorkflowId)
     .catch(function (err) {
       showTopbarProgress(false);
@@ -790,8 +790,8 @@ function initExecution() {
     stopOrchestration();
   };
 
-  if (window.openhub.onOrchestrationStatus) {
-    window.openhub.onOrchestrationStatus(function (data) {
+  if (window.openaxis.onOrchestrationStatus) {
+    window.openaxis.onOrchestrationStatus(function (data) {
       applyNodeStatus(data);
     });
   }
@@ -863,8 +863,8 @@ function applyNodeStatus(data) {
 }
 
 function replayStatusBuffer() {
-  if (!window.openhub.getOrchStatusBuffer) return;
-  window.openhub.getOrchStatusBuffer().then(function (buf) {
+  if (!window.openaxis.getOrchStatusBuffer) return;
+  window.openaxis.getOrchStatusBuffer().then(function (buf) {
     if (!buf) return;
     var statuses = buf.statuses || {};
     Object.keys(statuses).forEach(function (pid) {

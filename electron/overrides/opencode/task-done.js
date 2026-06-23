@@ -1,10 +1,10 @@
 /*
- * OpenHub → OpenCode — task completion config
+ * OpenAxis → OpenCode — task completion config
  *
  * Activates the shared task-done detector with OpenCode's working spinner.
  */
 (function () {
-  if (window.__openhubTaskDone) {
-    window.__openhubTaskDone('[data-component="spinner"]', "code");
+  if (window.__openaxisTaskDone) {
+    window.__openaxisTaskDone('[data-component="spinner"]', "code");
   }
 })();

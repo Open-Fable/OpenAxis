@@ -1,15 +1,15 @@
 /*
- * OpenHub — OpenCode brand theme
- * v2.3 — Charte graphique OpenHub (teal + noir pur)
+ * OpenAxis — OpenCode brand theme
+ * v2.3 — Charte graphique OpenAxis (teal + noir pur)
  *
- * Applique les tokens de marque OpenHub à OpenCode.
+ * Applique les tokens de marque OpenAxis à OpenCode.
  * Palette exacte depuis fichier-de-la-marque/brand_colors.json
  *
  * OpenCode a DEUX systèmes de tokens internes :
  *   OC-1 : CSS custom properties (--background-*, --surface-*, --text-*, --border-*)
  *   v2   : --v2-blue-* (dans @layer theme)
  *
- * On override les DEUX pour tout passer en teal OpenHub.
+ * On override les DEUX pour tout passer en teal OpenAxis.
  * Les styles directs sont minimaux et ciblent uniquement des éléments
  * HTML standards dont on est certains qu'ils existent.
  *
@@ -18,7 +18,7 @@
  */
 
 /* ═══════════════════════════════════════════
-   v2-blue PRIMITIVES → TEAL OpenHub v2
+   v2-blue PRIMITIVES → TEAL OpenAxis v2
    ═══════════════════════════════════════════ */
 :root {
   --v2-blue-100: #f0fdfa !important;
@@ -36,7 +36,7 @@
 }
 
 /* ═══════════════════════════════════════════
-   RADIUS → échelle OpenHub (resserre 2-10px natif vers 4-12px)
+   RADIUS → échelle OpenAxis (resserre 2-10px natif vers 4-12px)
    Variables natives OpenCode — méthode robuste (cf. 07 D.1)
    ═══════════════════════════════════════════ */
 :root {
@@ -341,7 +341,7 @@ div.hidden.xl\:flex {
 
 /* ── Model selector / prompt model button ────────────────────────────────
    OpenCode affiche le modèle sélectionné dans un bouton. On teinte son
-   icône et son texte accent pour qu'ils correspondent au teal OpenHub. */
+   icône et son texte accent pour qu'ils correspondent au teal OpenAxis. */
 [data-action="prompt-model"] {
   color: var(--text-interactive-base, #14b8a6) !important;
 }
