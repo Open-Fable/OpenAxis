@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { readAllApiKeys, isSafeOllamaUrl } from "../keychain.js";
 import { GEMINI_CLIENT_ID, GEMINI_CLIENT_SECRET } from "../gemini-credentials.js";
+import { getGeminiAuthStatus } from "../gemini-oauth.js";
 import { getActiveProject, getProjectById } from "../project-store.js";
 import {
   getWorkspacesSync,
@@ -2725,6 +2726,7 @@ export async function buildModelList(
       if (!keys.deepseek) continue;
       available.push(m);
     } else if (m.source === "gemini") {
+      if (!(await getGeminiAuthStatus()).connected) continue;
       available.push(m);
     } else if (m.source === "openrouter") {
       if (!keys.openrouterKey) continue;

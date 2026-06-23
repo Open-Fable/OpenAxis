@@ -116,6 +116,7 @@ let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let splashShownAt = 0;
 const views = new Map<SlotName, WebContentsView>();
+const insertedCSSKeys = new WeakMap<WebContentsView, string[]>();
 let activeSlot: SlotName = "work";
 let processManager: ProcessManager | null = null;
 let proxyToken = "";
@@ -274,12 +275,13 @@ function createSlotView(
   // before its first paint.
   view.setBackgroundColor("#18181E");
 
-  // CSS only on full navigation: a did-navigate-in-page keeps the same document,
-  // so the stylesheet inserted by insertCSS() is still present. Re-inserting it
-  // there appends a DUPLICATE stylesheet that accumulates unboundedly over a long
-  // SPA session (memory + style-recalc cost). JS is re-run on both events because
-  // an in-page route swap can drop our injected DOM; the overrides are guarded by
-  // window.__OPENAXIS_*_INJECTED__ flags so re-running is idempotent.
+  // CSS is re-injected on every SPA navigation because SolidJS can clear
+  // <head> during route transitions, dropping the injected <style> elements.
+  // We use a marker attribute (data-openaxis-css) so old styles are removed
+  // before new ones are appended — no duplicate accumulation.
+  // JS is re-run on both events because an in-page route swap can drop our
+  // injected DOM; the overrides are guarded by window.__OPENAXIS_*_INJECTED__
+  // flags so re-running is idempotent.
   // Override injection is DEFERRED until after loadURL completes. Injecting
   // during did-navigate (while modules are loading) blocks the renderer's main
   // thread via IPC round-trips (insertCSS/executeJavaScript), turning a <1s
@@ -291,7 +293,7 @@ function createSlotView(
       if (inPageTimer) clearTimeout(inPageTimer);
       inPageTimer = setTimeout(() => {
         inPageTimer = null;
-        injectOverrides(slot, view, false);
+        injectOverrides(slot, view, true);
       }, 300);
     });
   }
@@ -355,27 +357,43 @@ async function injectOverrides(
   console.warn(`[override-timing] ${slot} JS done +${Date.now() - t0}ms`);
 
   // CSS: inject as <style> elements via executeJavaScript so they
-  // survive SPA navigations and always come LAST in <head> (beats
-  // OpenCode's dynamic theme). The insertCSS counterpart below is
-  // kept for the initial paint (avoids FOUC).
+  // always come LAST in <head> (beats OpenCode's dynamic theme).
+  // Old overrides are removed first via marker attribute to prevent
+  // duplicate accumulation across SPA navigations.
   if (injectCss) {
     const cssBlocks = await loadOverrides(slot, "css");
     console.warn(
       `[override-timing] ${slot} loadOverrides(css) ${cssBlocks.length} blocks +${Date.now() - t0}ms`,
     );
 
-    // insertCSS for earliest possible paint (avoids flash of unstyled)
-    Promise.all(cssBlocks.map((css) => view.webContents.insertCSS(css)));
+    // insertCSS for earliest possible paint (avoids flash of unstyled).
+    // Remove previously inserted CSS keys first to prevent accumulation
+    // across SPA navigations.
+    const prevKeys = insertedCSSKeys.get(view);
+    if (prevKeys) {
+      for (const key of prevKeys) {
+        view.webContents.removeInsertedCSS(key).catch(() => {});
+      }
+    }
+    const newKeys: string[] = [];
+    for (const css of cssBlocks) {
+      try {
+        const key = await view.webContents.insertCSS(css);
+        newKeys.push(key);
+      } catch {
+        // Silently skip if webContents is destroyed mid-injection
+      }
+    }
+    insertedCSSKeys.set(view, newKeys);
 
-    // executeJavaScript injects <style> elements last in <head>, ensuring
-    // they beat any dynamic theme system (OpenCode v2 resolve, etc.)
-    // and survive SPA in-page navigations (insertCSS may not persist).
+    // executeJavaScript injects <style> elements with a marker attribute.
+    // On repeated calls (SPA navigation) old elements are removed first.
     const styleJs = cssBlocks.map((css) => {
       const escaped = css
         .replace(/\\/g, "\\\\")
         .replace(/`/g, "\\`")
         .replace(/\$/g, "\\$");
-      return `(function(){var s=document.createElement("style");s.textContent=\`${escaped}\`;document.head.appendChild(s)})()`;
+      return `(function(){document.querySelectorAll("style[data-openaxis-css]").forEach(function(e){e.remove()});var s=document.createElement("style");s.setAttribute("data-openaxis-css","");s.textContent=\`${escaped}\`;document.head.appendChild(s)})()`;
     });
     await view.webContents.executeJavaScript(styleJs.join(";"));
     console.warn(
@@ -856,7 +874,7 @@ ipcHandle("get-slot-status", () => processManager?.getStatus() ?? {});
 ipcHandle("openwork-desktop-invoke", async (_e, command: string, ...args: unknown[]) => {
   switch (command) {
     case "pickDirectory": {
-      const result = await dialog.showOpenDialog({
+      const result = await dialog.showOpenDialog(mainWindow!, {
         properties: ["openDirectory", "createDirectory"],
       });
       return result.canceled ? null : (result.filePaths[0] ?? null);
@@ -2137,6 +2155,14 @@ async function loadSettings(): Promise<void> {
       parsed.onboardingCompleted !== undefined ? !!parsed.onboardingCompleted : true; // existing settings file without the flag → existing user, skip onboarding
     customProviders = Array.isArray(parsed.customProviders) ? parsed.customProviders : [];
   } catch {
+    // If settings.json exists but can't be read/parsed (e.g. format change after
+    // update), the user is an existing user — skip onboarding rather than showing
+    // it again. Only show onboarding when the file genuinely doesn't exist (first run).
+    const settingsExists = await fs
+      .stat(SETTINGS_PATH)
+      .then(() => true)
+      .catch(() => false);
+
     navMode = "topbar";
     headerHeight = HEADER_HEIGHT_TOPBAR;
     autoUpdateEnabled = false;
@@ -2151,7 +2177,7 @@ async function loadSettings(): Promise<void> {
     notifyMode = DEFAULT_NOTIFY_MODE;
     notifySources = defaultNotifySources();
     language = detectDefaultLanguage();
-    onboardingCompleted = false;
+    onboardingCompleted = settingsExists; // existing user with corrupt settings → skip onboarding
     customProviders = [];
   }
 }

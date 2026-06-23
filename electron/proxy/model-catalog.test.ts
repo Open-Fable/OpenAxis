@@ -48,6 +48,10 @@ vi.mock("../project-store.js", () => ({
   getProjectById: vi.fn(() => null),
 }));
 
+vi.mock("../gemini-oauth.js", () => ({
+  getGeminiAuthStatus: vi.fn(async () => ({ connected: true })),
+}));
+
 vi.mock("../memory-store.js", () => ({
   buildMemoryBlock: vi.fn(() => ""),
   addFact: vi.fn(),
@@ -186,10 +190,19 @@ describe("buildModelList", () => {
     expect(list.some((m) => m.source === "openrouter")).toBe(false);
   });
 
-  it("always exposes Gemini models (OAuth, no API key required)", async () => {
+  it("exposes Gemini models when Gemini OAuth is connected (no API key required)", async () => {
     const list = await buildModelList(makeKeys());
 
     expect(list.some((m) => m.source === "gemini")).toBe(true);
+  });
+
+  it("hides Gemini models when Gemini OAuth is not connected", async () => {
+    const { getGeminiAuthStatus } = await import("../gemini-oauth.js");
+    vi.mocked(getGeminiAuthStatus).mockResolvedValue({ connected: false });
+
+    const list = await buildModelList(makeKeys());
+
+    expect(list.some((m) => m.source === "gemini")).toBe(false);
   });
 
   it("includes custom provider models in buildModelList", async () => {

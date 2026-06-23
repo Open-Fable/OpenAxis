@@ -100,20 +100,14 @@ async function load(): Promise<ProjectStoreData> {
     };
     return cache;
   } catch {
-    const defaultWorkflow: Workflow = {
-      id: "wf-default",
-      name: "Refonte onboarding",
-      orchProjectId: "p4",
-      linkedProjectIds: ["p1", "p2", "p3", "p5"],
-      agentTypes: { p1: "code", p2: "design", p3: "work", p5: "code" },
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    // First launch: start empty, no seeded workflow or active project.
+    // Demo project templates (INITIAL_PROJECTS) are still available as
+    // a reference, but no workflow is forced on the user.
     cache = {
       projects: INITIAL_PROJECTS,
-      workflows: [defaultWorkflow],
+      workflows: [],
       folders: [],
-      activeProjectId: "p4",
+      activeProjectId: null,
     };
     await save(cache);
     return cache;

@@ -3,8 +3,9 @@
  *
  * Intercepts OpenCode's web-based DialogSelectDirectory and opens the
  * native macOS Finder instead. Uses OpenCode's deep link mechanism
- * for smooth in-app navigation, with localStorage + full reload as
- * fallback if the deep link doesn't trigger within 600ms.
+ * for smooth in-app navigation (via pushState, detected by rAF polling),
+ * with localStorage + full reload as fallback if the deep link
+ * doesn't trigger within 3s.
  */
 (function () {
   if (!window.openaxis) return;
@@ -56,9 +57,17 @@
   function pickAndOpen() {
     if (picking) return;
     picking = true;
+
+    // Safety timeout: if the dialog doesn't resolve within 60s,
+    // release the picking lock so the user can retry
+    var safetyTimer = setTimeout(function () {
+      picking = false;
+    }, 60000);
+
     window.openaxis
       .openworkDesktopInvoke("pickDirectory")
       .then(function (dir) {
+        clearTimeout(safetyTimer);
         picking = false;
         if (!dir) return;
         console.warn("[bridge] picked directory:", dir);
@@ -76,17 +85,28 @@
           }),
         );
 
-        // 3. Fallback: if the URL hasn't changed after 600ms,
-        //    the deep link didn't navigate — do a full reload
+        // 3. Fallback: poll location.pathname each frame; if it hasn't
+        //    changed after 3s the deep link didn't navigate — do a full
+        //    reload. The project is already in localStorage so it will
+        //    appear after the reload.
         var before = location.pathname;
-        setTimeout(function () {
+        var fallbackTimer = setTimeout(function () {
           if (location.pathname === before) {
             var encoded = base64Encode(dir);
             location.href = "/" + encoded + "/session";
           }
-        }, 600);
+        }, 3000);
+        // Detect pushState navigation (SolidJS router) and cancel fallback
+        (function poll() {
+          if (location.pathname !== before) {
+            clearTimeout(fallbackTimer);
+            return;
+          }
+          requestAnimationFrame(poll);
+        })();
       })
       .catch(function () {
+        clearTimeout(safetyTimer);
         picking = false;
       });
   }

@@ -44,11 +44,10 @@ describe("project-store", () => {
     expect(projects[0].name).toBe("API Backend — Authentification");
   });
 
-  it("getActiveProject returns the active project", async () => {
+  it("getActiveProject returns null on first launch (no active project)", async () => {
     const { getActiveProject } = await import("./project-store.js");
     const active = await getActiveProject();
-    expect(active).not.toBeNull();
-    expect(active!.id).toBe("p4");
+    expect(active).toBeNull();
   });
 
   it("saveProject creates a new project with default color", async () => {
@@ -82,7 +81,7 @@ describe("project-store", () => {
     const { setActiveProject, getActiveProjectId } = await import("./project-store.js");
     await setActiveProject("non-existent");
     const active = await getActiveProjectId();
-    expect(active).toBe("p4");
+    expect(active).toBeNull();
   });
 
   it("setActiveProject accepts null", async () => {
@@ -99,11 +98,10 @@ describe("project-store — workflows", () => {
     vi.resetModules();
   });
 
-  it("creates default workflow on first load", async () => {
+  it("starts with no default workflow on first load", async () => {
     const { getWorkflows } = await import("./project-store.js");
     const workflows = await getWorkflows();
-    expect(workflows.length).toBe(1);
-    expect(workflows[0].name).toBe("Refonte onboarding");
+    expect(workflows.length).toBe(0);
   });
 
   it("saveWorkflow creates a new workflow", async () => {
@@ -115,12 +113,20 @@ describe("project-store — workflows", () => {
       agentTypes: { p2: "code" },
     });
     const all = await getWorkflows();
-    expect(all.length).toBe(2);
+    expect(all.length).toBe(1);
   });
 
   it("deleteWorkflow removes a workflow", async () => {
-    const { deleteWorkflow, getWorkflows } = await import("./project-store.js");
-    await deleteWorkflow("wf-default");
+    const { saveWorkflow, deleteWorkflow, getWorkflows } =
+      await import("./project-store.js");
+    await saveWorkflow({
+      id: "wf-to-delete",
+      name: "To Delete",
+      orchProjectId: "p1",
+      linkedProjectIds: [],
+      agentTypes: {},
+    });
+    await deleteWorkflow("wf-to-delete");
     const all = await getWorkflows();
     expect(all.length).toBe(0);
   });
