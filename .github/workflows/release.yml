@@ -53,11 +53,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DMG=$(ls release/*.dmg | head -1)
-          ZIP="${ZIP}"
-          SHA="${ZIP}.sha256"
-          echo "Publishing $DMG, $ZIP, $SHA"
-          ASSETS=("$DMG" "$ZIP" "$SHA")
+          ASSETS=()
+          for f in release/*.dmg release/*.zip release/*.sha256 release/latest-mac.yml release/*.blockmap; do
+            if [ -f "$f" ]; then
+              ASSETS+=("$f")
+            fi
+          done
+          echo "Publishing assets: ${ASSETS[*]}"
           if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" --generate-notes
           else
