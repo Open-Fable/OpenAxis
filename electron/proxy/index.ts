@@ -1356,46 +1356,46 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
           console.warn("[proxy:memory] buildMemoryBlock a échoué:", msg);
         }
 
-        // Lire AGENT-MEMORY.md et tenter de lire Graphify sur disque si absent du prompt
-        let agentMemory = "";
-        try {
-          let workspaceDir = getActiveWorkspaceDir();
-          if (project?.path && isSafeWorkspacePath(project.path)) {
-            workspaceDir = project.path;
-          }
-          const agentMemPath = path.join(workspaceDir, "AGENT-MEMORY.md");
-          agentMemory = await fs.readFile(agentMemPath, "utf-8");
-
-          if (!extractedGraphify) {
+        // Tenter de lire Graphify sur disque si absent du prompt
+        if (!extractedGraphify) {
+          try {
+            let workspaceDir = getActiveWorkspaceDir();
+            if (project?.path && isSafeWorkspacePath(project.path)) {
+              workspaceDir = project.path;
+            }
             const graphPath = path.join(workspaceDir, "graphify-out", "GRAPH_REPORT.md");
             extractedGraphify = await fs.readFile(graphPath, "utf-8");
+          } catch {
+            /* graphify optionnel */
           }
-        } catch {
-          /* ignore reading errors */
         }
 
         // ── 4. Assembler les messages système (Stable Prefix Strategy) ──
         // HIÉRARCHIE : Stable (Main) -> Stable/Lourd (Graphify) -> Semi-stable (Project) -> Stable (Date) -> Mutant (Memory)
         // On place les blocs les plus lourds et stables en haut.
+        // ATTENTION : les 6 blocs sont TOUJOURS présents, même vides (remplacés par un
+        // espace). Le .filter() supprimerait les blocs vides, ce qui ferait varier le
+        // nombre de messages système entre les requêtes → préfixe différent → cache
+        // DeepSeek inutilisable. Un espace coûte ~1 token et n'affecte pas le modèle.
         const structuredSystem = [
-          { role: "system", content: coreBehavior.trim() }, // 1. Règles de base
+          { role: "system", content: coreBehavior.trim() || " " }, // 1. Règles de base
           {
             role: "system",
             content: extractedGraphify
               ? `[KNOWLEDGE GRAPH]\n${extractedGraphify.trim()}`
-              : "",
+              : " ",
           }, // 2. LE LOURD (Frozen)
-          { role: "system", content: projInstructions.trim() }, // 3. Instructions Projet
+          { role: "system", content: projInstructions.trim() || " " }, // 3. Instructions Projet
           {
             role: "system",
             content: `Today's date: ${new Date().toISOString().split("T")[0]}`,
           }, // 4. Date (24h)
           {
             role: "system",
-            content: agentMemory ? `[PROJECT MEMORY]\n${agentMemory.trim()}` : "",
-          }, // 5. Notes de fin de tâche
-          { role: "system", content: memBlock ? memBlock.trim() : "" }, // 6. Mots-clés (Mutant ultime)
-        ].filter((m) => m.content !== "");
+            content: " ",
+          }, // 5. Réservé (anciennement AGENT-MEMORY.md)
+          { role: "system", content: memBlock ? memBlock.trim() : " " }, // 6. Mots-clés (Mutant ultime)
+        ];
 
         // ── 5. Réinjecter sans toucher à l'historique utilisateur ──
         const conversationMessages = messages.filter((m) => m.role !== "system");
