@@ -159,87 +159,87 @@ export async function describeImage(
     );
   }
 
-  const systemPrompt = `Tu es les YEUX d'une IA qui ne peut pas voir. Ta description sera injectée mot pour mot dans son contexte. L'utilisateur parlera ensuite COMME SI l'IA voyait l'image. Il dira des choses comme "le truc en haut à droite", "le bouton bleu", "là où c'est surligné", "à côté du logo", "tu vois le petit truc là ?", ou même "refais-moi ça à l'identique". Ta description doit permettre à l'IA de répondre aussi naturellement que si elle voyait l'image, ET de reproduire fidèlement ce qu'elle contient si on le lui demande.
+  const systemPrompt = `You are the EYES of an AI that cannot see. Your description will be injected word for word into its context. The user will then talk AS IF the AI could see the image. They will say things like "the thing on the top right", "the blue button", "where it's highlighted", "next to the logo", "you see that little thing there?", or even "remake this exactly". Your description must enable the AI to respond as naturally as if it could see the image, AND to faithfully reproduce what it contains if asked.
 
-PRINCIPE FONDAMENTAL :
-Chaque pixel compte. Si un humain qui regarde l'image pourrait le remarquer, même en plissant les yeux, tu DOIS le décrire. Aucun élément n'est trop petit, trop discret, trop évident ou trop secondaire pour être omis. Un détail que tu juges "insignifiant" pourrait être exactement celui dont l'utilisateur va parler, ou celui qui manquera si on demande de reproduire l'image.
+FUNDAMENTAL PRINCIPLE:
+Every pixel matters. If a human looking at the image would notice it, even when squinting, you MUST describe it. No element is too small, too subtle, too obvious, or too secondary to be omitted. A detail you deem "insignificant" could be exactly what the user will talk about, or what will be missing if asked to reproduce the image.
 
-MÉTHODE DE SCAN (3 passes obligatoires) :
+SCAN METHOD (3 mandatory passes):
 
-PASSE 1 — CADRE GLOBAL :
-Type de scène, fond, proportions apparentes de l'image (paysage/portrait/carré), ambiance lumineuse (clair/sombre/contraste élevé), thème de couleurs général.
+PASS 1 — OVERALL FRAME:
+Scene type, background, apparent image proportions (landscape/portrait/square), lighting (bright/dark/high contrast), general color theme.
 
-PASSE 2 — ZONE PAR ZONE (grille 3×3) :
-haut-gauche → haut-centre → haut-droite → centre-gauche → centre → centre-droite → bas-gauche → bas-centre → bas-droite.
-Pour chaque zone, décris TOUT ce qui s'y trouve sans exception.
+PASS 2 — ZONE BY ZONE (3×3 grid):
+top-left → top-center → top-right → center-left → center → center-right → bottom-left → bottom-center → bottom-right.
+For each zone, describe EVERYTHING in it without exception.
 
-PASSE 3 — INTERSTICES :
-Repasse sur les espaces vides, les marges, les gaps entre les éléments principaux. C'est là que se cachent les petits éléments (icônes, séparateurs, badges, timestamps) que tu rates le plus souvent.
+PASS 3 — GAPS:
+Go back over empty spaces, margins, gaps between main elements. This is where small elements (icons, separators, badges, timestamps) that you most often miss are hiding.
 
-CE QUE TU DOIS CAPTURER (sans exception) :
-- Tout élément visuel quelle que soit sa taille : texte, icône, forme, ligne, point, ombre, bordure, dégradé.
-- Tout élément interactif ou qui y ressemble. Quand il n'y a pas de texte, DÉDUIS la fonction depuis la forme (deux carrés superposés = copier, × = fermer, crayon = éditer, engrenage = paramètres, ⋯ = plus d'options, poubelle = supprimer, loupe = rechercher, etc.).
-- Tout indicateur d'état : points colorés, coches, badges, compteurs, barres de progression, spinners, verrous, statut en ligne/hors ligne.
-- Le curseur de la souris s'il est visible, et ce qu'il survole.
-- Les éléments partiellement visibles ou tronqués par les bords.
-- Les différences subtiles entre éléments similaires : onglet plus clair = actif, bordure plus épaisse = sélectionné, opacité réduite = désactivé.
+WHAT YOU MUST CAPTURE (without exception):
+- Every visual element regardless of size: text, icon, shape, line, dot, shadow, border, gradient.
+- Every interactive element or anything that looks like one. When there's no text, DEDUCE the function from the shape (two overlapping squares = copy, × = close, pencil = edit, gear = settings, ⋯ = more options, trash = delete, magnifying glass = search, etc.).
+- Every state indicator: colored dots, checkmarks, badges, counters, progress bars, spinners, locks, online/offline status.
+- The mouse cursor if visible, and what it's hovering over.
+- Partially visible or edge-trimmed elements.
+- Subtle differences between similar elements: lighter tab = active, thicker border = selected, reduced opacity = disabled.
 
-POUR CHAQUE ÉLÉMENT, donne :
-- Sa POSITION (zone 3×3 + position relative aux voisins)
-- Sa COULEUR exacte (code hex si tu peux l'estimer, sinon nom précis comme "gris clair", "bleu-vert vif", "noir pur")
-- Sa TAILLE relative (petit/moyen/grand par rapport à l'image)
-- Son ÉTAT apparent (actif, inactif, survolé, sélectionné, désactivé, chargement)
+FOR EACH ELEMENT, provide:
+- Its POSITION (3×3 zone + relative position to neighbors)
+- Its exact COLOR (hex code if you can estimate it, otherwise precise name like "light gray", "bright blue-green", "pure black")
+- Its relative SIZE (small/medium/large compared to the image)
+- Its apparent STATE (active, inactive, hovered, selected, disabled, loading)
 
-DÉTAILS DE REPRODUCTION — essentiels si l'utilisateur demande de recréer l'image :
-Pour chaque élément structurant (conteneur, carte, bulle, barre, panneau), estime :
-- Dimensions approximatives en % de l'image (ex: "~60% de la largeur, ~20% de la hauteur")
-- Marges et espacements par rapport aux voisins (ex: "~16px de marge avec le bord gauche", "~8px d'écart avec l'élément au-dessus")
-- Coins arrondis (aucun / légers ~4px / moyens ~8px / forts ~16px / circulaires)
-- Ombres portées (aucune / légère / prononcée, direction si visible)
-- Bordures (aucune / fine 1px / épaisse, couleur)
-- Padding interne estimé (ex: "~12px horizontal, ~8px vertical")
+REPRODUCTION DETAILS — essential if the user asks to recreate the image:
+For each structural element (container, card, bubble, bar, panel), estimate:
+- Approximate dimensions in % of the image (e.g., "~60% width, ~20% height")
+- Margins and spacing relative to neighbors (e.g., "~16px margin from left edge", "~8px gap from element above")
+- Border radius (none / slight ~4px / medium ~8px / heavy ~16px / circular)
+- Drop shadows (none / light / pronounced, direction if visible)
+- Borders (none / thin 1px / thick, color)
+- Estimated internal padding (e.g., "~12px horizontal, ~8px vertical")
 
-Pour le texte, estime :
-- La police (serif / sans-serif / monospace)
-- La taille relative (très petit ~10px / petit ~12px / normal ~14px / moyen ~16px / grand ~20px / titre ~24px / très grand ~32px+)
-- La graisse (light / normal / medium / semibold / bold)
-- L'interligne (serré / normal / aéré)
-- L'alignement (gauche / centré / droite)
+For text, estimate:
+- Font (serif / sans-serif / monospace)
+- Relative size (very small ~10px / small ~12px / normal ~14px / medium ~16px / large ~20px / heading ~24px / very large ~32px+)
+- Weight (light / normal / medium / semibold / bold)
+- Line height (tight / normal / loose)
+- Alignment (left / center / right)
 
-Pour la mise en page globale :
-- Type de layout (flex colonne / flex ligne / grille / empilé / centré)
-- Alignement des éléments entre eux (alignés à gauche / centrés / justifiés / espacés uniformément)
-- Hiérarchie visuelle : quel élément domine, lesquels sont secondaires, lesquels sont discrets
+For overall layout:
+- Layout type (flex column / flex row / grid / stacked / centered)
+- Element alignment relative to each other (left-aligned / centered / justified / evenly spaced)
+- Visual hierarchy: which element dominates, which are secondary, which are subtle
 
-FORMAT JSON OBLIGATOIRE :
+MANDATORY JSON FORMAT:
 {
   "scene_type": "screenshot | photo | diagram | document | other",
-  "summary": "Une phrase décrivant ce qu'on voit globalement",
+  "summary": "One sentence describing what is seen overall",
   "layout": {
-    "background": "couleur exacte du fond principal",
-    "overall_structure": "description du layout global (ex: flex colonne centré, sidebar + contenu principal, grille 2 colonnes)",
-    "estimated_dimensions": "proportions de l'image (ex: ~500×800px portrait)",
+    "background": "exact color of main background",
+    "overall_structure": "description of overall layout (e.g., centered flex column, sidebar + main content, 2-column grid)",
+    "estimated_dimensions": "image proportions (e.g., ~500×800px portrait)",
     "zones": [
       {
-        "position": "haut-gauche | haut-centre | haut-droite | centre-gauche | centre | centre-droite | bas-gauche | bas-centre | bas-droite",
-        "description": "ce qu'il y a dans cette zone",
-        "elements": ["CHAQUE élément : nature, couleur exacte, taille, état, dimensions estimées, marges, coins arrondis, ombres si applicable"]
+        "position": "top-left | top-center | top-right | center-left | center | center-right | bottom-left | bottom-center | bottom-right",
+        "description": "what is in this zone",
+        "elements": ["EVERY element: nature, exact color, size, state, estimated dimensions, margins, border radius, shadows if applicable"]
       }
     ]
   },
   "text_content": [
-    {"text": "texte exact mot pour mot", "position": "où dans l'image", "style": "police, taille estimée, graisse, couleur, alignement"}
+    {"text": "exact text word for word", "position": "where in the image", "style": "font, estimated size, weight, color, alignment"}
   ],
   "interactive_elements": [
-    {"type": "bouton|lien|champ|menu|checkbox|toggle|onglet|icône|slider|badge", "label": "texte visible OU fonction déduite", "position": "où", "state": "actif|inactif|survolé|sélectionné|désactivé", "color": "couleur exacte", "size": "petit|moyen|grand", "dimensions": "largeur×hauteur estimées", "border_radius": "aucun|léger|moyen|fort|circulaire"}
+    {"type": "button|link|field|menu|checkbox|toggle|tab|icon|slider|badge", "label": "visible text OR deduced function", "position": "where", "state": "active|inactive|hovered|selected|disabled", "color": "exact color", "size": "small|medium|large", "dimensions": "estimated width×height", "border_radius": "none|slight|medium|heavy|circular"}
   ],
   "visual_cues": {
-    "dominant_colors": ["les 3-5 couleurs principales avec noms précis ou hex estimés"],
-    "highlighted": "ce qui attire l'œil en premier et pourquoi",
-    "spatial_relations": ["A est à gauche de B avec ~Npx d'écart", "C est en dessous de D", "E est centré dans F"]
+    "dominant_colors": ["top 3-5 colors with precise names or estimated hex"],
+    "highlighted": "what catches the eye first and why",
+    "spatial_relations": ["A is to the left of B with ~Npx gap", "C is below D", "E is centered in F"]
   },
-  "reproduction_notes": "résumé des informations clés pour reproduire cette image : structure du layout, palette de couleurs, typographie, espacements dominants, style général (flat/material/glassmorphism/neumorphism/etc)",
-  "tags": ["mots-clés"]
+  "reproduction_notes": "summary of key information to reproduce this image: layout structure, color palette, typography, dominant spacing, overall style (flat/material/glassmorphism/neumorphism/etc)",
+  "tags": ["keywords"]
 }`;
 
   const response = await fetch(`${config.ollamaUrl}/api/chat`, {
@@ -252,7 +252,7 @@ FORMAT JSON OBLIGATOIRE :
         {
           role: "user",
           content:
-            "Analyse cette image. Sois exhaustif sur les positions, couleurs, textes et éléments interactifs. L'utilisateur va te poser des questions comme si tu voyais l'image — ta description doit couvrir chaque détail spatial.",
+            "Analyze this image. Be exhaustive about positions, colors, text, and interactive elements. The user will ask you questions as if you could see the image — your description must cover every spatial detail.",
           images: [base64Data],
         },
       ],
@@ -358,7 +358,7 @@ export function formatDescriptionForDeepSeek(
 ): string {
   const lines: string[] = [
     `### [CONTEXTE VISUEL — IMAGE REÇUE]`,
-    `Voici ce que tu vois dans l'image. C'est ta perception directe. Réponds comme si tu regardais l'image toi-même : ne dis JAMAIS que tu ne peux pas voir, que tu te fies à une description, ou qu'un autre modèle a analysé l'image. Pour toi, tu VOIS cette image. Si l'utilisateur dit "tu vois le truc là ?", tu réponds "oui" ou "non" directement.`,
+    `Here is what you see in the image. This is your direct perception. Respond as if you are looking at the image yourself: NEVER say you cannot see, that you rely on a description, or that another model analyzed the image. For you, you SEE this image. If the user says "do you see that thing there?", answer "yes" or "no" directly.`,
     ``,
     `**Type** : ${d.scene_type}`,
     `**Ce que je vois** : ${d.summary}`,
