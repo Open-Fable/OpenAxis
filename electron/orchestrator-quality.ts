@@ -130,24 +130,24 @@ export function buildMissingFilesPrompt(
   node: Project,
   missing: readonly string[],
 ): string {
-  return `[RELANCE — FICHIERS MANQUANTS]
-Ta tâche était :
-${node.task ?? "(non définie)"}
+  return `[RETRY — MISSING FILES]
+Your task was:
+${node.task ?? "(undefined)"}
 
-Les fichiers suivants sont ABSENTS du workspace ou trop petits (< ${MIN_FILE_BYTES} octets) :
+The following files are ABSENT from the workspace or too small (< ${MIN_FILE_BYTES} bytes) :
 ${missing.map((f) => `- ${f}`).join("\n")}
 
-CONSIGNE : Produis TOUS les fichiers manquants ci-dessus, en entier, avec le format \`\`\`<lang> filepath: <chemin>. Chaque fichier doit être COMPLET et FONCTIONNEL (> ${MIN_FILE_BYTES} octets).`;
+INSTRUCTION : Produce ALL missing files above, in full, with the \`\`\`<lang> filepath: <path> format. Each file must be COMPLETE and FUNCTIONAL (> ${MIN_FILE_BYTES} bytes).`;
 }
 
 export function buildTrivialResultPrompt(node: Project): string {
-  return `[RELANCE — RÉSULTAT INSUFFISANT]
-Ta tâche était :
-${node.task ?? "(non définie)"}
+  return `[RETRY — INSUFFICIENT RESULT]
+Your task was:
+${node.task ?? "(undefined)"}
 
-Ton résultat précédent était trop court (< ${MIN_RESULT_CHARS} caractères) et ne constitue pas un livrable exploitable.
+Your previous result was too short (< ${MIN_RESULT_CHARS} characters) and does not constitute a usable deliverable.
 
-CONSIGNE : Produis un livrable COMPLET et EXHAUSTIF. Pas de résumé, pas de description — du contenu réel et actionnable. Utilise le format \`\`\`<lang> filepath: <chemin> pour chaque fichier.`;
+INSTRUCTION : Produce a COMPLETE and EXHAUSTIVE deliverable. No summary, no description — real and actionable content. Use the \`\`\`<lang> filepath: <path> format for each file.`;
 }
 
 // ── Enforce deliverables ────────────────────────────────────────────────────
@@ -172,14 +172,14 @@ export function buildContentShortfallPrompt(
   node: Project,
   shortfalls: readonly ServedSiteProblem[],
 ): string {
-  return `[RELANCE — CONTENU INSUFFISANT]
-Ta tâche était :
-${node.task ?? "(non définie)"}
+  return `[RETRY — INSUFFICIENT CONTENT]
+Your task was:
+${node.task ?? "(undefined)"}
 
-Le livrable existe mais ne respecte PAS les contraintes de volume/structure suivantes :
+The deliverable exists but does NOT respect the following volume/structure constraints:
 ${shortfalls.map((s) => `- ${s.sourceFile} : ${s.problem}`).join("\n")}
 
-CONSIGNE : DÉVELOPPE le contenu en PROFONDEUR. Reproduis CHAQUE fichier concerné EN ENTIER (format \`\`\`<lang> filepath: <chemin>), nettement plus long et détaillé — ajoute des explications, des exemples concrets, des données chiffrées, des sous-sections. NE RÉSUME PAS, n'abrège pas, ne mets pas de "...". Vise à DÉPASSER chaque seuil indiqué.`;
+INSTRUCTION : DEVELOP the content in DEPTH. Reproduce EACH affected file IN FULL (format \`\`\`<lang> filepath: <path>), significantly longer and more detailed — add explanations, concrete examples, data figures, sub-sections. Do NOT summarize, do not abbreviate, do not use "...". Aim to EXCEED each indicated threshold.`;
 }
 
 export async function enforceDeliverables(
@@ -221,10 +221,10 @@ export async function enforceDeliverables(
 
     deps.onStatus(
       missing.length > 0
-        ? `Fichiers manquants (${missing.length}) — relance ${attempt}/${maxRetries}…`
+        ? `Missing files (${missing.length}) — retry ${attempt}/${maxRetries}…`
         : unmet.length > 0
-          ? `Contenu trop court (${unmet.length} contrainte(s)) — relance ${attempt}/${maxRetries}…`
-          : `Résultat insuffisant — relance ${attempt}/${maxRetries}…`,
+          ? `Content too short (${unmet.length} constraint(s)) — retry ${attempt}/${maxRetries}…`
+          : `Insufficient result — retry ${attempt}/${maxRetries}…`,
     );
 
     const retryResult = await deps.relaunch(prompt);
@@ -261,20 +261,20 @@ export interface QualityVerdict {
 }
 
 export function buildQualityGateSystemPrompt(verifier: Project): string {
-  return `${verifier.instructions || "Tu es un auditeur qualité senior."}
+  return `${verifier.instructions || "You are a senior quality auditor."}
 
-RÔLE : Tu audites le résultat GLOBAL d'une orchestration multi-agents. Tu vérifies que TOUS les livrables sont présents, complets, cohérents entre eux, et prêts à publier.
+ROLE : You audit the GLOBAL result of a multi-agent orchestration. You verify that ALL deliverables are present, complete, consistent with each other, and ready to publish.
 
-VERDICT : Réponds STRICTEMENT par un JSON valide :
+VERDICT : Respond STRICTLY with a valid JSON:
 {
-  "pass": true ou false,
+  "pass": true or false,
   "issues": [
-    {"agent": "nom de l'agent", "issue": "description du problème", "fix": "action corrective précise"}
+    {"agent": "agent name", "issue": "problem description", "fix": "precise corrective action"}
   ]
 }
 
-Si tout est correct, retourne {"pass": true, "issues": []}.
-N'invente PAS de problèmes — signale uniquement ce qui est réellement incorrect ou manquant.`;
+If everything is correct, return {"pass": true, "issues": []}.
+Do NOT invent problems — only report what is actually incorrect or missing.`;
 }
 
 export interface QualityGateInputs {
@@ -289,49 +289,49 @@ export interface QualityGateInputs {
 
 export function buildQualityGateUserPrompt(inputs: QualityGateInputs): string {
   const sections = [
-    `TÂCHE GLOBALE :\n${inputs.globalTask}`,
-    `RAPPORT DES FICHIERS ATTENDUS :\n${inputs.expectedFilesReport}`,
-    `RÉSUMÉS DES LIVRABLES PAR AGENT :\n${inputs.nodeResultSummaries}`,
+    `GLOBAL TASK :\n${inputs.globalTask}`,
+    `EXPECTED FILES REPORT :\n${inputs.expectedFilesReport}`,
+    `AGENT DELIVERABLE SUMMARIES :\n${inputs.nodeResultSummaries}`,
   ];
 
   if (inputs.auditReports && inputs.auditReports.trim()) {
     sections.push(
-      `RAPPORTS D'AUDIT SUR DISQUE (faits par les agents vérificateurs, font AUTORITÉ) :\n${inputs.auditReports}`,
+      `DISK AUDIT REPORTS (made by verifier agents, AUTHORITATIVE) :\n${inputs.auditReports}`,
     );
   }
 
-  sections.push(`CRITÈRES D'AUDIT GÉNÉRIQUES :
-1. COMPLÉTUDE — Chaque agent a-t-il livré TOUT ce qui était demandé ? Fichiers attendus présents ?
-2. QUALITÉ — Le contenu est-il substantiel (pas de placeholders, pas de Lorem ipsum, pas de "TODO") ?
-3. COHÉRENCE QUANTITATIVE (CRITIQUE) — Les FAITS partagés entre livrables concordent-ils ? Une même grandeur ne doit JAMAIS avoir deux valeurs différentes selon le fichier : prix, montants, pourcentages, dates/échéances, quantités, noms propres / identité de marque, identifiants, unités. Compare activement les chiffres d'un fichier à l'autre (ex: une métrique annoncée dans un .json vs le détail d'un .csv ; un prix affiché vs une donnée structurée ; un seuil/point-mort dont les hypothèses excluent un coût pourtant compté ailleurs). Toute contradiction = une "issue" attribuée à l'agent propriétaire du fichier fautif.
-4. ERREURS CORRIGÉES — Si un agent a signalé des problèmes, ont-ils été corrigés ?`);
+  sections.push(`GENERIC AUDIT CRITERIA :
+1. COMPLETENESS — Did each agent deliver EVERYTHING that was requested ? Expected files present ?
+2. QUALITY — Is the content substantial (no placeholders, no Lorem ipsum, no "TODO") ?
+3. QUANTITATIVE CONSISTENCY (CRITICAL) — Do SHARED FACTS agree across deliverables ? The same quantity must NEVER have two different values across files: prices, amounts, percentages, dates/deadlines, quantities, proper nouns / brand identity, identifiers, units. Actively compare figures from one file to another (e.g. a metric declared in a .json vs the detail in a .csv; a displayed price vs structured data; a threshold/breakeven whose assumptions exclude a cost nonetheless counted elsewhere). Any contradiction = an "issue" attributed to the agent owning the faulty file.
+4. CORRECTED ERRORS — If an agent reported problems, have they been fixed ?`);
 
   if (inputs.htmlHeads.trim()) {
-    sections.push(`CRITÈRES WEB (pages HTML détectées) :
-EXTRAITS <head> :
+    sections.push(`WEB CRITERIA (HTML pages detected) :
+<head> EXTRACTS :
 ${inputs.htmlHeads}
 
-5. SEO — Chaque page HTML : <title> unique ≤60 chars, <meta name="description"> 120-160 chars, Open Graph (og:title, og:description, og:image), JSON-LD schema.org, attribut lang sur <html> ?
-6. ACCESSIBILITÉ — Attributs alt sur images ? HTML sémantique ? Contraste WCAG AA ?
-7. LIENS — Hot-links placeholder (picsum.photos, unsplash.com, via.placeholder.com) dans du code de production ?`);
+5. SEO — Each HTML page: unique <title> ≤60 chars, <meta name="description"> 120-160 chars, Open Graph (og:title, og:description, og:image), JSON-LD schema.org, lang attribute on <html> ?
+6. ACCESSIBILITY — alt attributes on images ? Semantic HTML ? WCAG AA contrast ?
+7. LINKS — Placeholder hot-links (picsum.photos, unsplash.com, via.placeholder.com) in production code ?`);
   }
 
   if (inputs.cssSnippets && inputs.cssSnippets.trim()) {
-    sections.push(`EXTRAITS CSS :
+    sections.push(`CSS EXTRACTS :
 ${inputs.cssSnippets}
 
-CRITÈRES CSS — analyse les feuilles ci-dessus :
-8. CONTRASTE — Les couleurs de texte sur fond atteignent-elles WCAG AA (≥ 4.5:1 texte normal, ≥ 3:1 grand texte/composants) ? Signale toute paire qui échoue avec les valeurs hex.
-9. RESPONSIVE — Existe-t-il des largeurs fixes / grilles (ex: minmax(300px,1fr)) qui débordent sous 360px ? Y a-t-il des media queries mobile/tablette/desktop ?
-10. PLACEHOLDERS — Reste-t-il des valeurs factices, "TODO", commentaires "à intégrer/à compléter", ou des tokens définis mais jamais appliqués ?`);
+CSS CRITERIA — analyze the above sheets :
+8. CONTRAST — Do text-on-background colors reach WCAG AA (≥ 4.5:1 normal text, ≥ 3:1 large text/components) ? Report any failing pair with hex values.
+9. RESPONSIVE — Are there fixed widths/grids (e.g. minmax(300px,1fr)) that overflow under 360px ? Are there mobile/tablet/desktop media queries ?
+10. PLACEHOLDERS — Are there dummy values, "TODO", "to integrate/to complete" comments, or tokens defined but never applied ?`);
   }
 
   if (inputs.brokenAssetsReport && inputs.brokenAssetsReport.trim()) {
     sections.push(`${inputs.brokenAssetsReport}
 
-11. ASSETS — Les références ci-dessus pointent vers des fichiers ABSENTS du disque. C'est un défaut BLOQUANT : chaque référence cassée doit être corrigée (déplacer/copier l'asset au bon endroit, ou corriger le chemin). Inclus-les dans "issues" avec le fix précis.
-12. COUVERTURE DES PAGES — Si des "PAGES MAQUETTÉES MAIS JAMAIS CODÉES" sont listées ci-dessus, c'est un défaut BLOQUANT : chaque maquette doit avoir sa page servie équivalente, codée ET reliée à la navigation. Ajoute une "issue" par page manquante avec pour fix "coder la page <X> à partir de mockups/<X> et l'ajouter au menu".
-13. SITE SERVI — Si des "DÉFAUTS DU SITE SERVI" sont listés ci-dessus, c'est BLOQUANT : (a) placeholder SVG gris → remplacer par les vraies images de la maquette ; (b) ressource sortant de la racine du site (../) → copier la ressource (ex: tokens.css) dans le dossier servi et corriger le chemin ; (c) pages ne partageant aucune feuille CSS commune → unifier toutes les pages sur la MÊME feuille principale. Ajoute une "issue" par défaut.`);
+11. ASSETS — The above references point to ABSENT files on disk. This is a BLOCKING defect: every broken reference must be fixed (move/copy the asset to the right place, or fix the path). Include them in "issues" with the precise fix.
+12. PAGE COVERAGE — If "MOCKUP PAGES NEVER CODED" are listed above, this is a BLOCKING defect: each mockup must have its equivalent served page, coded AND linked in the navigation. Add one "issue" per missing page with the fix "code page <X> from mockups/<X> and add it to the menu".
+13. SERVED SITE — If "SERVED SITE DEFECTS" are listed above, this is BLOCKING: (a) gray SVG placeholder → replace with real mockup images; (b) resource escaping site root (../) → copy the resource (e.g. tokens.css) into the served folder and fix the path; (c) pages sharing no common CSS sheet → unify all pages on the SAME main sheet. Add one "issue" per defect.`);
   }
 
   return sections.join("\n\n");
@@ -539,8 +539,8 @@ export async function findBrokenAssetRefs(
 
 export function buildBrokenAssetsReport(broken: readonly BrokenAssetRef[]): string {
   if (broken.length === 0) return "";
-  const lines = broken.map((b) => `  ✗ ${b.sourceFile} → "${b.ref}" (introuvable)`);
-  return `RÉFÉRENCES CASSÉES (détection déterministe) :\n${lines.join("\n")}`;
+  const lines = broken.map((b) => `  ✗ ${b.sourceFile} → "${b.ref}" (not found)`);
+  return `BROKEN REFERENCES (deterministic detection) :\n${lines.join("\n")}`;
 }
 
 /**
@@ -674,11 +674,11 @@ function csvColumnProblem(content: string): string | null {
     if (countCsvColumns(lines[i]) !== header) bad.push(i + 1);
   }
   if (bad.length === 0) return null;
-  return `CSV incohérent : en-tête ${header} colonnes, ligne(s) [${bad.join(", ")}] diffèrent`;
+  return `CSV inconsistent: header ${header} columns, line(s) [${bad.join(", ")}] differ`;
 }
 
 /**
- * COUCHE 1 — enforces the planner-declared per-file constraints (checksMap).
+ * LAYER 1 — enforces the planner-declared per-file constraints (checksMap).
  * Force-fail signal: returns one problem per violated constraint. Absent files
  * are skipped (their presence is already owned by checkExpectedFiles).
  */
@@ -705,12 +705,12 @@ export async function validateDeclaredChecks(
 
     if (checks.minWords !== undefined) {
       const words = content.trim().split(/\s+/).filter(Boolean).length;
-      if (words < checks.minWords) push(`${words} mots < ${checks.minWords} requis`);
+      if (words < checks.minWords) push(`${words} words < ${checks.minWords} required`);
     }
     if (checks.minSections !== undefined) {
       const secs = (content.match(/^#{2,3}\s+\S/gm) ?? []).length;
       if (secs < checks.minSections) {
-        push(`${secs} section(s) (titres ##/###) < ${checks.minSections} requises`);
+        push(`${secs} section(s) (##/### headings) < ${checks.minSections} required`);
       }
     }
     if (checks.minItems !== undefined) {
@@ -726,7 +726,7 @@ export async function validateDeclaredChecks(
             ? items.length
             : null;
         if (len !== null && len < checks.minItems) {
-          push(`${len} élément(s) < ${checks.minItems} requis`);
+          push(`${len} item(s) < ${checks.minItems} required`);
         }
       } catch {
         /* invalid JSON is owned by findInvalidJsonFiles — no duplicate */
@@ -736,7 +736,7 @@ export async function validateDeclaredChecks(
       const lower = content.toLowerCase();
       for (const s of checks.requiredSubstrings) {
         if (!lower.includes(s.toLowerCase())) {
-          push(`chaîne obligatoire absente : "${s.slice(0, 60)}"`);
+          push(`required string missing: "${s.slice(0, 60)}"`);
         }
       }
     }
@@ -744,20 +744,20 @@ export async function validateDeclaredChecks(
       try {
         JSON.parse(content);
       } catch {
-        push("format json attendu : le fichier ne parse pas");
+        push("expected json format: file does not parse");
       }
     } else if (checks.format === "csv") {
       const p = csvColumnProblem(content);
       if (p) push(`format csv : ${p}`);
     } else if (checks.format === "md") {
-      if (!/^#{1,6}\s+\S/m.test(content)) push("format md attendu : aucun titre détecté");
+      if (!/^#{1,6}\s+\S/m.test(content)) push("expected md format: no heading detected");
     }
   }
   return problems;
 }
 
 /**
- * COUCHE 2 — always-on. Flags CSV files whose rows don't match the header's
+ * LAYER 2 — always-on. Flags CSV files whose rows don't match the header's
  * column count. Force-fail. Low false-positive risk.
  */
 export async function findCsvColumnProblems(
@@ -793,7 +793,7 @@ const PLACEHOLDER_MARKERS = [
 ];
 
 /**
- * COUCHE 2 — always-on. Flags text DELIVERABLES (.md/.txt/.csv/.json/.rst) that
+ * LAYER 2 — always-on. Flags text DELIVERABLES (.md/.txt/.csv/.json/.rst) that
  * are near-empty or contain placeholder markers. Force-fail with density guards.
  * Scoped to non-code extensions so a legit `// TODO` in code is never flagged.
  */
@@ -828,13 +828,13 @@ export async function findPlaceholderDeliverables(
     const hit = markers.find((m) => lower.includes(m));
     if (!hit) continue;
     // Density guard: only block if the file is short OR the marker recurs — a
-    // long document mentioning "lorem ipsum" once is not a bâclé deliverable.
+    // long document mentioning "lorem ipsum" once is not a botched deliverable.
     const isShort = trimmed.length < MIN_FILE_BYTES * 2;
     const occurrences = lower.split(hit).length - 1;
     if (isShort || occurrences >= 3) {
       problems.push({
         sourceFile: rel,
-        problem: `placeholder / contenu incomplet détecté ("${hit}")`,
+        problem: `placeholder / incomplete content detected ("${hit}")`,
       });
     }
   }
@@ -844,7 +844,7 @@ export async function findPlaceholderDeliverables(
 const ENTRY_POINT_RE = /^(index|main|app|server|cli)\.|\.config\./i;
 
 /**
- * COUCHE 2 — WARNING only (high false-positive risk). Flags produced JS/TS
+ * LAYER 2 — WARNING only (high false-positive risk). Flags produced JS/TS
  * modules that nothing else references (dead code / "backend mort"). Excludes
  * tests, entry points, and dist/build. Loose basename match → errs toward NOT
  * flagging, so a weak model isn't blocked on noise (never wired to force-fail).
@@ -882,7 +882,7 @@ export async function findUnreferencedModules(
     if (!referenced) {
       problems.push({
         sourceFile: rel,
-        problem: "module jamais référencé/importé (code potentiellement mort)",
+        problem: "module never referenced/imported (potentially dead code)",
       });
     }
   }
@@ -925,8 +925,8 @@ function normalizeForHash(content: string): string {
 // legitimately-recurring boilerplate and files inside NAMED served roots
 // (public/, dist/, presentation/…), where same-basename files (index.html,
 // styles.css) are expected. The "(racine)" fallback is ignored — excluding it
-// would skip the whole tree. Shared by the divergent (Problème 1) and scattered
-// (Problème 2) duplicate scans.
+// would skip the whole tree. Shared by the divergent (Problem 1) and scattered
+// (Problem 2) duplicate scans.
 async function groupContentFilesByBasename(
   workspaceDir: string,
 ): Promise<Map<string, Array<{ rel: string; full: string }>>> {
@@ -972,7 +972,7 @@ async function hashGroupMembers(
 }
 
 /**
- * COUCHE 2 — WARNING only. Flags content files (.md/.json/.csv/.txt) that share
+ * LAYER 2 — WARNING only. Flags content files (.md/.json/.csv/.txt) that share
  * the same basename across ≥2 locations whose CONTENT DIVERGES (different hash
  * after whitespace normalization). This is the worst duplication class: no
  * single source of truth (e.g. regulations_2026.md kept in 4 different versions).
@@ -998,14 +998,14 @@ export async function findDivergentDuplicates(
       .join(", ");
     problems.push({
       sourceFile: members[0].rel,
-      problem: `fichier dupliqué avec contenus divergents : ${listed} — une seule source de vérité, supprime/fusionne les copies`,
+      problem: `duplicate file with divergent content: ${listed} — one single source of truth, delete/merge the copies`,
     });
   }
   return problems;
 }
 
 /**
- * COUCHE 2 — WARNING only (Problème 2 — éparpillement). Flags content files
+ * LAYER 2 — WARNING only (Problem 2 — scattering). Flags content files
  * whose IDENTICAL content is copied across ≥3 locations: same deliverable
  * scattered at the root + research/ + reports/ + legal/ without a canonical
  * home. Complements findDivergentDuplicates (which flags DIFFERING copies) and
@@ -1026,7 +1026,7 @@ export async function findScatteredDuplicates(
       const listed = occ.map((e) => `${e.rel} (${e.size} o)`).join(", ");
       problems.push({
         sourceFile: occ[0].rel,
-        problem: `contenu identique éparpillé dans ${occ.length} emplacements : ${listed} — choisis UN emplacement canonique et supprime les copies`,
+        problem: `identical content scattered across ${occ.length} locations: ${listed} — choose ONE canonical location and delete the copies`,
       });
       break; // at most one problem per basename group
     }
@@ -1061,7 +1061,7 @@ async function hasSubstantialServedSite(workspaceDir: string): Promise<boolean> 
 }
 
 /**
- * COUCHE 2 — WARNING only (Problème 3). Flags web scaffolding (sitemap.xml,
+ * LAYER 2 — WARNING only (Problem 3). Flags web scaffolding (sitemap.xml,
  * robots.txt, seo/, manifest.json) produced when the deliverable is NOT a real
  * website — e.g. a market study or guide whose output is documents/data. The
  * scaffolding isn't "wrong", just off-topic and polluting. Fully suppressed when
@@ -1082,7 +1082,7 @@ export async function findUnwantedWebScaffolding(
       problems.push({
         sourceFile: rel,
         problem:
-          "scaffolding web hors-sujet — le livrable n'est pas un site web (aucune page HTML servie substantielle) ; supprime ce fichier de SEO/déploiement",
+          "web scaffolding off-topic — the deliverable is not a website (no substantial served HTML page); remove this SEO/deployment file",
       });
     }
   }
@@ -1092,7 +1092,7 @@ export async function findUnwantedWebScaffolding(
 const DESIGN_ARTIFACT_RE = /(maquette|mockup|wireframe|style[_-]?guide)/i;
 
 /**
- * COUCHE 2 — WARNING only (Problème 5). Flags design artifacts (mockup HTML,
+ * LAYER 2 — WARNING only (Problem 5). Flags design artifacts (mockup HTML,
  * style-guide CSS) produced for a deliverable that has NO web interface — the
  * workspace is purely documentary and no substantial served site exists. A
  * residual web bias: a "design" agent spun up for a text guide/report. Matches
@@ -1111,7 +1111,7 @@ export async function findUselessDesignArtifacts(
       problems.push({
         sourceFile: rel,
         problem:
-          "artefact design inutile — le livrable n'a pas d'interface web (workspace documentaire) ; une maquette/charte n'a pas lieu d'être",
+          "useless design artifact — the deliverable has no web interface (documentary workspace); a mockup/style guide has no reason to exist",
       });
     }
   }
@@ -1160,7 +1160,7 @@ export async function findUncodedMockups(
 export function buildPageCoverageReport(uncoded: readonly string[]): string {
   if (uncoded.length === 0) return "";
   const lines = uncoded.map((p) => `  ✗ ${p}`);
-  return `PAGES MAQUETTÉES MAIS JAMAIS CODÉES (détection déterministe) — chaque maquette doit avoir sa page servie équivalente, codée et accessible depuis la navigation :\n${lines.join("\n")}`;
+  return `MOCKUP PAGES NEVER CODED (deterministic detection) — each mockup must have its equivalent served page, coded and accessible from navigation:\n${lines.join("\n")}`;
 }
 
 export interface ServedSiteProblem {
@@ -1278,7 +1278,7 @@ export async function findServedSiteProblems(
           if (placeholders > 0) {
             problems.push({
               sourceFile: rel,
-              problem: `${placeholders} image(s) en placeholder SVG gris (data:image/svg+xml) — remplace par les vraies images de la maquette`,
+              problem: `${placeholders} gray SVG placeholder image(s) (data:image/svg+xml) — replace with the real mockup images`,
             });
           }
           // Collect every local ref + @import and flag those escaping the root.
@@ -1295,7 +1295,7 @@ export async function findServedSiteProblems(
             if (target !== servedRoot && !target.startsWith(servedRoot + path.sep)) {
               problems.push({
                 sourceFile: rel,
-                problem: `"${ref}" sort de la racine du site (${path.basename(servedRoot)}/) — cassé au déploiement, copie la ressource dans le site`,
+                problem: `"${ref}" escapes the site root (${path.basename(servedRoot)}/) — broken at deploy time, copy the resource into the site`,
               });
               if (problems.length >= MAX_PROBLEMS) return;
             }
@@ -1315,7 +1315,7 @@ export async function findServedSiteProblems(
 export function buildServedSiteReport(problems: readonly ServedSiteProblem[]): string {
   if (problems.length === 0) return "";
   const lines = problems.map((p) => `  ✗ ${p.sourceFile} → ${p.problem}`);
-  return `DÉFAUTS DU SITE SERVI (détection déterministe) :\n${lines.join("\n")}`;
+  return `SERVED SITE DEFECTS (deterministic detection) :\n${lines.join("\n")}`;
 }
 
 const STYLESHEET_LINK = /<link\b[^>]*\brel\s*=\s*["']stylesheet["'][^>]*>/gi;
@@ -1373,7 +1373,7 @@ export async function findCssConsistencyProblems(
         .join(" ; ");
       problems.push({
         sourceFile: label,
-        problem: `les pages ne partagent AUCUNE feuille CSS commune → rendu incohérent (${examples}). Unifie toutes les pages sur la MÊME feuille principale.`,
+        problem: `pages share NO common CSS sheet → inconsistent rendering (${examples}). Unify all pages on the SAME main sheet.`,
       });
     }
   }
@@ -1424,7 +1424,7 @@ export async function findConsolidationShrinkage(
     if (fw < 0.8 * sourceWords) {
       problems.push({
         sourceFile: f.rel,
-        problem: `consolidation incomplète : ${fw} mots vs ~${sourceWords} dans les sources content/ — INCLURE le contenu intégral de chaque source, ne pas résumer`,
+        problem: `incomplete consolidation: ${fw} words vs ~${sourceWords} in content/ sources — INCLUDE the full content of each source, do not summarize`,
       });
     }
   }
@@ -1516,10 +1516,10 @@ export async function findUnstyledClasses(
       if (unmatched.length >= 3 && ratio >= 0.3) {
         problems.push({
           sourceFile: `${label}${rel}`,
-          problem: `${unmatched.length}/${used.size} classes sans règle CSS (page non/insuffisamment stylée) — ex: ${unmatched
+          problem: `${unmatched.length}/${used.size} classes without CSS rule (page unstyled/insufficiently styled) — e.g. ${unmatched
             .slice(0, 5)
             .map((c) => "." + c)
-            .join(", ")}. Vérifie que le bon CSS est lié.`,
+            .join(", ")}. Check that the correct CSS is linked.`,
         });
       }
     }
@@ -1605,7 +1605,7 @@ export async function findOrphanStylesheets(
       if (!referenced.has(asset)) {
         problems.push({
           sourceFile: path.relative(workspaceDir, asset),
-          problem: `feuille de style/script orpheline — référencée par aucune page HTML de ${label} (probable doublon d'une passe design précédente) : l'intégrer dans une page ou la supprimer`,
+          problem: `orphan stylesheet/script — not referenced by any HTML page in ${label} (likely duplicate from a previous design pass): integrate it into a page or delete it`,
         });
       }
     }
@@ -1675,7 +1675,7 @@ export async function findServedHtmlPlaceholders(
         problems.push({
           sourceFile: rel,
           problem:
-            "conteneur « placeholder » non remplacé (class/id placeholder) : remplacer par le contenu final",
+            "unreplaced « placeholder » container (class/id placeholder): replace with final content",
         });
         continue;
       }
@@ -1683,7 +1683,7 @@ export async function findServedHtmlPlaceholders(
       if (m !== null) {
         problems.push({
           sourceFile: rel,
-          problem: `texte de remplissage détecté (« ${m[1]} ») : remplacer par le contenu final`,
+          problem: `filler text detected (« ${m[1]} »): replace with final content`,
         });
       }
     }
@@ -1752,7 +1752,7 @@ export async function findStructuredDataMismatch(
       if (missing.length > 0) {
         problems.push({
           sourceFile: rel,
-          problem: `prix structuré JSON-LD (${missing.join(", ")}) absent du contenu visible — aligner la donnée structurée sur le prix réellement affiché`,
+          problem: `JSON-LD structured price (${missing.join(", ")}) absent from visible content — align the structured data with the actually displayed price`,
         });
       }
     }
@@ -1854,7 +1854,7 @@ export function parseQualityVerdict(raw: string): QualityVerdict | null {
 
 export function buildAutoFeedback(verdict: QualityVerdict): string {
   const lines = verdict.issues.map((i) => `- [${i.agent}] ${i.issue} → ${i.fix}`);
-  return `[CYCLE QUALITÉ AUTOMATIQUE]\nLe vérificateur a identifié les problèmes suivants à corriger :\n${lines.join("\n")}`;
+  return `[AUTO QUALITY CYCLE]\nThe verifier identified the following issues to fix:\n${lines.join("\n")}`;
 }
 
 export function buildSyntheticRun(
@@ -1907,7 +1907,7 @@ export async function findBrandConsistencyProblems(
   const problems: ServedSiteProblem[] = [];
   const roots = await discoverServedRoots(workspaceDir);
 
-  // 1. Essayer de trouver la marque définie dans les fichiers JSON (ex: design-system.json ou catalogue.json)
+  // 1. Try to find the brand defined in JSON files (e.g. design-system.json or catalogue.json)
   let brandName = "";
   const jsonFiles = await collectFiles(workspaceDir, (n) => /\.json$/i.test(n), 30, 3);
   for (const f of jsonFiles) {
@@ -1930,7 +1930,7 @@ export async function findBrandConsistencyProblems(
     }
   }
 
-  // 2. Si non trouvé dans le JSON, chercher dans les fichiers de recherche/recommandation
+  // 2. If not found in JSON, look in research/recommendation files
   if (!brandName) {
     const mdFiles = await collectFiles(workspaceDir, (n) => /\.md$/i.test(n), 30, 3);
     const brandRe = /nom de marque recommandé\s*:\s*\*\*([^\*]+)\*\*/i;
@@ -1952,9 +1952,9 @@ export async function findBrandConsistencyProblems(
     }
   }
 
-  if (!brandName) return []; // Aucun nom de marque trouvé
+  if (!brandName) return []; // No brand name found
 
-  // 3. Scanner les fichiers HTML sous la racine servie et s'assurer que la marque est présente
+  // 3. Scan HTML files under the served root and ensure the brand is present
   if (brandName.length >= 2) {
     const normalizedBrand = brandName.toLowerCase().replace(/\s+/g, " ");
     for (const { dir } of roots) {
@@ -1965,7 +1965,7 @@ export async function findBrandConsistencyProblems(
         if (!normalizedContent.includes(normalizedBrand)) {
           problems.push({
             sourceFile: rel,
-            problem: `incohérence de marque — le site utilise un nom différent ou omet le nom officiel "${brandName}" défini dans la base de données/design system`,
+            problem: `brand inconsistency — the site uses a different name or omits the official name "${brandName}" defined in the database/design system`,
           });
         }
       }

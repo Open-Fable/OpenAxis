@@ -47,7 +47,7 @@ describe("resolveDAGWaves", () => {
 
   it("throws on a circular dependency", () => {
     expect(() => resolveDAGWaves([makeNode("a", ["b"]), makeNode("b", ["a"])])).toThrow(
-      "Dépendance circulaire",
+      "Circular dependency",
     );
   });
 
@@ -71,7 +71,7 @@ describe("resolveDAG", () => {
 
   it("throws on a circular dependency", () => {
     expect(() => resolveDAG([makeNode("a", ["b"]), makeNode("b", ["a"])])).toThrow(
-      "Dépendance circulaire",
+      "Circular dependency",
     );
   });
 });

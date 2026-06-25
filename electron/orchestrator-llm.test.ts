@@ -203,7 +203,7 @@ describe("callLLM", () => {
     controller.abort();
 
     await expect(callLLM(makeNode(), "s", "u", controller.signal)).rejects.toThrow(
-      /annulée par l'utilisateur/,
+      /cancelled by user/,
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -409,7 +409,7 @@ describe("callLLMStreaming", () => {
     });
 
     await expect(callLLMStreaming(makeNode(), "p", 5000)).rejects.toThrow(
-      /Impossible de lire le flux/,
+      /Unable to read the/,
     );
   });
 

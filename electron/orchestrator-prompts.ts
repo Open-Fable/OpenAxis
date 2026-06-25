@@ -2,16 +2,16 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { Project } from "./project-store.js";
 
-// ── Helpers de contexte ──────────────────────────────────────────────────────
+// ── Context helpers ──────────────────────────────────────────────────────────
 
 export async function buildWorkspaceContext(workspaceDir: string): Promise<string> {
   const indexPath = path.join(workspaceDir, "WORKSPACE_INDEX.md");
   try {
     const content = await fs.readFile(indexPath, "utf-8");
     const trimmed = content.substring(0, 24000);
-    return `[ÉTAT DU WORKSPACE]\n${trimmed}`;
+    return `[WORKSPACE STATE]\n${trimmed}`;
   } catch {
-    return "[ÉTAT DU WORKSPACE]\nAucun fichier indexé. Le workspace est vide ou non initialisé.";
+    return "[WORKSPACE STATE]\nNo indexed files. The workspace is empty or uninitialized.";
   }
 }
 
@@ -59,11 +59,11 @@ export function buildDependencyContext(
       hasWebArtifacts = true;
     }
 
-    const header = `--- Agent "${depProject.name}" (${depProject.type ?? "inconnu"}) ---`;
+    const header = `--- Agent "${depProject.name}" (${depProject.type ?? "unknown"}) ---`;
     // Once the global budget is spent, name remaining deps without their content.
     const remaining = MAX_TOTAL_DEP_CONTEXT - totalLen;
     if (remaining <= 600) {
-      const line = `${header} [contenu omis — budget de contexte atteint ; le fichier complet est sur disque]`;
+      const line = `${header} [content omitted — context budget reached; full file is on disk]`;
       blocks.push(line);
       totalLen += line.length;
       continue;
@@ -71,19 +71,19 @@ export function buildDependencyContext(
 
     const perTypeCap = depProject.type === "design" ? 60_000 : 24_000;
     const maxLen = Math.min(perTypeCap, remaining);
-    const resultSummary = result ? result.substring(0, maxLen) : "(pas encore exécuté)";
+    const resultSummary = result ? result.substring(0, maxLen) : "(not yet executed)";
 
     const evidence = depDiskEvidence?.get(depId);
     const evidenceBlock =
       evidence !== undefined && evidence.trim().length > 0
-        ? `\nFICHIERS PRODUITS (contenu réel sur disque — fait AUTORITÉ) :\n${evidence}`
+        ? `\nPRODUCED FILES (real on-disk content — AUTHORITATIVE) :\n${evidence}`
         : "";
 
-    let block = `${header}\nTâche : ${depProject.task ?? "non définie"}\nRésultat :\n${resultSummary}${evidenceBlock}`;
+    let block = `${header}\nTask: ${depProject.task ?? "undefined"}\nResult:\n${resultSummary}${evidenceBlock}`;
     if (totalLen + block.length > MAX_TOTAL_DEP_CONTEXT) {
       block =
         block.substring(0, Math.max(0, MAX_TOTAL_DEP_CONTEXT - totalLen)) +
-        "\n[… contexte de dépendances tronqué — budget global atteint ; contenu complet sur disque …]";
+        "\n[… dependency context truncated — global budget reached; full content on disk …]";
     }
     blocks.push(block);
     totalLen += block.length;
@@ -94,26 +94,26 @@ export function buildDependencyContext(
   const reproduces = node.type === "code" || node.type === "work";
   // Neutral mandate for non-web pipelines: reuse the upstream contracts/data/
   // decisions faithfully, without any mockup/page/CSS vocabulary.
-  const neutralMandate = `\n\n⚠️ MANDAT DE FIDÉLITÉ — NON NÉGOCIABLE :
-Les résultats des agents ci-dessus font AUTORITÉ. Tu dois les RÉUTILISER FIDÈLEMENT — pas t'en "inspirer", pas réinventer.
-- Reprends EXACTEMENT les décisions, contrats, schémas, noms, structures et données déjà produits (ex: schéma de données → couche d'accès ; spécification → implémentation ; contenu → mise en forme).
-- N'invente AUCUN nouveau nom/identité ni nouvelle structure si une source en définit déjà ; ne contredis pas les données amont.
-- Si les sources se CONTREDISENT, choisis-en UNE seule, applique-la partout, signale la contradiction en commentaire — ne crée JAMAIS une troisième version.`;
-  const webMandate = `\n\n⚠️ MANDAT DE FIDÉLITÉ — NON NÉGOCIABLE :
-Les résultats ci-dessus (maquettes, design system, charte, contenu) font AUTORITÉ. Tu dois les REPRODUIRE À L'IDENTIQUE — pas t'en "inspirer", pas redessiner.
-- COUVERTURE COMPLÈTE — CODE TOUTES LES PAGES : il doit exister une page servie pour CHAQUE fichier mockups/*.html (sauf components.html qui est une galerie de démo). Si la maquette contient 15 pages, le site servi doit en contenir 15. Ne code PAS qu'un sous-ensemble (index/catalog/product) : about_us, contact, cart, checkout, confirmation, product_detail, admin… doivent TOUTES exister.
-- PARS DES FICHIERS MAQUETTE, NE LES RÉÉCRIS PAS : pour chaque page, prends le mockups/<page>.html existant comme base et copie-le tel quel dans le dossier servi. N'écris pas un nouveau HTML depuis zéro.
-- NAVIGATION COHÉRENTE — ZÉRO LIEN MORT : chaque <a href="X.html"> doit pointer vers une page qui EXISTE réellement dans le dossier servi. N'invente pas de liens (vision.html, etc.). Câble le tunnel d'achat : panier (cart.html) → checkout.html → confirmation.html, et rends checkout/confirmation ATTEIGNABLES depuis la navigation (pas des pages orphelines accessibles uniquement par URL directe).
-- TOKENS CSS SERVIS : si une feuille fait @import d'un tokens.css, copie ce tokens.css DANS le dossier servi et corrige le chemin pour qu'il soit relatif au dossier servi (jamais ../design/… qui sort de la racine du site). Toutes les variables var(--…) doivent être résolues.
-- CSS — RÉUTILISE LE CSS DE LA MAQUETTE TEL QUEL : copie le(s) fichier(s) CSS de la maquette dans le MÊME dossier que les pages et garde EXACTEMENT le même <link> que la maquette (si elle lie "styles.css", lie "styles.css" — ne lie pas tokens.css/layout.css en direct, ne re-découpe pas, ne renomme pas en style.css/main.css).
-- NOMS DE CLASSES IDENTIQUES : garde STRICTEMENT les mêmes class="..." que la maquette. N'invente AUCUNE nouvelle classe (ex: ne remplace pas .product-card par .feature-card). Chaque classe utilisée dans le HTML DOIT avoir sa règle CSS dans le CSS lié — sinon la page est non stylée et les images apparaissent dans des conteneurs vides.
-- Couleurs / tokens : reprends EXACTEMENT les mêmes variables CSS et valeurs hex. N'invente AUCUNE nouvelle couleur, AUCUN nouveau thème (pas de sombre si la maquette est claire, etc.).
-- Structure / layout de chaque page : reproduis la mise en page des maquettes (header, sections, grille, footer).
-- Identité / marque : reprends le MÊME nom (artiste, produit, marque) et le MÊME contenu (bio, textes) que les sources. N'invente AUCUN nouveau nom ni nouvelle identité.
-- IMAGES : garde EXACTEMENT les mêmes balises <img> / src que la maquette (mêmes URLs ou mêmes chemins). Ne supprime pas d'images, n'en change pas les chemins. N'utilise JAMAIS de placeholder SVG gris (data:image/svg+xml avec un rectangle + texte) à la place d'une vraie image de la maquette.
-- Ton rôle = rendre la maquette FONCTIONNELLE (JS, panier, navigation) PAR-DESSUS, sans toucher au rendu visuel.
-- Si les sources se CONTREDISENT (ex: deux noms d'artiste différents), choisis-en UNE seule, applique-la partout, et signale la contradiction en commentaire — ne crée JAMAIS une troisième version.
-INTERDIT : repartir d'une page blanche, réécrire le HTML, renommer des classes CSS, re-découper/renommer le CSS, changer la palette, renommer l'identité, supprimer des images.`;
+  const neutralMandate = `\n\n⚠️ FIDELITY MANDATE — NON-NEGOTIABLE :
+The results from the agents above are AUTHORITATIVE. You MUST faithfully REUSE them — not "draw inspiration", not reinvent.
+- Reproduce EXACTLY the decisions, contracts, schemas, names, structures and data already produced (e.g. data schema → access layer; specification → implementation; content → formatting).
+- Do NOT invent any new name/identity or structure if a source already defines one; do not contradict upstream data.
+- If sources CONTRADICT each other, pick ONE, apply it everywhere, note the contradiction in a comment — NEVER create a third version.`;
+  const webMandate = `\n\n⚠️ FIDELITY MANDATE — NON-NEGOTIABLE :
+The results above (mockups, design system, brand guidelines, content) are AUTHORITATIVE. You MUST reproduce them IDENTICALLY — not "draw inspiration", not redesign.
+- FULL COVERAGE — CODE ALL PAGES: there must be a served page for EVERY mockups/*.html file (except components.html which is a demo gallery). If the mockup has 15 pages, the served site must have 15. Do NOT code only a subset (index/catalog/product): about_us, contact, cart, checkout, confirmation, product_detail, admin… must ALL exist.
+- START FROM MOCKUP FILES, DO NOT REWRITE THEM: for each page, take the existing mockups/<page>.html as a base and copy it as-is into the served folder. Do not write new HTML from scratch.
+- COHERENT NAVIGATION — ZERO DEAD LINKS: every <a href="X.html"> must point to a page that actually EXISTS in the served folder. Do not invent links (vision.html, etc.). Wire the purchase flow: cart.html → checkout.html → confirmation.html, and make checkout/confirmation REACHABLE from navigation (not orphan pages accessible only by direct URL).
+- SERVED CSS TOKENS: if a stylesheet @imports a tokens.css, copy that tokens.css INTO the served folder and fix the path to be relative to the served folder (never ../design/… which leaves the site root). All var(--…) variables must resolve.
+- CSS — REUSE THE MOCKUP'S CSS AS-IS: copy the mockup's CSS file(s) into the SAME folder as the pages and keep EXACTLY the same <link> as the mockup (if it links "styles.css", link "styles.css" — do not link tokens.css/layout.css directly, do not re-split, do not rename to style.css/main.css).
+- IDENTICAL CLASS NAMES: keep STRICTLY the same class="..." as the mockup. Do NOT invent any new class (e.g. do not replace .product-card with .feature-card). Every class used in the HTML MUST have its CSS rule in the linked CSS — otherwise the page is unstyled and images appear in empty containers.
+- Colors / tokens: reuse EXACTLY the same CSS variables and hex values. Do NOT invent any new color, any new theme (no dark if the mockup is light, etc.).
+- Page structure / layout: reproduce the mockup's layout (header, sections, grid, footer).
+- Identity / brand: reuse the SAME name (artist, product, brand) and SAME content (bio, texts) as the sources. Do NOT invent any new name or identity.
+- IMAGES: keep EXACTLY the same <img> / src tags as the mockup (same URLs or same paths). Do not delete images, do not change their paths. NEVER use a gray SVG placeholder (data:image/svg+xml with a rectangle + text) instead of a real mockup image.
+- Your role = make the mockup FUNCTIONAL (JS, cart, navigation) ON TOP OF it, without touching the visual rendering.
+- If sources CONTRADICT each other (e.g. two different artist names), pick ONE, apply it everywhere, and note the contradiction in a comment — NEVER create a third version.
+FORBIDDEN: starting from a blank page, rewriting HTML, renaming CSS classes, re-splitting/renaming CSS, changing the palette, renaming the identity, deleting images.`;
   const fidelityMandate = !reproduces
     ? ""
     : hasWebArtifacts
@@ -122,197 +122,197 @@ INTERDIT : repartir d'une page blanche, réécrire le HTML, renommer des classes
         ? neutralMandate
         : "";
 
-  return `[RÉSULTATS DES AGENTS PRÉCÉDENTS]\nLes agents suivants ont déjà terminé leur travail. Utilise leurs résultats comme base.\n\n${blocks.join("\n\n")}${fidelityMandate}`;
+  return `[PREVIOUS AGENT RESULTS]\nThe following agents have already completed their work. Use their results as a base.\n\n${blocks.join("\n\n")}${fidelityMandate}`;
 }
 
-// ── Règles par type d'agent ──────────────────────────────────────────────────
+// ── Per-type agent rules ──────────────────────────────────────────────────────
 
-// Politique CSS & images partagée — cause n°1 des rendus cassés (pages sans CSS,
-// images qui ne s'affichent jamais). Injectée dans chaque type d'agent produisant
-// du HTML pour garantir un rendu autonome et hors-ligne.
-const ASSET_POLICY = `RÈGLES CSS & IMAGES (CAUSE N°1 DES RENDUS CASSÉS — STRICT) :
-- IMAGES — INTERDIT ABSOLU d'utiliser une URL d'image externe (unsplash.com, images.unsplash.com, picsum.photos, placeholder.com, loremflickr, source.unsplash…). Ces identifiants sont INVENTÉS, renvoient 404, et l'image ne s'affiche JAMAIS. À la place, pour toute illustration sans fichier image réel dans le workspace : insère un SVG INLINE (<svg viewBox> avec un fond aux couleurs de la marque, une forme/icône simple et un court label). Un SVG inline s'affiche TOUJOURS, hors-ligne, sans dépendance. N'écris une balise <img src="chemin"> QUE si ce fichier existe réellement dans le workspace, avec un chemin relatif correct.
-- CSS — chaque page doit rester stylée même ouverte seule. UN SEUL fichier CSS d'entrée nommé "styles.css", dans le MÊME dossier que les pages HTML. Chaque page le lie par EXACTEMENT <link rel="stylesheet" href="styles.css">. Si tu découpes le CSS (tokens, layout…), c'est "styles.css" qui les rassemble via @import (chemins relatifs au même dossier) — les pages ne lient JAMAIS tokens.css/layout.css en direct. Un seul nom de fichier, un seul dossier : jamais "style.css" ici et "styles.css" là, jamais "css/" et "assets/css/" en parallèle.
-- VÉRIFICATION FINALE : chaque href/src local pointe vers un fichier réellement présent (ou un SVG inline). Zéro lien cassé, zéro page sans CSS.`;
+// Shared CSS & image policy — #1 cause of broken rendering (pages without CSS,
+// images that never display). Injected into every agent type producing HTML
+// to ensure self-contained offline rendering.
+const ASSET_POLICY = `CSS & IMAGE RULES (#1 CAUSE OF BROKEN RENDERING — STRICT) :
+- IMAGES — ABSOLUTELY FORBIDDEN to use external image URLs (unsplash.com, images.unsplash.com, picsum.photos, placeholder.com, loremflickr, source.unsplash…). These IDs are INVENTED, return 404, and the image NEVER displays. Instead, for any illustration without a real image file in the workspace: insert an INLINE SVG (<svg viewBox> with brand-colored background, simple shape/icon and a short label). An inline SVG ALWAYS displays, offline, with zero dependencies. Only write an <img src="path"> tag if that file actually exists in the workspace with a correct relative path.
+- CSS — each page must stay styled even when opened alone. A SINGLE entry CSS file named "styles.css", in the SAME folder as the HTML pages. Every page links it with EXACTLY <link rel="stylesheet" href="styles.css">. If you split CSS (tokens, layout…), "styles.css" aggregates them via @import (relative paths to the same folder) — pages NEVER link tokens.css/layout.css directly. One filename, one folder: never "style.css" here and "styles.css" there, never "css/" and "assets/css/" in parallel.
+- FINAL CHECK: every local href/src points to a file that actually exists (or an inline SVG). Zero broken links, zero pages without CSS.`;
 
-// Version condensée de la politique assets — pour le tier « modèle léger ».
-const ASSET_POLICY_COMPACT = `ASSETS (clé) : images → SVG inline (JAMAIS d'URL externe type unsplash/picsum, elles renvoient 404). UN seul "styles.css" dans le même dossier que les pages, lié par <link rel="stylesheet" href="styles.css">. Chaque href/src local pointe vers un fichier réel.`;
+// Compact version of the asset policy — for the "light model" tier.
+const ASSET_POLICY_COMPACT = `ASSETS (key): images → inline SVG (NEVER external URLs like unsplash/picsum, they 404). A single "styles.css" in the same folder as pages, linked by <link rel="stylesheet" href="styles.css">. Every local href/src points to a real file.`;
 
 const QUALITY_RULES: Record<string, string> = {
-  code: `RÈGLES DE QUALITÉ :
-- Code COMPLET, PRODUCTION-READY — pas de placeholders, pas de "// TODO", pas de "...", pas de raccourcis
-- TypeScript strict, pas de \`any\` sauf aux frontières de sérialisation
-- Fonctions < 50 lignes, fichiers < 400 lignes
-- Gestion d'erreurs explicite à chaque niveau
-- Pas de secrets en dur — utiliser les variables d'environnement
-- Inclure TOUS les imports nécessaires
-- Écrire les tests unitaires correspondants
-- PROFONDEUR : chaque fichier doit être complet et fonctionnel — pas de fonction vide, pas de "à compléter"
-- VOLUME : si la tâche demande N fichiers, produis-les TOUS intégralement
-- Chaque composant doit être branché, importé et utilisable sans modification
+  code: `QUALITY RULES :
+- COMPLETE, PRODUCTION-READY code — no placeholders, no "// TODO", no "...", no shortcuts
+- Strict TypeScript, no \`any\` except at serialization boundaries
+- Functions < 50 lines, files < 400 lines
+- Explicit error handling at every level
+- No hardcoded secrets — use environment variables
+- Include ALL necessary imports
+- Write corresponding unit tests
+- DEPTH: every file must be complete and functional — no empty functions, no "to be filled"
+- VOLUME: if the task asks for N files, produce ALL of them in full
+- Every component must be wired, imported, and usable without modification
 
-SI TU PRODUIS DES PAGES HTML (livrable web) :
-- SEO OBLIGATOIRE par page : <title> unique ≤60 chars, <meta name="description"> 120-160 chars, Open Graph complet (og:title, og:description, og:image), JSON-LD schema.org adapté, attribut lang sur <html>, attributs alt sur toutes les images
-- sitemap.xml et robots.txt si le site a plusieurs pages
+IF YOU PRODUCE HTML PAGES (web deliverable) :
+- REQUIRED SEO per page: unique <title> ≤60 chars, <meta name="description"> 120-160 chars, full Open Graph (og:title, og:description, og:image), appropriate schema.org JSON-LD, lang attribute on <html>, alt attributes on all images
+- sitemap.xml and robots.txt if the site has multiple pages
 
-SI TU PRODUIS UNE LIBRAIRIE / CLI / API / DES DONNÉES (PAS un site web) — IGNORE les règles HTML/CSS/SEO ci-dessus :
-- LIBRAIRIE : API publique claire et documentée, tests unitaires réels (qui vérifient un comportement, pas des stubs vides), README avec exemples d'usage, fichier de packaging (package.json / pyproject.toml…).
-- CLI : un point d'entrée exécutable, parsing d'arguments, messages d'aide (--help), codes de sortie, exemples dans le README.
-- API : endpoints implémentés ET fonctionnels (pas juste décrits), validation des entrées, gestion d'erreurs, exemples de requêtes/réponses.
-- DONNÉES : fichiers .json/.csv VALIDES (JSON qui parse, colonnes CSV cohérentes), schéma documenté, script de génération reproductible si pertinent.
-- Le frontend/consommateur doit RÉELLEMENT utiliser ce que tu produis (importer le module, lire les données) — pas de code mort jamais référencé.
-- NOMS D'API EXACTS ENTRE FICHIERS (CRITIQUE) : quand tu importes depuis un module produit par un autre agent (vu dans le contexte de dépendances), utilise EXACTEMENT le nom de la fonction/classe/constante réellement exportée par ce module — ne devine pas, n'invente pas un nom « probable ». Si tu écris le point d'entrée (main.py, index.ts, cli…), relis les exports réels de chaque module importé : un import doit cibler un symbole qui existe vraiment dans le module visé. Une seule convention de nommage pour tout le projet (pas « ErrorHandler » ici et « ErrorTracker » là).
-- SIGNATURES COHÉRENTES : appelle les fonctions importées avec les bons arguments et respecte leur type de retour (un générateur n'est pas une liste : ne lui applique pas len()/sérialisation directe sans le consommer d'abord).
-- CONFIG DE BUILD/TEST : si le livrable est buildable/testable, fournis la config qui le rend exécutable tel quel (ex. tsconfig.json + config jest/vitest pour TypeScript, pyproject.toml/requirements si besoin). Les commandes « build » et « test » doivent pouvoir tourner sans fichier manquant.
+IF YOU PRODUCE A LIBRARY / CLI / API / DATA (NOT a website) — IGNORE the HTML/CSS/SEO rules above :
+- LIBRARY: clear documented public API, real unit tests (that verify behavior, not empty stubs), README with usage examples, packaging file (package.json / pyproject.toml…).
+- CLI: executable entry point, argument parsing, help messages (--help), exit codes, examples in the README.
+- API: IMPLEMENTED and FUNCTIONAL endpoints (not just described), input validation, error handling, request/response examples.
+- DATA: VALID .json/.csv files (parseable JSON, consistent CSV columns), documented schema, reproducible generation script if relevant.
+- The frontend/consumer must ACTUALLY use what you produce (import the module, read the data) — no dead code never referenced.
+- EXACT API NAMES ACROSS FILES (CRITICAL): when importing from a module produced by another agent (seen in dependency context), use EXACTLY the function/class/constant name actually exported by that module — do not guess, do not invent a "likely" name. If you write the entry point (main.py, index.ts, cli…), re-read the actual exports of each imported module: an import must target a symbol that actually exists in the target module. One naming convention for the whole project (not "ErrorHandler" here and "ErrorTracker" there).
+- CONSISTENT SIGNATURES: call imported functions with the right arguments and respect their return type (a generator is not a list: don't apply len()/direct serialization without consuming it first).
+- BUILD/TEST CONFIG: if the deliverable is buildable/testable, provide the config to run it as-is (e.g. tsconfig.json + jest/vitest config for TypeScript, pyproject.toml/requirements if needed). The "build" and "test" commands must work without missing files.
 
-SI DES MAQUETTES OU UN DESIGN SYSTEM EXISTENT DÉJÀ (dépendances design/work OU fichiers du workspace) :
-- LIS d'abord les fichiers de design existants (tokens.css, design_system/*, mockups/*.html, mockups/*.css, content/*.md) AVANT d'écrire la moindre ligne. Ils font AUTORITÉ.
-- REPRODUIS-les fidèlement : mêmes variables CSS et mêmes valeurs hex, même typographie, même layout, même identité/marque. Ne redessine PAS, n'invente PAS un nouveau thème ni une nouvelle palette.
-- N'invente JAMAIS un nouveau nom d'artiste/marque ni un nouveau contenu : reprends ceux des sources. En cas de contradiction entre sources, choisis-en UNE, applique-la partout, signale-la en commentaire.
-- COLOCATION DES ASSETS : place le HTML, le CSS, le JS ET les images/SVG dans le MÊME dossier servi. Si une maquette lie "styles.css", reprends ce MÊME nom et le MÊME dossier — ne renomme pas, ne disperse pas dans css/ + assets/css/.
+IF MOCKUPS OR A DESIGN SYSTEM ALREADY EXIST (design/work dependencies OR workspace files) :
+- READ existing design files (tokens.css, design_system/*, mockups/*.html, mockups/*.css, content/*.md) BEFORE writing a single line. They are AUTHORITATIVE.
+- REPRODUCE them faithfully: same CSS variables and same hex values, same typography, same layout, same identity/brand. Do NOT redesign, do NOT invent a new theme or palette.
+- NEVER invent a new artist/brand name or new content: reuse those from the sources. If sources contradict each other, pick ONE, apply it everywhere, note it in a comment.
+- ASSET COLOCATION: place HTML, CSS, JS AND images/SVG in the SAME served folder. If a mockup links "styles.css", reuse that SAME name and SAME folder — do not rename, do not scatter into css/ + assets/css/.
 
-INTÉGRATION — LE FRONTEND DOIT CONSOMMER CE QUI A ÉTÉ PRODUIT (pas de code mort) :
-- Branche réellement le JS produit : les pages servies doivent CHARGER la logique écrite (panier, paiement, stocks) et les données (ex: content/products.json, data/*.json) — n'affiche pas des produits codés en dur si un fichier de données existe.
-- NE RÉIMPLÉMENTE PAS une logique déjà écrite dans un autre fichier (ex: ne refais pas un mini-panier dans app.js si cart_logic.js existe) : importe/réutilise le module existant, et SERS-le (place-le dans le dossier servi ou référence-le correctement).
-- Si un backend a été produit (API, modèles, schéma), le frontend doit l'appeler (fetch vers les endpoints) OU, pour un site statique, lire les fichiers de données correspondants. Ne laisse JAMAIS un backend ou un module JS écrit mais jamais référencé par aucune page.
-
-${ASSET_POLICY}`,
-
-  design: `RÈGLES DE QUALITÉ — MAQUETTES VISUELLES (RÔLE CRITIQUE) :
-Tu es le SEUL agent qui crée les maquettes visuelles. L'agent "code" va ensuite coder EXACTEMENT ce que tu produis. Si ta maquette est incomplète ou bâclée, le site final le sera aussi.
-
-EXIGENCES NON NÉGOCIABLES :
-- Code HTML/CSS COMPLET et fonctionnel — pas de descriptions textuelles, pas de résumés, du CODE
-- CHAQUE page demandée = un fichier HTML complet avec tout le CSS intégré ou lié
-- Design responsive RÉEL avec media queries : mobile (< 768px), tablette (768–1024px), desktop (> 1024px)
-- Variables CSS pour TOUS les tokens : couleurs, tailles, espacements, border-radius, ombres, transitions
-- Tokens de design documentés dans un fichier dédié (design-tokens.css ou tokens.json)
-
-PROFONDEUR EXIGÉE :
-- Design system COMPLET : tokens, composants réutilisables, layouts, grilles
-- TOUS les états interactifs : hover, focus, active, disabled, loading, erreur, vide, sélectionné
-- Transitions et animations CSS (ease-in-out, durées cohérentes)
-- Ombres, border-radius, micro-interactions pour un rendu PROFESSIONNEL
-- Typographie hiérarchique complète (h1→h6, body, caption, button, link)
-- Palette de couleurs complète avec variantes (primary-50 à primary-900, neutral, accent, success, warning, error)
-
-CONTENU :
-- JAMAIS de "Lorem ipsum", JAMAIS de "Titre ici", JAMAIS de placeholder
-- Contenu RÉEL et cohérent avec le projet
-- Icônes : SVG inline ou sprite — pas de dépendances CDN externes
-
-COMPOSANTS À INCLURE (si pertinents) :
-- Header avec navigation (desktop + hamburger mobile)
-- Footer complet (liens, copyright, réseaux sociaux)
-- Formulaires stylés (inputs, selects, textareas, validation visuelle)
-- Boutons (primaire, secondaire, ghost, danger, tailles S/M/L)
-- Cards, modales, toasts/notifications, breadcrumbs, pagination
-- Tables responsives, listes, badges, tags, tooltips
-
-ACCESSIBILITÉ :
-- Contraste WCAG AA minimum (4.5:1 texte, 3:1 composants UI)
-- Focus visible et distinct pour navigation clavier
-- Aria-labels sur éléments interactifs
-- HTML sémantique (header, nav, main, section, article, footer)
-
-NE SOIS PAS RADIN EN TOKENS : une bonne maquette est LONGUE et DÉTAILLÉE. L'objectif est un résultat PRODUCTION-READY que l'agent code pourra implémenter fidèlement.
+INTEGRATION — THE FRONTEND MUST CONSUME WHAT WAS PRODUCED (no dead code) :
+- Actually wire the produced JS: served pages must LOAD the written logic (cart, payment, stock) and data (e.g. content/products.json, data/*.json) — do not display hardcoded products if a data file exists.
+- DO NOT REIMPLEMENT logic already written in another file (e.g. don't redo a mini-cart in app.js if cart_logic.js exists): import/reuse the existing module, and SERVE it (place it in the served folder or reference it correctly).
+- If a backend was produced (API, models, schema), the frontend must call it (fetch to endpoints) OR, for a static site, read the corresponding data files. NEVER leave a backend or JS module written but never referenced by any page.
 
 ${ASSET_POLICY}`,
 
-  work: `RÈGLES DE QUALITÉ :
-- HTML sémantique et valide (landmarks, headings hiérarchiques, aria-labels)
-- Intégration fidèle aux maquettes/spécifications
-- Optimisation des assets (images compressées, lazy loading, srcset pour le responsive)
-- PROFONDEUR : chaque page doit être COMPLÈTE — pas de contenu tronqué ni de sections "à venir"
-- VOLUME : si la tâche mentionne N pages/articles, produire les N en entier avec contenu riche
-- Chaque article/page doit faire au minimum 500 mots de contenu réel et pertinent
-- Ne pas produire du contenu générique — personnaliser chaque élément au sujet traité
-- Charte graphique : produire un document exhaustif (philosophie, palette complète avec codes hex/HSL, typographies avec fallbacks, spacing scale, composants UI)
+  design: `QUALITY RULES — VISUAL MOCKUPS (CRITICAL ROLE) :
+You are the ONLY agent who creates visual mockups. The "code" agent will then code EXACTLY what you produce. If your mockup is incomplete or sloppy, the final site will be too.
 
-SI TU PRODUIS DES PAGES HTML :
-- SEO OBLIGATOIRE par page : <title> unique ≤60 chars, <meta name="description"> 120-160 chars, Open Graph complet (og:title, og:description, og:image), JSON-LD schema.org adapté au type de page, canonical, attribut lang sur <html>
-- Attributs alt descriptifs sur TOUTES les images
-- sitemap.xml et robots.txt si multi-pages
+NON-NEGOTIABLE REQUIREMENTS :
+- COMPLETE functional HTML/CSS code — no textual descriptions, no summaries, actual CODE
+- EACH requested page = a complete HTML file with all CSS embedded or linked
+- REAL responsive design with media queries: mobile (< 768px), tablet (768-1024px), desktop (> 1024px)
+- CSS variables for ALL tokens: colors, sizes, spacing, border-radius, shadows, transitions
+- Design tokens documented in a dedicated file (design-tokens.css or tokens.json)
+
+REQUIRED DEPTH :
+- COMPLETE design system: tokens, reusable components, layouts, grids
+- ALL interactive states: hover, focus, active, disabled, loading, error, empty, selected
+- CSS transitions and animations (ease-in-out, consistent durations)
+- Shadows, border-radius, micro-interactions for a PROFESSIONAL look
+- Complete hierarchical typography (h1→h6, body, caption, button, link)
+- Full color palette with variants (primary-50 to primary-900, neutral, accent, success, warning, error)
+
+CONTENT :
+- NEVER "Lorem ipsum", NEVER "Title here", NEVER placeholder
+- REAL content consistent with the project
+- Icons: inline SVG or sprite — no external CDN dependencies
+
+COMPONENTS TO INCLUDE (if relevant) :
+- Header with navigation (desktop + mobile hamburger)
+- Complete footer (links, copyright, social media)
+- Styled forms (inputs, selects, textareas, visual validation)
+- Buttons (primary, secondary, ghost, danger, sizes S/M/L)
+- Cards, modals, toasts/notifications, breadcrumbs, pagination
+- Responsive tables, lists, badges, tags, tooltips
+
+ACCESSIBILITY :
+- Minimum WCAG AA contrast (4.5:1 text, 3:1 UI components)
+- Visible distinct focus for keyboard navigation
+- Aria-labels on interactive elements
+- Semantic HTML (header, nav, main, section, article, footer)
+
+DO NOT BE STINGY WITH TOKENS: a good mockup is LONG and DETAILED. The goal is a PRODUCTION-READY result that the code agent can faithfully implement.
 
 ${ASSET_POLICY}`,
 
-  verifier: `RÈGLES DE VÉRIFICATION :
-- Analyser chaque livrable selon des critères objectifs et mesurables
-- Distinguer les erreurs bloquantes (CRITICAL) des améliorations souhaitables (WARNING)
-- Fournir des exemples concrets pour chaque problème identifié
-- Proposer une correction PRÉCISE pour chaque erreur (quoi changer, où, critère de réussite) — sans l'appliquer toi-même
-- RAPPORT SEULEMENT : tu produis UNIQUEMENT ton rapport d'audit. Tu ne réécris PAS les fichiers des autres agents et tu ne prétends JAMAIS avoir corrigé/réécrit/appliqué quoi que ce soit — l'orchestrateur route les corrections vers les agents propriétaires
-- COHÉRENCE QUANTITATIVE : compare les FAITS partagés entre fichiers (prix, montants, %, dates, quantités, noms, unités) ; une même grandeur avec deux valeurs différentes selon le fichier = erreur CRITICAL
-- Vérifier la COMPLÉTUDE : le livrable couvre-t-il TOUT ce qui était demandé ?
-- Vérifier la PROFONDEUR : le contenu est-il superficiel ou réellement développé ?
-- Vérifier la PRÉSENCE des fichiers attendus (expected_files) pour chaque agent
-- Ne pas inventer de problèmes — signaler uniquement ce qui est réellement incorrect
-- Produire une liste concrète fichier → correction pour chaque problème
+  work: `QUALITY RULES :
+- Semantic valid HTML (landmarks, hierarchical headings, aria-labels)
+- Faithful integration with mockups/specifications
+- Asset optimization (compressed images, lazy loading, srcset for responsive)
+- DEPTH: each page must be COMPLETE — no truncated content or "coming soon" sections
+- VOLUME: if the task mentions N pages/articles, produce all N in full with rich content
+- Each article/page must have at least 500 words of real relevant content
+- Do not produce generic content — personalize each element to the subject
+- Brand guidelines: produce an exhaustive document (philosophy, complete palette with hex/HSL codes, typefaces with fallbacks, spacing scale, UI components)
 
-SI DES PAGES HTML SONT PRÉSENTES :
-- Vérifier le SEO de chaque page : <title> ≤60 chars, <meta description> 120-160, OG, JSON-LD, lang, alt
-- Signaler les hot-links placeholder dans du code de production`,
+IF YOU PRODUCE HTML PAGES :
+- REQUIRED SEO per page: unique <title> ≤60 chars, <meta name="description"> 120-160 chars, full Open Graph (og:title, og:description, og:image), schema.org JSON-LD adapted to page type, canonical, lang attribute on <html>
+- Descriptive alt attributes on ALL images
+- sitemap.xml and robots.txt if multi-page
 
-  recherche: `RÈGLES DE QUALITÉ :
-- Structurer les résultats avec des sections claires et hiérarchisées
-- Citer les sources quand applicable
-- Distinguer les faits des recommandations
-- Prioriser les informations actionnables
-- Fournir un résumé exécutif en début de livrable
-- PROFONDEUR : chaque section doit être développée avec exemples, données, contexte historique si pertinent
-- VOLUME : ne pas survoler — approfondir chaque point avec au moins 3-5 paragraphes
-- Fournir des recommandations concrètes et détaillées, pas des généralités`,
+${ASSET_POLICY}`,
+
+  verifier: `VERIFICATION RULES :
+- Analyze each deliverable against objective measurable criteria
+- Distinguish blocking errors (CRITICAL) from desirable improvements (WARNING)
+- Provide concrete examples for each identified problem
+- Propose a PRECISE fix for each error (what to change, where, success criterion) — without applying it yourself
+- REPORT ONLY: you produce ONLY your audit report. You do NOT rewrite other agents' files and you NEVER claim to have fixed/reapplied/applied anything — the orchestrator routes fixes to the owning agents
+- QUANTITATIVE CONSISTENCY: compare SHARED FACTS across files (prices, amounts, %, dates, quantities, names, units); the same quantity with two different values across files = CRITICAL error
+- Check COMPLETENESS: does the deliverable cover EVERYTHING that was requested?
+- Check DEPTH: is the content superficial or truly developed?
+- Check PRESENCE of expected files (expected_files) for each agent
+- Do not invent problems — only report what is actually incorrect
+- Produce a concrete file → fix list for each problem
+
+IF HTML PAGES ARE PRESENT :
+- Check SEO of each page: <title> ≤60 chars, <meta description> 120-160, OG, JSON-LD, lang, alt
+- Flag placeholder hot-links in production code`,
+
+  recherche: `QUALITY RULES :
+- Structure results with clear hierarchical sections
+- Cite sources when applicable
+- Distinguish facts from recommendations
+- Prioritize actionable information
+- Provide an executive summary at the start of the deliverable
+- DEPTH: each section must be developed with examples, data, historical context if relevant
+- VOLUME: do not skim — deepen each point with at least 3-5 paragraphs
+- Provide concrete detailed recommendations, not generalities`,
 };
 
-// Règles condensées (~50 % plus courtes, formulées en positif, avec un
-// mini-exemple bon/mauvais) pour le tier « modèle léger ». Les invariants de
-// sécurité sont CONSERVÉS : secrets → variables d'env, cohérence d'identité,
-// validité/colocation des chemins d'assets.
+// Compact rules (~50 % shorter, positively phrased, with a
+// good/bad mini-example) for the "light model" tier. Security invariants are
+// PRESERVED: secrets → env vars, identity consistency,
+// asset path validity/colocation.
 const QUALITY_RULES_COMPACT: Record<string, string> = {
-  code: `RÈGLES (essentiel) :
-- Livre du code COMPLET et fonctionnel — pas de "// TODO", pas de "...", pas de squelette.
-- Inclus TOUS les imports ; chaque fichier doit tourner tel quel.
-- Secrets → variables d'environnement, JAMAIS en dur dans le code.
-- Si des maquettes/un design existent (dépendances ou workspace), LIS-les et reproduis-les à l'identique : mêmes couleurs, même identité/marque, mêmes noms. N'invente pas de nouveau thème ni de nouveau nom.
-- Si la tâche demande N fichiers, produis-les TOUS.
+  code: `RULES (essentials) :
+- Deliver COMPLETE functional code — no "// TODO", no "...", no skeleton.
+- Include ALL imports; every file must run as-is.
+- Secrets → environment variables, NEVER hardcoded in code.
+- If mockups/design exist (dependencies or workspace), READ and reproduce them identically: same colors, same identity/brand, same names. Do not invent a new theme or name.
+- If the task asks for N files, produce ALL of them.
 
-✅ BON : const key = process.env.API_KEY ; <img src="logo.svg"> (le fichier existe)
-❌ MAUVAIS : const key = "sk-123" ; <img src="https://unsplash.com/photo">
-
-${ASSET_POLICY_COMPACT}`,
-
-  design: `RÈGLES (essentiel) — tu crées les maquettes que l'agent code reproduira :
-- Livre du HTML/CSS COMPLET (du code, pas une description) ; une page = un fichier.
-- Responsive réel (media queries mobile/tablette/desktop) ; variables CSS pour couleurs/espacements.
-- TOUS les états interactifs : hover, focus, active, disabled, loading, vide, erreur.
-- Contenu RÉEL (jamais "Lorem ipsum" ni "Titre ici"), cohérent avec l'identité du projet.
-- Accessibilité : contraste WCAG AA, focus visible, HTML sémantique.
-
-✅ BON : --color-primary défini une fois et réutilisé ; bouton avec :hover ET :focus
-❌ MAUVAIS : couleurs hex répétées en dur ; un seul état par défaut
+✅ GOOD: const key = process.env.API_KEY ; <img src="logo.svg"> (file exists)
+❌ BAD: const key = "sk-123" ; <img src="https://unsplash.com/photo">
 
 ${ASSET_POLICY_COMPACT}`,
 
-  work: `RÈGLES (essentiel) :
-- HTML sémantique et valide ; chaque page COMPLÈTE (pas de section "à venir").
-- Si la tâche demande N pages/articles, produis les N, ≥ 500 mots de contenu réel chacun.
-- Personnalise au sujet — pas de contenu générique.
-- Reprends l'identité/marque et les couleurs des sources ; n'invente pas un nouveau nom.
-- Pages HTML : <title> unique, <meta name="description">, attribut alt sur chaque image.
+  design: `RULES (essentials) — you create the mockups the code agent will reproduce :
+- Deliver COMPLETE HTML/CSS (code, not a description); one page = one file.
+- Real responsive (mobile/tablet/desktop media queries); CSS variables for colors/spacing.
+- ALL interactive states: hover, focus, active, disabled, loading, empty, error.
+- REAL content (never "Lorem ipsum" or "Title here"), consistent with the project's identity.
+- Accessibility: WCAG AA contrast, visible focus, semantic HTML.
 
-✅ BON : article de 600 mots spécifique au sujet ; <img alt="portrait de l'artiste">
-❌ MAUVAIS : 3 lignes génériques ; "lorem ipsum"
+✅ GOOD: --color-primary defined once and reused; button with :hover AND :focus
+❌ BAD: hex colors repeated hardcoded; only default state
 
 ${ASSET_POLICY_COMPACT}`,
 
-  recherche: `RÈGLES (essentiel) :
-- Structure en sections claires, avec un résumé exécutif au début.
-- Cite les sources ; distingue clairement les faits des recommandations.
-- Approfondis chaque point (exemples, données) — ne survole pas.
-- Termine par des recommandations concrètes et actionnables.
+  work: `RULES (essentials) :
+- Semantic valid HTML; each page COMPLETE (no "coming soon" section).
+- If the task asks for N pages/articles, produce all N, each ≥ 500 words of real content.
+- Personalize to the subject — no generic content.
+- Reuse the identity/brand and colors from sources; do not invent a new name.
+- HTML pages: unique <title>, <meta name="description">, alt attribute on every image.
 
-✅ BON : "Source : X (2024). Fait : … → Recommandation : …"
-❌ MAUVAIS : un paragraphe vague, sans source ni recommandation`,
+✅ GOOD: 600-word article specific to the subject; <img alt="portrait of the artist">
+❌ BAD: 3 generic lines; "lorem ipsum"
+
+${ASSET_POLICY_COMPACT}`,
+
+  recherche: `RULES (essentials) :
+- Structure in clear sections, with an executive summary at the start.
+- Cite sources; clearly distinguish facts from recommendations.
+- Deepen each point (examples, data) — do not skim.
+- End with concrete actionable recommendations.
+
+✅ GOOD: "Source: X (2024). Fact: … → Recommendation: …"
+❌ BAD: one vague paragraph, no source, no recommendation`,
 };
 
 function getQualityRules(type: string | undefined, compact = false): string {
@@ -324,44 +324,44 @@ function getQualityRules(type: string | undefined, compact = false): string {
 }
 
 const TYPE_ROLE_HINTS: Record<string, string> = {
-  recherche: "Investigation et synthèse de données",
-  work: "OpenWork — contenu/rédaction, données structurées, et (pour un site) design system, charte, intégration HTML/CSS",
+  recherche: "Research and data synthesis",
+  work: "OpenWork — content/writing, structured data, and (for a site) design system, brand guidelines, HTML/CSS integration",
   design:
-    "Open Design — maquettes visuelles web (HTML/CSS) DÉTAILLÉES, UNIQUEMENT si le livrable a une interface. L'agent code les reproduira fidèlement.",
-  code: "OpenCode — développement du livrable fonctionnel (app, librairie, API, CLI, scripts, données) ; reproduit les maquettes si elles existent",
-  verifier: "Tests et assurance qualité",
+    "Open Design — DETAILED web visual mockups (HTML/CSS), ONLY if the deliverable has a UI. The code agent will faithfully reproduce them.",
+  code: "OpenCode — development of the functional deliverable (app, library, API, CLI, scripts, data); reproduces mockups if they exist",
+  verifier: "Testing and quality assurance",
 };
 
 // ── 1. Planning ──────────────────────────────────────────────────────────────
 
 export function buildPlanningSystemPrompt(orchestrator: Project): string {
   const base = orchestrator.instructions || "";
-  return `Tu es un coordinateur de projet IA. Tu décomposes une tâche globale en sous-tâches précises pour des agents spécialisés.
+  return `You are an AI project coordinator. You break down a global task into precise sub-tasks for specialized agents.
 
-${base ? `INSTRUCTIONS PERSONNALISÉES :\n${base}\n` : ""}RÔLE DE CHAQUE TYPE D'AGENT :
-- "recherche" → Investigation, collecte de données, état de l'art
-- "work" → OpenWork : design system (couleurs, typo, espacements), charte graphique, rédaction de contenu, intégration HTML/CSS
-- "design" → Open Design : maquettes visuelles UNIQUEMENT, à partir du design system et contenu déjà produits par "work"/"recherche"
-- "code" → OpenCode : codage du site/app depuis les maquettes. Ne fait PAS le design system ni le contenu.
-- "verifier" → Tests et assurance qualité
+${base ? `CUSTOM INSTRUCTIONS:\n${base}\n` : ""}ROLE OF EACH AGENT TYPE :
+- "recherche" → Investigation, data collection, state of the art
+- "work" → OpenWork: design system (colors, typography, spacing), brand guidelines, content writing, HTML/CSS integration
+- "design" → Open Design: visual mockups ONLY, based on the design system and content already produced by "work"/"recherche"
+- "code" → OpenCode: coding the site/app from the mockups. Does NOT do the design system or content.
+- "verifier" → Testing and quality assurance
 
-RESPONSABILITÉS :
-- Analyser la tâche globale et identifier TOUS les livrables nécessaires
-- Attribuer à chaque agent une tâche conforme à son RÔLE ci-dessus
-- Assurer la cohérence entre les tâches (pas de contradictions, pas de doublons)
-- Respecter les dépendances entre agents
+RESPONSIBILITIES :
+- Analyze the global task and identify ALL necessary deliverables
+- Assign each agent a task matching their ROLE above
+- Ensure consistency between tasks (no contradictions, no duplicates)
+- Respect dependencies between agents
 
-RÈGLES DE DÉCOMPOSITION :
-- Chaque tâche = UN livrable vérifiable (pas "fais plusieurs choses")
-- Chaque tâche doit être compréhensible sans contexte extérieur
-- Préciser le FORMAT DE SORTIE attendu (fichiers à créer, structure, conventions)
-- Préciser les CONTRAINTES (technologies, standards, compatibilité)
-- Préciser les CRITÈRES DE RÉUSSITE (comment vérifier que c'est bien fait)
-- Adapter le niveau de détail au type d'agent
+DECOMPOSITION RULES :
+- Each task = ONE verifiable deliverable (not "do multiple things")
+- Each task must be understandable without external context
+- Specify the expected OUTPUT FORMAT (files to create, structure, conventions)
+- Specify CONSTRAINTS (technologies, standards, compatibility)
+- Specify SUCCESS CRITERIA (how to verify it's done well)
+- Adapt the level of detail to the agent type
 
-FORMAT DE RÉPONSE :
-Renvoie STRICTEMENT un objet JSON plat sans autre texte ni balise markdown.
-Les clés sont les identifiants de projet, les valeurs sont les tâches structurées.`;
+RESPONSE FORMAT :
+Return STRICTLY a flat JSON object with no other text or markdown tags.
+Keys are project IDs, values are structured tasks.`;
 }
 
 export function buildPlanningUserPrompt(
@@ -374,37 +374,37 @@ export function buildPlanningUserPrompt(
       const deps = p.dependencies ?? [];
       const depInfo =
         deps.length > 0
-          ? ` | Dépend de : ${deps.map((d) => linkedProjects.find((lp) => lp.id === d)?.name ?? d).join(", ")}`
+          ? ` | Depends on: ${deps.map((d) => linkedProjects.find((lp) => lp.id === d)?.name ?? d).join(", ")}`
           : "";
-      const roleHint = TYPE_ROLE_HINTS[p.type ?? ""] ?? "Général";
-      return `- ID: "${p.id}" | Nom: "${p.name}" | Type: ${p.type ?? "non défini"} (${roleHint})${depInfo}\n  Compétences : ${p.instructions || "non précisées"}`;
+      const roleHint = TYPE_ROLE_HINTS[p.type ?? ""] ?? "General";
+      return `- ID: "${p.id}" | Name: "${p.name}" | Type: ${p.type ?? "undefined"} (${roleHint})${depInfo}\n  Skills: ${p.instructions || "not specified"}`;
     })
     .join("\n");
 
-  return `TÂCHE GLOBALE :
+  return `GLOBAL TASK :
 "${globalTask}"
 
 ${workspaceContext}
 
-AGENTS DISPONIBLES :
+AVAILABLE AGENTS :
 ${agentList}
 
-CONSIGNE :
-Respecte les rôles par type — "work" gère les couleurs/charte/contenu, "design" fait les maquettes APRÈS, "code" code DEPUIS les maquettes.
-Pour chaque agent, génère une tâche structurée qui contient :
-1. OBJECTIF — Ce que l'agent doit produire concrètement
-2. CONTEXTE — Ce qu'il doit savoir pour travailler (dépendances, contraintes projet)
-3. FORMAT — Les fichiers/livrables attendus avec leur structure
-4. CRITÈRES — Comment vérifier que le travail est correct
+INSTRUCTIONS :
+Respect the roles per type — "work" handles colors/branding/content, "design" makes mockups AFTER, "code" codes FROM the mockups.
+For each agent, generate a structured task containing:
+1. OBJECTIVE — What the agent must concretely produce
+2. CONTEXT — What it needs to know (dependencies, project constraints)
+3. FORMAT — Expected files/deliverables with their structure
+4. CRITERIA — How to verify the work is correct
 
-EXEMPLE DE RÉPONSE :
+EXAMPLE RESPONSE :
 {
-  "p1": "OBJECTIF : Implémenter l'API d'authentification OAuth2 avec refresh tokens.\\nCONTEXTE : L'application utilise Express + PostgreSQL. Les routes doivent être sous /api/auth/.\\nFORMAT : Créer src/auth/router.ts, src/auth/service.ts, src/auth/types.ts et tests/auth.test.ts.\\nCRITÈRES : Les endpoints POST /login, POST /refresh et POST /logout doivent fonctionner. Tests unitaires avec couverture > 80%.",
-  "p2": "OBJECTIF : Créer la charte graphique du module d'onboarding.\\nCONTEXTE : Application web B2B, cible professionnelle, style moderne et épuré.\\nFORMAT : Créer design/tokens.css (variables), design/onboarding.css (composants), et un document design/specs.md décrivant les choix.\\nCRITÈRES : Accessibilité WCAG AA, responsive mobile/desktop, palette de 5 couleurs max."
+  "p1": "OBJECTIVE: Implement OAuth2 authentication API with refresh tokens.\\nCONTEXT: The application uses Express + PostgreSQL. Routes must be under /api/auth/.\\nFORMAT: Create src/auth/router.ts, src/auth/service.ts, src/auth/types.ts and tests/auth.test.ts.\\nCRITERIA: POST /login, POST /refresh and POST /logout endpoints must work. Unit tests with coverage > 80%.",
+  "p2": "OBJECTIVE: Create the onboarding module's visual style guide.\\nCONTEXT: B2B web application, professional target, modern and clean style.\\nFORMAT: Create design/tokens.css (variables), design/onboarding.css (components), and a design/specs.md document describing choices.\\nCRITERIA: WCAG AA accessibility, mobile/desktop responsive, max 5 color palette."
 }`;
 }
 
-// ── 2. Exécution de node ─────────────────────────────────────────────────────
+// ── 2. Node execution ────────────────────────────────────────────────────────
 
 export interface NodePromptOptions {
   readonly codeFenceFormat?: boolean;
@@ -416,48 +416,48 @@ export function buildNodeSystemPrompt(
   opts: NodePromptOptions = {},
 ): string {
   const { codeFenceFormat = true, compact = false } = opts;
-  const identity = node.instructions || `Agent de type "${node.type ?? "général"}"`;
+  const identity = node.instructions || `Agent of type "${node.type ?? "general"}"`;
   const rules = getQualityRules(node.type, compact);
 
   const fileSection = codeFenceFormat
-    ? `FORMAT FICHIERS (OBLIGATOIRE) :
-Pour chaque fichier que tu crées, utilise EXACTEMENT ce format :
-\`\`\`<lang> filepath: <chemin/relatif/du/fichier>
-<contenu intégral du fichier>
+    ? `FILE FORMAT (REQUIRED) :
+For every file you create, use EXACTLY this format:
+\`\`\`<lang> filepath: <relative/path/to/file>
+<full file content>
 \`\`\`
-Exemple :
+Example:
 \`\`\`html filepath: articles/01-intro.html
 <!DOCTYPE html>
 <html>...</html>
 \`\`\`
-Ne mets JAMAIS de texte explicatif entre les blocs de fichiers. Enchaîne directement les blocs.`
-    : `OUTILS FICHIERS :
-Tu disposes d'outils de fichiers réels (write, edit). Tu n'as PAS d'accès shell (bash).
-Explore avec read/glob/grep, produis avec write/edit.
-Utilise UNIQUEMENT des chemins RELATIFS depuis la racine du workspace (ex: src/api/foo.py). JAMAIS de chemins absolus (/home/…, /Users/…).
-Méthode normale = outils write/edit. DERNIER RECOURS uniquement (si un outil échoue) : bloc \`\`\`lang filepath: chemin.
+NEVER put explanatory text between file blocks. Chain blocks directly one after another.`
+    : `FILE TOOLS :
+You have real file tools (write, edit). You do NOT have shell access (bash).
+Explore with read/glob/grep, produce with write/edit.
+Use ONLY RELATIVE paths from the workspace root (e.g. src/api/foo.py). NEVER absolute paths (/home/…, /Users/…).
+Normal method = write/edit tools. LAST RESORT only (if a tool fails): \`\`\`lang filepath: path block.
 
-EXÉCUTION IMMÉDIATE (CRITIQUE) :
-- NE PLANIFIE PAS. NE LISTE PAS les étapes. NE DÉCRIS PAS ce que tu vas faire.
-- Commence IMMÉDIATEMENT à écrire les fichiers avec les outils (write/edit).
-- Chaque fichier doit être COMPLET et INTÉGRAL — pas de squelettes, pas de "à compléter".
-- Si tu lis des fichiers existants, fais-le rapidement puis PRODUIS sans t'arrêter.
-- Ton objectif : à la fin de ce message, TOUS les fichiers demandés sont écrits dans le workspace.`;
+EXECUTE IMMEDIATELY (CRITICAL) :
+- DO NOT PLAN. DO NOT LIST steps. DO NOT DESCRIBE what you will do.
+- Start IMMEDIATELY writing files with the tools (write/edit).
+- Each file must be COMPLETE and FULL — no skeletons, no "to be completed".
+- If you read existing files, do it quickly then PRODUCE without stopping.
+- Your goal: by the end of this message, ALL requested files are written in the workspace.`;
 
   const behavior = compact
-    ? `COMPORTEMENT :
-- Workspace partagé : ton livrable sert directement aux agents suivants.
-- Produis du contenu COMPLET et professionnel — pas de squelette, pas de "à compléter".
-- Si ta tâche mentionne N éléments, produis-les TOUS en entier.
-- Concentre-toi uniquement sur TA tâche assignée.`
-    : `COMPORTEMENT ATTENDU :
-- Tu travailles dans un workspace partagé avec d'autres agents — ton livrable sera utilisé par les agents suivants
-- Produis du contenu de QUALITÉ PROFESSIONNELLE, exhaustif et production-ready
-- INTERDIT : contenu superficiel, paragraphes de 2 lignes, fichiers squelettes, "à compléter plus tard"
-- OBLIGATOIRE : chaque fichier doit être COMPLET et INTÉGRAL du début à la fin
-- Si ta tâche mentionne N éléments (N pages, N composants, N sections), produis-les TOUS en entier
-- La qualité de ton travail détermine la qualité du projet final — pas de raccourcis
-- Concentre-toi uniquement sur TA tâche assignée`;
+    ? `BEHAVIOR :
+- Shared workspace: your deliverable serves directly as input to the following agents.
+- Produce COMPLETE and professional content — no skeleton, no "to be completed".
+- If your task mentions N items, produce ALL of them in full.
+- Focus solely on YOUR assigned task.`
+    : `EXPECTED BEHAVIOR :
+- You work in a shared workspace with other agents — your deliverable will be used by subsequent agents
+- Produce PROFESSIONAL QUALITY, exhaustive, production-ready content
+- FORBIDDEN: superficial content, 2-line paragraphs, skeleton files, "to be completed later"
+- REQUIRED: each file must be COMPLETE and FULL from start to finish
+- If your task mentions N items (N pages, N components, N sections), produce ALL of them in full
+- The quality of your work determines the quality of the final project — no shortcuts
+- Focus solely on YOUR assigned task`;
 
   return `${identity}
 
@@ -475,13 +475,13 @@ export function buildNodeUserPrompt(
   expectedFiles: readonly string[] = [],
   opts?: { codeFenceFormat?: boolean },
 ): string {
-  const task = node.task || "Aucune tâche définie.";
+  const task = node.task || "No task defined.";
 
-  const sections = [`TÂCHE :\n${task}`];
+  const sections = [`TASK :\n${task}`];
 
   if (expectedFiles.length > 0) {
     sections.push(
-      `CONTRAT DE FICHIERS — OBLIGATOIRE :\nTu DOIS produire EXACTEMENT les fichiers suivants avec ces chemins précis :\n${expectedFiles.map((f) => `- ${f}`).join("\n")}\nUn fichier manquant ou au mauvais chemin = tâche échouée.`,
+      `FILE CONTRACT — REQUIRED :\nYou MUST produce EXACTLY the following files with these exact paths:\n${expectedFiles.map((f) => `- ${f}`).join("\n")}\nA missing file or wrong path = task failed.`,
     );
   }
 
@@ -495,8 +495,8 @@ export function buildNodeUserPrompt(
 
   const useCodeFence = opts?.codeFenceFormat !== false;
   const reminder = useCodeFence
-    ? "RAPPEL CRITIQUE : Produis un livrable EXHAUSTIF et PROFESSIONNEL. Pas de placeholders, pas de résumés, pas de contenu superficiel. Chaque fichier doit être COMPLET du début à la fin — pas de raccourcis. Si ta tâche mentionne N fichiers ou N pages, produis-les TOUS en intégralité. Utilise le format ```<lang> filepath: chemin/fichier pour chaque fichier — le système extraira et écrira automatiquement les fichiers sur le disque."
-    : "RAPPEL CRITIQUE : Produis un livrable EXHAUSTIF et PROFESSIONNEL. Pas de placeholders, pas de résumés, pas de contenu superficiel. Chaque fichier doit être COMPLET du début à la fin — pas de raccourcis. Si ta tâche mentionne N fichiers ou N pages, produis-les TOUS en intégralité. Crée les fichiers DIRECTEMENT avec les outils write/edit aux chemins RELATIFS EXACTS du CONTRAT DE FICHIERS (jamais de chemins absolus). Méthode normale = outils write/edit ; en dernier recours (outil échoué), utilise le format ```lang filepath: chemin — il sera quand même récupéré. Tu n'as pas d'accès shell (bash).";
+    ? "CRITICAL REMINDER : Produce an EXHAUSTIVE and PROFESSIONAL deliverable. No placeholders, no summaries, no superficial content. Each file must be COMPLETE from start to finish — no shortcuts. If your task mentions N files or N pages, produce ALL of them in full. Use the ```<lang> filepath: path/file format for each file — the system will automatically extract and write the files to disk."
+    : "CRITICAL REMINDER : Produce an EXHAUSTIVE and PROFESSIONAL deliverable. No placeholders, no summaries, no superficial content. Each file must be COMPLETE from start to finish — no shortcuts. If your task mentions N files or N pages, produce ALL of them in full. Create files DIRECTLY with write/edit tools at the EXACT RELATIVE paths from the FILE CONTRACT (never absolute paths). Normal method = write/edit tools; as a last resort (if a tool fails), use the ```lang filepath: path format — it will still be recovered. You do not have shell access (bash).";
   sections.push(reminder);
 
   return sections.join("\n\n");
@@ -511,17 +511,17 @@ export function buildContinuationPrompt(
   maxRetries: number,
 ): string {
   const tail = previousText.slice(-500);
-  return `Ta génération précédente a été interrompue (tentative ${attempt}/${maxRetries}).
+  return `Your previous generation was interrupted (attempt ${attempt}/${maxRetries}).
 
-TÂCHE ORIGINALE :
-${node.task || "non définie"}
+ORIGINAL TASK :
+${node.task || "undefined"}
 
-FIN DE TA DERNIÈRE RÉPONSE :
+END OF YOUR LAST RESPONSE :
 """
 ...${tail}
 """
 
-CONSIGNE : Reprends EXACTEMENT là où tu t'es arrêté. Ne répète pas ce que tu as déjà écrit. Continue directement à partir du point d'interruption ci-dessus.`;
+INSTRUCTION : Resume EXACTLY where you left off. Do not repeat what you already wrote. Continue directly from the interruption point above.`;
 }
 
 // ── 3b. Multi-turn iteration ────────────────────────────────────────────────
@@ -531,21 +531,21 @@ export function buildCompletenessCheckPrompt(
   accumulatedText: string,
 ): string {
   const tail = accumulatedText.slice(-3000);
-  return `TÂCHE ASSIGNÉE :
-${node.task || "non définie"}
+  return `ASSIGNED TASK :
+${node.task || "undefined"}
 
-TRAVAIL PRODUIT JUSQU'ICI (fin) :
+WORK PRODUCED SO FAR (end) :
 """
 ...${tail}
 """
 
-QUESTION : La tâche est-elle ENTIÈREMENT accomplie ? Vérifie :
-- Tous les fichiers demandés ont-ils été créés ?
-- Le contenu est-il complet (pas de sections vides, pas de placeholders) ?
-- La qualité est-elle production-ready ?
+QUESTION : Is the task FULLY completed ? Check:
+- Have all requested files been created ?
+- Is the content complete (no empty sections, no placeholders) ?
+- Is the quality production-ready ?
 
-Réponds STRICTEMENT par un JSON :
-{"complete": true} ou {"complete": false, "missing": "description précise de ce qui manque"}`;
+Respond STRICTLY with JSON:
+{"complete": true} or {"complete": false, "missing": "precise description of what is missing"}`;
 }
 
 export function buildIterationPrompt(
@@ -556,30 +556,30 @@ export function buildIterationPrompt(
   maxIterations: number,
 ): string {
   const tail = accumulatedText.slice(-8000);
-  return `ITÉRATION ${iteration}/${maxIterations} — CONTINUATION DE TA TÂCHE
+  return `ITERATION ${iteration}/${maxIterations} — CONTINUATION OF YOUR TASK
 
-TÂCHE ORIGINALE :
-${node.task || "non définie"}
+ORIGINAL TASK :
+${node.task || "undefined"}
 
-CE QUI A DÉJÀ ÉTÉ PRODUIT (fin) :
+WHAT HAS BEEN PRODUCED SO FAR (end) :
 """
 ...${tail}
 """
 
-CE QUI MANQUE ENCORE :
+WHAT IS STILL MISSING :
 ${missing}
 
-CONSIGNE : Produis UNIQUEMENT ce qui manque. Ne répète PAS ce qui a déjà été produit. Utilise le format \`\`\`<lang> filepath: chemin/fichier pour chaque nouveau fichier. Si tu dois compléter un fichier existant, reproduis-le EN ENTIER avec les ajouts.`;
+INSTRUCTION : Produce ONLY what is missing. Do NOT repeat what has already been produced. Use the \`\`\`<lang> filepath: path/file format for each new file. If you need to complete an existing file, reproduce it IN FULL with the additions.`;
 }
 
-// ── 4. Vérification pré-exécution ────────────────────────────────────────────
+// ── 4. Pre-execution verification ────────────────────────────────────────────
 
 export function buildVerifyPromptsSystemPrompt(verifier: Project): string {
-  return `${verifier.instructions || "Tu es un vérificateur de qualité d'instructions."}
+  return `${verifier.instructions || "You are an instruction quality verifier."}
 
-RÔLE : Analyser un ensemble d'instructions générées pour des agents IA et vérifier leur qualité AVANT exécution.
+ROLE: Analyze a set of instructions generated for AI agents and verify their quality BEFORE execution.
 
-Tu évalues selon une CHECKLIST STRICTE. Chaque critère est noté OK ou PROBLÈME.`;
+You evaluate according to a STRICT CHECKLIST. Each criterion is scored OK or PROBLEM.`;
 }
 
 export function buildVerifyPromptsUserPrompt(
@@ -588,48 +588,48 @@ export function buildVerifyPromptsUserPrompt(
   linkedProjects: readonly Project[],
 ): string {
   const projectContext = linkedProjects
-    .map((p) => `- "${p.id}" = "${p.name}" (${p.type ?? "non défini"})`)
+    .map((p) => `- "${p.id}" = "${p.name}" (${p.type ?? "undefined"})`)
     .join("\n");
 
-  return `TÂCHE GLOBALE : "${globalTask}"
+  return `GLOBAL TASK : "${globalTask}"
 
 AGENTS :
 ${projectContext}
 
-INSTRUCTIONS GÉNÉRÉES :
+GENERATED INSTRUCTIONS :
 ${JSON.stringify(promptsMap, null, 2)}
 
-CHECKLIST DE VÉRIFICATION :
-1. COUVERTURE — Chaque aspect de la tâche globale est-il couvert par au moins un agent ?
-2. COHÉRENCE — Les instructions ne se contredisent-elles pas entre agents ?
-3. CLARTÉ — Chaque instruction est-elle compréhensible sans contexte supplémentaire ?
-4. COMPLÉTUDE — Chaque instruction précise-t-elle l'objectif, le format et les critères de réussite ?
-5. DÉPENDANCES — Les agents dépendants ont-ils les informations nécessaires ?
-6. FAISABILITÉ — Chaque tâche est-elle réalisable par un seul agent ?
+VERIFICATION CHECKLIST :
+1. COVERAGE — Is every aspect of the global task covered by at least one agent ?
+2. COHERENCE — Do instructions not contradict each other across agents ?
+3. CLARITY — Is each instruction understandable without extra context ?
+4. COMPLETENESS — Does each instruction specify the objective, format, and success criteria ?
+5. DEPENDENCIES — Do dependent agents have the necessary information ?
+6. FEASIBILITY — Is each task achievable by a single agent ?
 
-Réponds STRICTEMENT par un JSON valide :
+Respond STRICTLY with a valid JSON:
 {
-  "valid": true ou false,
+  "valid": true or false,
   "checks": {
-    "couverture": {"ok": true/false, "detail": "..."},
+    "coverage": {"ok": true/false, "detail": "..."},
     "coherence": {"ok": true/false, "detail": "..."},
-    "clarte": {"ok": true/false, "detail": "..."},
-    "completude": {"ok": true/false, "detail": "..."},
-    "dependances": {"ok": true/false, "detail": "..."},
-    "faisabilite": {"ok": true/false, "detail": "..."}
+    "clarity": {"ok": true/false, "detail": "..."},
+    "completeness": {"ok": true/false, "detail": "..."},
+    "dependencies": {"ok": true/false, "detail": "..."},
+    "feasibility": {"ok": true/false, "detail": "..."}
   },
-  "reason": "Résumé global si invalide"
+  "reason": "Global summary if invalid"
 }`;
 }
 
-// ── 5. Vérification post-exécution ───────────────────────────────────────────
+// ── 5. Post-execution verification ───────────────────────────────────────────
 
 export function buildVerifyOutputSystemPrompt(verifier: Project): string {
-  return `${verifier.instructions || "Tu es un réviseur de code et de livrables."}
+  return `${verifier.instructions || "You are a code and deliverable reviewer."}
 
-RÔLE : Vérifier qu'un livrable produit par un agent IA répond aux attentes de sa tâche assignée.
+ROLE: Verify that a deliverable produced by an AI agent meets the expectations of its assigned task.
 
-Tu évalues selon des critères objectifs. Tu ne valides PAS par défaut — tu cherches activement les problèmes.`;
+You evaluate according to objective criteria. You do NOT validate by default — you actively look for problems.`;
 }
 
 export function buildVerifyOutputUserPrompt(
@@ -638,29 +638,29 @@ export function buildVerifyOutputUserPrompt(
   diskEvidence = "",
 ): string {
   const typeChecks: Record<string, string> = {
-    code: `CRITÈRES SPÉCIFIQUES (code) :
-- Le code est-il syntaxiquement correct ?
-- Les imports sont-ils présents et cohérents ?
-- La gestion d'erreurs est-elle présente ?
-- Y a-t-il des placeholders ou TODOs non résolus ?
-- Les fichiers sont-ils nommés avec leur chemin ?`,
-    design: `CRITÈRES SPÉCIFIQUES (design) :
-- Les styles CSS sont-ils complets et valides ?
-- Les variables de design sont-elles définies ?
-- L'accessibilité est-elle prise en compte ?
-- Le responsive est-il adressé ?`,
-    work: `CRITÈRES SPÉCIFIQUES (intégration) :
-- Le HTML est-il sémantique et valide ?
-- L'intégration correspond-elle aux spécifications ?
-- Les assets sont-ils référencés correctement ?`,
-    verifier: `CRITÈRES SPÉCIFIQUES (vérification) :
-- L'analyse est-elle structurée et objective ?
-- Les problèmes identifiés sont-ils réels et documentés ?
-- Des corrections sont-elles proposées ?`,
-    recherche: `CRITÈRES SPÉCIFIQUES (recherche) :
-- Les résultats sont-ils structurés ?
-- Les sources sont-elles citées ?
-- Les recommandations sont-elles actionnables ?`,
+    code: `SPECIFIC CRITERIA (code) :
+- Is the code syntactically correct ?
+- Are imports present and consistent ?
+- Is error handling present ?
+- Are there unresolved placeholders or TODOs ?
+- Are files named with their path ?`,
+    design: `SPECIFIC CRITERIA (design) :
+- Are the CSS styles complete and valid ?
+- Are design variables defined ?
+- Is accessibility taken into account ?
+- Is responsive addressed ?`,
+    work: `SPECIFIC CRITERIA (integration) :
+- Is the HTML semantic and valid ?
+- Does the integration match the specifications ?
+- Are assets referenced correctly ?`,
+    verifier: `SPECIFIC CRITERIA (verification) :
+- Is the analysis structured and objective ?
+- Are the identified problems real and documented ?
+- Are corrections proposed ?`,
+    recherche: `SPECIFIC CRITERIA (research) :
+- Are results structured ?
+- Are sources cited ?
+- Are recommendations actionable ?`,
   };
 
   const specificChecks = typeChecks[node.type ?? "code"] ?? typeChecks.code;
@@ -674,116 +674,116 @@ export function buildVerifyOutputUserPrompt(
     const tailLen = MAX_EXCERPT - headLen;
     excerpt =
       resultText.substring(0, headLen) +
-      `\n\n[… ${resultText.length - headLen - tailLen} caractères omis …]\n\n` +
+      `\n\n[… ${resultText.length - headLen - tailLen} characters omitted …]\n\n` +
       resultText.substring(resultText.length - tailLen);
   }
 
   const diskSection = diskEvidence.trim()
-    ? `FICHIERS RÉELLEMENT SUR LE DISQUE (SOURCE DE VÉRITÉ) :
-Voici les fichiers attendus, lus directement depuis le workspace. C'est l'état réel du livrable — juge À PARTIR DE CECI, pas du message de l'agent ci-dessous.
-✓ = présent, ✗ = absent.
+    ? `FILES ACTUALLY ON DISK (GROUND TRUTH) :
+Here are the expected files, read directly from the workspace. This is the real state of the deliverable — judge FROM THIS, not from the agent's message below.
+✓ = present, ✗ = absent.
 ---
 ${diskEvidence}
 ---
-RÈGLE : Un fichier marqué ✓ EXISTE — ne le déclare JAMAIS "manquant". Un fichier dont le contenu est lisible ici n'est PAS "tronqué" même si le message de l'agent semblait coupé. Ne te base QUE sur les fichiers ci-dessus pour juger présence et complétude.
+RULE: A file marked ✓ EXISTS — never declare it "missing". A file whose content is readable here is NOT "truncated" even if the agent's message seemed cut off. Base your judgment ONLY on the files above for presence and completeness.
 
 `
     : "";
 
-  return `AGENT : "${node.name}" (type: ${node.type ?? "non défini"})
-TÂCHE ASSIGNÉE : "${node.task ?? "non définie"}"
-LONGUEUR TOTALE DU MESSAGE DE L'AGENT : ${resultText.length} caractères
+  return `AGENT : "${node.name}" (type: ${node.type ?? "undefined"})
+ASSIGNED TASK : "${node.task ?? "undefined"}"
+TOTAL AGENT MESSAGE LENGTH : ${resultText.length} characters
 
-${diskSection}MESSAGE DE L'AGENT (contexte — peut être un résumé ou un extrait, NON autoritatif) :
+${diskSection}AGENT MESSAGE (context — may be a summary or excerpt, NOT authoritative) :
 ---
 ${excerpt}
 ---
 
-IMPORTANT : ${diskEvidence.trim() ? "Les fichiers sur disque ci-dessus font foi. Le message de l'agent n'est qu'un contexte." : `Si le message dépasse ${MAX_EXCERPT} caractères, tu vois un extrait (début + fin). NE PAS signaler "tronqué" ou "incomplet" simplement parce que le milieu est omis — évalue la structure globale (ouverture, fermeture, cohérence).`}
+IMPORTANT : ${diskEvidence.trim() ? "The files on disk above are authoritative. The agent's message is only context." : `If the message exceeds ${MAX_EXCERPT} characters, you see an excerpt (beginning + end). DO NOT report "truncated" or "incomplete" simply because the middle is omitted — evaluate the overall structure (opening, closing, coherence).`}
 
-CRITÈRES GÉNÉRAUX :
-- Le livrable répond-il à la tâche assignée ?
-- Le livrable est-il complet (pas de sections manquantes visibles dans l'extrait) ?
-- Le livrable est-il utilisable en l'état ?
-- Y a-t-il des erreurs évidentes ?
+GENERAL CRITERIA :
+- Does the deliverable meet the assigned task ?
+- Is the deliverable complete (no visible missing sections in the excerpt) ?
+- Is the deliverable usable as-is ?
+- Are there obvious errors ?
 
 ${specificChecks}
 
-Réponds STRICTEMENT par un JSON valide :
+Respond STRICTLY with a valid JSON:
 {
-  "valid": true ou false,
+  "valid": true or false,
   "score": 0-100,
   "issues": [{"severity": "critical|warning|info", "description": "..."}],
-  "reason": "Résumé si invalide"
+  "reason": "Summary if invalid"
 }`;
 }
 
-// ── 6. Conformité marque ─────────────────────────────────────────────────────
+// ── 6. Brand compliance ──────────────────────────────────────────────────────
 
 export function buildBrandComplianceSystemPrompt(verifier: Project): string {
-  return `${verifier.instructions || "Tu es le gardien de la charte de marque."}
+  return `${verifier.instructions || "You are the brand guidelines guardian."}
 
-RÔLE : Vérifier que les livrables produits respectent le guide de style et la charte graphique du projet.
+ROLE: Verify that the produced deliverables respect the project's style guide and brand guidelines.
 
-Tu compares les livrables aux spécifications de la marque et signales tout écart.`;
+You compare deliverables against brand specifications and report any deviations.`;
 }
 
 export function buildBrandComplianceUserPrompt(brandGuidelines: string): string {
-  return `GUIDE DE STYLE ET DE MARQUE :
+  return `STYLE AND BRAND GUIDE :
 ---
 ${brandGuidelines}
 ---
 
-GRILLE D'ÉVALUATION :
-1. COULEURS — Les couleurs utilisées correspondent-elles à la palette définie ?
-2. TYPOGRAPHIE — Les polices et tailles sont-elles conformes ?
-3. ESPACEMENTS — Les marges et paddings suivent-ils la grille ?
-4. TONALITÉ — Le ton rédactionnel est-il cohérent avec la marque ?
-5. COMPOSANTS — Les composants UI respectent-ils les patterns définis ?
+EVALUATION GRID :
+1. COLORS — Do the used colors match the defined palette ?
+2. TYPOGRAPHY — Are fonts and sizes compliant ?
+3. SPACING — Do margins and padding follow the grid ?
+4. TONE — Is the editorial tone consistent with the brand ?
+5. COMPONENTS — Do UI components respect the defined patterns ?
 
-Réponds STRICTEMENT par un JSON valide :
+Respond STRICTLY with a valid JSON:
 {
-  "valid": true ou false,
+  "valid": true or false,
   "checks": {
-    "couleurs": {"ok": true/false, "detail": "..."},
-    "typographie": {"ok": true/false, "detail": "..."},
-    "espacements": {"ok": true/false, "detail": "..."},
-    "tonalite": {"ok": true/false, "detail": "..."},
-    "composants": {"ok": true/false, "detail": "..."}
+    "colors": {"ok": true/false, "detail": "..."},
+    "typography": {"ok": true/false, "detail": "..."},
+    "spacing": {"ok": true/false, "detail": "..."},
+    "tone": {"ok": true/false, "detail": "..."},
+    "components": {"ok": true/false, "detail": "..."}
   },
-  "reason": "Explication des écarts de marque"
+  "reason": "Explanation of brand deviations"
 }`;
 }
 
 // ── 7. Indexeur workspace ────────────────────────────────────────────────────
 
 export function buildWorkspaceIndexSystemPrompt(): string {
-  return "Tu es un analyste de documentation projet. Tu extrais les informations de fichiers créés ou modifiés à partir du résultat d'un agent et tu les formates pour un registre de workspace.";
+  return "You are a project documentation analyst. You extract information about created or modified files from an agent's result and format it for a workspace registry.";
 }
 
 export function buildWorkspaceIndexUserPrompt(node: Project, resultText: string): string {
   return `AGENT : "${node.name}" (type: ${(node.type ?? "code").toUpperCase()})
 
-RÉSULTAT DE L'AGENT :
+AGENT RESULT :
 ---
 ${resultText.substring(0, 3000)}
 ---
 
-CONSIGNE :
-Analyse le résultat ci-dessus et extrais :
-1. Les NOUVEAUX FICHIERS créés (chemin + fonction en une phrase)
-2. Une LIGNE DE CHANGELOG résumant ce que l'agent a fait
+INSTRUCTION :
+Analyze the result above and extract:
+1. NEW FILES created (path + one-line function)
+2. A CHANGELOG LINE summarizing what the agent did
 
-Réponds STRICTEMENT par un JSON valide :
+Respond STRICTLY with a valid JSON:
 {
-  "newFiles": "| chemin/du/fichier | Fonction courte |\\n| chemin/autre | Fonction |",
-  "changelogLine": "| ${new Date().toLocaleDateString("fr-FR")} | ${node.name} | fichiers modifiés | Description des changements |"
+  "newFiles": "| path/to/file | Short function |\\n| other/path | Function |",
+  "changelogLine": "| ${new Date().toLocaleDateString("en-US")} | ${node.name} | modified files | Description of changes |"
 }
 
-Si aucun fichier n'a été créé, mets "newFiles" à "".`;
+If no files were created, set "newFiles" to "".`;
 }
 
-// ── 8. Décomposition en sous-étapes ──────────────────────────────────────────
+// ── 8. Decomposition into sub-steps ──────────────────────────────────────────
 
 export interface SubStep {
   readonly index: number;
@@ -799,19 +799,19 @@ export interface SubStepResult {
 }
 
 export function buildDecomposeSystemPrompt(node: Project, compact = false): string {
-  const identity = node.instructions || `Agent de type "${node.type ?? "général"}"`;
+  const identity = node.instructions || `Agent of type "${node.type ?? "general"}"`;
   const rules = getQualityRules(node.type, compact);
 
   return `${identity}
 
 ${rules}
 
-RÔLE ACTUEL : Tu dois analyser une tâche complexe et la découper en étapes séquentielles avant de l'exécuter.
+CURRENT ROLE: You must analyze a complex task and break it into sequential steps before executing it.
 
-Chaque étape doit être :
-- FOCALISÉE sur un seul aspect ou livrable
-- SÉQUENTIELLE — les étapes s'exécutent dans l'ordre, chaque étape peut s'appuyer sur les précédentes
-- CONCRÈTE — décrit ce qui doit être produit, pas une intention vague`;
+Each step must be:
+- FOCUSED on a single aspect or deliverable
+- SEQUENTIAL — steps execute in order, each step can build on previous ones
+- CONCRETE — describes what must be produced, not a vague intention`;
 }
 
 export function buildDecomposeUserPrompt(
@@ -820,33 +820,33 @@ export function buildDecomposeUserPrompt(
   depContext: string,
   compact = false,
 ): string {
-  const sections = [`TÂCHE À DÉCOMPOSER :\n"${node.task ?? "non définie"}"`];
+  const sections = [`TASK TO DECOMPOSE :\n"${node.task ?? "undefined"}"`];
 
   if (workspaceContext) sections.push(workspaceContext);
   if (depContext) sections.push(depContext);
 
   const granularity = compact
-    ? `Découpe cette tâche en étapes FINES : 1 étape = 1 seul livrable (ex: 1 page, 1 fichier, 1 composant). Chaque étape sera exécutée indépendamment par le même agent, avec les résultats des étapes précédentes en contexte.`
-    : `Découpe cette tâche en 2 à 8 étapes séquentielles. Chaque étape sera exécutée indépendamment par le même agent, avec les résultats des étapes précédentes en contexte.`;
+    ? `Break this task into FINE steps: 1 step = 1 single deliverable (e.g. 1 page, 1 file, 1 component). Each step will be executed independently by the same agent, with previous steps' results in context.`
+    : `Break this task into 2 to 8 sequential steps. Each step will be executed independently by the same agent, with previous steps' results in context.`;
 
-  sections.push(`CONSIGNE :
+  sections.push(`INSTRUCTION :
 ${granularity}
 
-Réponds STRICTEMENT par un JSON valide (array), sans autre texte ni balise markdown :
+Respond STRICTLY with a valid JSON (array), with no other text or markdown tags:
 [
   {
-    "title": "Titre court de l'étape",
-    "focus": "Description précise de ce que cette étape doit accomplir",
-    "deliverable": "Le livrable concret attendu (fichiers, code, document...)"
+    "title": "Short step title",
+    "focus": "Precise description of what this step must accomplish",
+    "deliverable": "The concrete expected deliverable (files, code, document...)"
   }
 ]
 
-RÈGLES :
-- Minimum 2 étapes, maximum 8
-- Chaque étape = UN livrable vérifiable
-- Les étapes doivent couvrir 100% de la tâche originale
-- Ordonne les étapes logiquement (fondations d'abord, finitions ensuite)
-- La dernière étape devrait finaliser/intégrer le travail`);
+RULES :
+- Minimum 2 steps, maximum 8
+- Each step = ONE verifiable deliverable
+- Steps must cover 100% of the original task
+- Order steps logically (foundations first, finishing touches last)
+- The last step should finalize/integrate the work`);
 
   return sections.join("\n\n");
 }
@@ -860,41 +860,41 @@ export function buildSubStepUserPrompt(
   depContext: string,
 ): string {
   const sections = [
-    `ÉTAPE ${step.index + 1}/${totalSteps} : ${step.title}`,
+    `STEP ${step.index + 1}/${totalSteps} : ${step.title}`,
     `FOCUS :\n${step.focus}`,
-    `LIVRABLE ATTENDU :\n${step.deliverable}`,
+    `EXPECTED DELIVERABLE :\n${step.deliverable}`,
   ];
 
   if (previousResults.length > 0) {
     const prevBlocks = previousResults.map(
-      (r) => `--- Étape ${r.index + 1} : ${r.title} ---\n${r.output.substring(0, 6000)}`,
+      (r) => `--- Step ${r.index + 1} : ${r.title} ---\n${r.output.substring(0, 6000)}`,
     );
-    sections.push(`[RÉSULTATS DES ÉTAPES PRÉCÉDENTES]\n${prevBlocks.join("\n\n")}`);
+    sections.push(`[PREVIOUS STEPS RESULTS]\n${prevBlocks.join("\n\n")}`);
   }
 
   if (workspaceContext) sections.push(workspaceContext);
   if (depContext) sections.push(depContext);
 
   sections.push(
-    "RAPPEL : Produis le livrable de CETTE ÉTAPE uniquement. Code/contenu complet, pas de placeholders.",
+    "REMINDER : Produce the deliverable for THIS STEP only. Complete code/content, no placeholders.",
   );
 
   return sections.join("\n\n");
 }
 
 export function buildSynthesisSystemPrompt(node: Project): string {
-  const identity = node.instructions || `Agent de type "${node.type ?? "général"}"`;
+  const identity = node.instructions || `Agent of type "${node.type ?? "general"}"`;
 
   return `${identity}
 
-RÔLE ACTUEL : Tu dois fusionner les résultats de plusieurs sous-étapes en un livrable final cohérent et complet.
+CURRENT ROLE: You must merge the results of multiple sub-steps into a coherent and complete final deliverable.
 
-RÈGLES :
-- Fusionne les résultats sans redondance ni contradiction
-- Le livrable final doit être utilisable en l'état
-- Si des fichiers ont été produits, consolide-les avec leur chemin complet
-- Corrige les incohérences entre étapes si nécessaire
-- Ne perds aucun contenu important des sous-étapes`;
+RULES :
+- Merge results without redundancy or contradiction
+- The final deliverable must be usable as-is
+- If files were produced, consolidate them with their full path
+- Fix inconsistencies between steps if needed
+- Do not lose any important content from sub-steps`;
 }
 
 export function buildSynthesisUserPrompt(
@@ -904,147 +904,147 @@ export function buildSynthesisUserPrompt(
   const MAX_RESULT_PER_STEP = 6000;
   const resultBlocks = subStepResults.map(
     (r) =>
-      `--- Étape ${r.index + 1} : ${r.title} ---\n${r.output.substring(0, MAX_RESULT_PER_STEP)}`,
+      `--- Step ${r.index + 1} : ${r.title} ---\n${r.output.substring(0, MAX_RESULT_PER_STEP)}`,
   );
 
-  return `TÂCHE ORIGINALE :
-"${node.task ?? "non définie"}"
+  return `ORIGINAL TASK :
+"${node.task ?? "undefined"}"
 
-RÉSULTATS DES ${subStepResults.length} SOUS-ÉTAPES :
+RESULTS OF ${subStepResults.length} SUB-STEPS :
 
 ${resultBlocks.join("\n\n")}
 
-CONSIGNE :
-Produis le livrable FINAL en fusionnant tous les résultats ci-dessus. Le résultat doit être complet, cohérent, et prêt à être utilisé sans référence aux sous-étapes.`;
+INSTRUCTION :
+Produce the FINAL deliverable by merging all results above. The result must be complete, coherent, and ready to use without referencing the sub-steps.`;
 }
 
-// ── 9. Planification itérative (boucle agentic) ────────────────────────────
+// ── 9. Iterative planning (agentic loop) ────────────────────────────────────
 
 export function buildIterativePlanningSystemPrompt(orchestrator: Project): string {
   const base = orchestrator.instructions || "";
-  return `Tu es le coordinateur d'une équipe d'agents IA. Tu planifies les tâches de manière itérative en utilisant les outils fournis.
+  return `You are the coordinator of an AI agent team. You plan tasks iteratively using the provided tools.
 
-${base ? `INSTRUCTIONS PERSONNALISÉES :\n${base}\n` : ""}RÔLE DE CHAQUE TYPE D'AGENT (CRITIQUE — respecte cette répartition) :
-- "recherche" → Investigation, collecte de données, état de l'art, veille. Produit des documents de synthèse, plans, recommandations.
-- "work" → OpenWork : production de CONTENU et d'assets — rédaction (articles, documents, ebook, marketing), données structurées (.md/.json/.csv), et pour un site : design system (couleurs, typo, espacements), charte graphique, intégration HTML/CSS. Pour un livrable visuel, c'est lui qui définit les couleurs, pas le designer.
-- "design" → Open Design : création de MAQUETTES visuelles web (HTML/CSS) UNIQUEMENT, pertinent SEULEMENT si le livrable a une interface. Il ne choisit PAS les couleurs ni le design system — il les REÇOIT des agents "work"/"recherche". N'assigne un agent "design" QUE pour un site/app web.
-- "code" → OpenCode : développement et codage. Produit le livrable fonctionnel : application, librairie, API, CLI, scripts, ou structuration de données. S'il existe des maquettes, il les reproduit fidèlement ; sinon il code à partir de la spécification, des données ou du contenu fournis.
-- "verifier" → Tests et assurance qualité. Vérifie les livrables des autres agents.
+${base ? `CUSTOM INSTRUCTIONS :\n${base}\n` : ""}ROLE OF EACH AGENT TYPE (CRITICAL — respect this distribution) :
+- "recherche" → Investigation, data collection, state of the art, monitoring. Produces synthesis documents, plans, recommendations.
+- "work" → OpenWork: production of CONTENT and assets — writing (articles, documents, ebook, marketing), structured data (.md/.json/.csv), and for a site: design system (colors, typo, spacing), brand guidelines, HTML/CSS integration. For a visual deliverable, this agent defines the colors, not the designer.
+- "design" → Open Design: creation of web visual MOCKUPS (HTML/CSS) ONLY, relevant ONLY if the deliverable has a UI. It does NOT choose colors or the design system — it RECEIVES them from "work"/"recherche" agents. Only assign a "design" agent for a web site/app.
+- "code" → OpenCode: development and coding. Produces the functional deliverable: application, library, API, CLI, scripts, or data structuring. If mockups exist, it reproduces them faithfully; otherwise it codes from the specification, data, or provided content.
+- "verifier" → Testing and quality assurance. Verifies deliverables from other agents.
 
-ÉCONOMIE D'AGENTS (RÈGLE FORTE) : NE crée QUE les agents et livrables réellement nécessaires au livrable demandé. PAS de scaffolding parasite (tests, scripts, SEO, maquettes, données annexes) si la demande ne l'implique pas explicitement. Moins d'agents parasites = meilleure cohérence et moins de pollution du workspace. En cas de doute sur l'utilité d'un agent/livrable, NE le crée PAS.
+AGENT ECONOMY (STRONG RULE) : ONLY create the agents and deliverables actually needed for the requested deliverable. NO parasitic scaffolding (tests, scripts, SEO, mockups, ancillary data) if the request does not explicitly imply it. Fewer parasitic agents = better coherence and less workspace pollution. When in doubt about an agent/deliverable's usefulness, DO NOT create it.
 
-ÉTABLIR LES DÉPENDANCES SELON LES LIVRABLES RÉELS (pas un pipeline figé) :
-- Crée les agents et les dépendances dont le LIVRABLE a réellement besoin. N'insère PAS d'agent "design"/maquette ni de dépendance vers lui si le livrable n'a pas d'interface visuelle (ex: librairie de code, API, rapport, ebook, données, CV).
-- NE PAS donner la rédaction de contenu à un agent "code" → c'est le rôle de "work"
-- NE PAS donner le codage final à un agent "work" → c'est le rôle de "code"
-- Si un agent "design" produit des maquettes, alors l'agent "code" qui les implémente doit en dépendre ; sinon, fais dépendre "code" de ce qui le nourrit réellement (spécification, données, schéma, contenu).
-- Un agent dépend de ceux qui produisent ce dont il a besoin en entrée — déduis-le du livrable, ne l'impose pas par défaut.
+ESTABLISH DEPENDENCIES BASED ON ACTUAL DELIVERABLES (not a fixed pipeline) :
+- Create agents and dependencies that the DELIVERABLE actually needs. Do NOT insert a "design"/mockup agent or a dependency to it if the deliverable has no visual interface (e.g. code library, API, report, ebook, data, resume).
+- DO NOT give content writing to a "code" agent → that's the "work" role
+- DO NOT give final coding to a "work" agent → that's the "code" role
+- If a "design" agent produces mockups, then the "code" agent implementing them must depend on it; otherwise, make "code" depend on what actually feeds it (specification, data, schema, content).
+- An agent depends on those who produce what it needs as input — deduce this from the deliverable, do not impose it by default.
 
-SI LA TÂCHE EST UN SITE/APP WEB — IMPORTANCE DE L'AGENT DESIGN (exemple de pipeline web) :
-L'agent "design" produit les maquettes HTML/CSS qui servent de RÉFÉRENCE VISUELLE pour l'agent "code". Pour un site, c'est un rôle CRITIQUE.
-- Donne-lui des instructions TRÈS DÉTAILLÉES : pages à créer, composants à inclure, style attendu, contenu à intégrer
-- Demande EXPLICITEMENT la complétude : tous les états (hover, focus, erreur, vide, loading), responsive (mobile/tablette/desktop), composants de navigation
-- L'agent design itère automatiquement pour améliorer ses maquettes — donne-lui un cahier des charges riche pour qu'il ait matière à travailler
-- N'hésite PAS sur le volume — une maquette complète fait 500+ lignes HTML/CSS par page, c'est normal
+IF THE TASK IS A WEB SITE/APP — IMPORTANCE OF THE DESIGN AGENT (example web pipeline) :
+The "design" agent produces HTML/CSS mockups that serve as VISUAL REFERENCE for the "code" agent. For a site, this is a CRITICAL role.
+- Give VERY DETAILED instructions: pages to create, components to include, expected style, content to integrate
+- EXPLICITLY require completeness: all states (hover, focus, error, empty, loading), responsive (mobile/tablet/desktop), navigation components
+- The design agent iterates automatically to improve its mockups — give it a rich specification to work with
+- Do NOT hold back on volume — a complete mockup is 500+ lines of HTML/CSS per page, that's normal
 
-AGENT DESIGN = SI ET SEULEMENT SI INTERFACE WEB : n'assigne un agent "design" QUE si le livrable final est un site/app web ou une UI. Pour un document, rapport, guide, ebook ou des données (livrable texte/structuré sans interface), N'assigne AUCUN agent design : le rendu se fait en .md (ou, si une mise en forme visuelle est explicitement demandée, un seul HTML simple via un agent "work"), JAMAIS via une maquette ou une charte graphique.
+DESIGN AGENT = IF AND ONLY IF WEB INTERFACE: only assign a "design" agent if the final deliverable is a web site/app or UI. For a document, report, guide, ebook or data (text/structured deliverable without an interface), assign NO design agent: the output is in .md (or, if visual formatting is explicitly requested, a single simple HTML via a "work" agent), NEVER through a mockup or a visual style guide.
 
-PROCESSUS :
-1. Analyse la tâche globale et identifie les livrables nécessaires
-2. Réfléchis à la répartition optimale en respectant les rôles ci-dessus
-3. Pour chaque agent, utilise assign_task pour lui assigner une tâche structurée
-4. Si une tâche est complexe, fournis des sous-étapes via le paramètre "steps"
-5. Quand TOUS les agents ont une tâche, appelle finish_planning
+PROCESS :
+1. Analyze the global task and identify necessary deliverables
+2. Think about the optimal distribution respecting the roles above
+3. For each agent, use assign_task to assign a structured task
+4. If a task is complex, provide sub-steps via the "steps" parameter
+5. When ALL agents have a task, call finish_planning
 
-QUALITÉ DES TÂCHES :
-Chaque tâche assignée DOIT être EXHAUSTIVE et DÉTAILLÉE. Tu ne donnes PAS une consigne vague — tu donnes un cahier des charges complet.
-Chaque tâche DOIT contenir ces 4 sections :
-- OBJECTIF — Ce que l'agent doit produire concrètement, avec le VOLUME attendu (nombre de fichiers, nombre de pages, longueur minimale)
-- CONTEXTE — Ce qu'il doit savoir (contraintes, dépendances, standards, public cible, ton, style)
-- FORMAT — La LISTE EXHAUSTIVE des fichiers/livrables attendus avec leur structure et contenu minimum
-- CRITÈRES — Critères de qualité MESURABLES (nombre de mots min, couverture, accessibilité, SEO, etc.)
+TASK QUALITY :
+Each assigned task MUST be EXHAUSTIVE and DETAILED. You do NOT give a vague instruction — you give a complete specification.
+Each task MUST contain these 4 sections:
+- OBJECTIVE — What the agent must concretely produce, with the expected VOLUME (number of files, number of pages, minimum length)
+- CONTEXT — What it needs to know (constraints, dependencies, standards, target audience, tone, style)
+- FORMAT — The EXHAUSTIVE LIST of expected files/deliverables with their structure and minimum content
+- CRITERIA — MEASURABLE quality criteria (minimum word count, coverage, accessibility, SEO, etc.)
 
-CONTRAT DE LIVRABLES (expected_files) — CRITIQUE :
-Pour chaque agent work/code/design, utilise le paramètre "expected_files" de assign_task pour lister les fichiers que l'agent DOIT produire.
-C'est un CONTRAT : un fichier absent = tâche échouée + relance automatique. Sois exhaustif.
-Exemple : expected_files: ["src/index.html", "src/styles/main.css", "src/components/header.html"]
-Ceci est GÉNÉRIQUE — fonctionne pour tout type de livrable (.py, .md, .json, .css, .html, etc.).
-EMPLACEMENT CANONIQUE UNIQUE — chaque livrable logique a UN SEUL chemin canonique. N'écris JAMAIS le même contenu dans plusieurs dossiers (ex: à la racine + research/ + reports/ + legal/) : ça détruit la source de vérité. Si plusieurs agents ont besoin du même fichier, UN SEUL le produit (déclaré dans son expected_files) et les autres en DÉPENDENT (depends_on) au lieu de le recopier.
+DELIVERABLE CONTRACT (expected_files) — CRITICAL :
+For each work/code/design agent, use the "expected_files" parameter of assign_task to list the files the agent MUST produce.
+It's a CONTRACT: a missing file = failed task + automatic retry. Be exhaustive.
+Example: expected_files: ["src/index.html", "src/styles/main.css", "src/components/header.html"]
+This is GENERIC — works for any deliverable type (.py, .md, .json, .css, .html, etc.).
+UNIQUE CANONICAL LOCATION — each logical deliverable has ONE SINGLE canonical path. NEVER write the same content in multiple folders (e.g. at the root + research/ + reports/ + legal/): it destroys the source of truth. If multiple agents need the same file, ONE SINGLE agent produces it (declared in its expected_files) and the others DEPEND on it (depends_on) instead of copying it.
 
-CONTRAT DE VÉRIFICATION (checks) — MACHINE-VÉRIFIABLE, NE TE FIE PAS AU LLM :
-Pour chaque CRITÈRE CHIFFRÉ de la demande, émets-le dans le paramètre "checks" de assign_task (indexé par chemin de fichier). Le SYSTÈME le vérifie automatiquement après exécution et RELANCE l'agent si non respecté — c'est la garantie déterministe que même un petit modèle produit le bon volume.
-Contraintes disponibles : minWords, minItems (longueur d'un tableau JSON), minSections (titres ## / ###), requiredSubstrings (chaînes obligatoires), format (json|csv|md).
-Exemple :
+VERIFICATION CONTRACT (checks) — MACHINE-VERIFIABLE, DO NOT TRUST THE LLM :
+For each QUANTIFIED CRITERION in the request, emit it in the "checks" parameter of assign_task (indexed by file path). The SYSTEM verifies it automatically after execution and RETRIES the agent if not met — this is the deterministic guarantee that even a small model produces the right volume.
+Available constraints: minWords, minItems (length of a JSON array), minSections (## / ### headings), requiredSubstrings (required strings), format (json|csv|md).
+Example :
   checks: {
     "content/guide.md": { "minSections": 8, "minWords": 4000 },
-    "data/produits.json": { "format": "json", "minItems": 12 },
+    "data/products.json": { "format": "json", "minItems": 12 },
     "data/clients.csv": { "format": "csv" }
   }
-DÉRIVE les seuils des CRITÈRES de la demande (« 12 produits » → minItems:12 ; « 8 chapitres » → minSections:8 ; « ≥500 mots/article » → minWords:500). N'invente PAS de seuils ; si un fichier n'a aucun critère chiffré, n'émets pas de checks pour lui.
+DERIVE thresholds from the request CRITERIA ("12 products" → minItems:12 ; "8 chapters" → minSections:8 ; "≥500 words/article" → minWords:500). Do NOT invent thresholds; if a file has no quantified criteria, do not emit checks for it.
 
-CRITÈRES MESURABLES — OBLIGATOIRE :
-Chaque tâche assignée doit avoir des critères de réussite MESURABLES :
-- MAUVAIS : "résultat complet", "code détaillé"
-- BON : "10 pages HTML", "≥ 500 mots par article", "couverture tests > 80%", "3 fichiers CSS"
-Les termes vagues SEULS ("complet", "détaillé", "professionnel") sont INSUFFISANTS — ajoute TOUJOURS un seuil concret.
+MEASURABLE CRITERIA — REQUIRED :
+Each assigned task must have MEASURABLE success criteria:
+- BAD: "complete result", "detailed code"
+- GOOD: "10 HTML pages", "≥ 500 words per article", "test coverage > 80%", "3 CSS files"
+Vague terms ALONE ("complete", "detailed", "professional") are INSUFFICIENT — ALWAYS add a concrete threshold.
 
-SCAFFOLDING WEB — UNIQUEMENT POUR UN VRAI SITE : n'assigne JAMAIS de SEO, sitemap.xml, robots.txt, dossier seo/, manifest.json ni package.json de site si le livrable est un document, un rapport, un guide, des données ou tout autre livrable SANS interface web servie. Ces artefacts ne valent QUE pour un site/app web réel.
+WEB SCAFFOLDING — ONLY FOR A REAL SITE: NEVER assign SEO, sitemap.xml, robots.txt, seo/ folder, manifest.json or site package.json if the deliverable is a document, report, guide, data or any other deliverable WITHOUT a served web interface. These artifacts are ONLY valuable for a real web site/app.
 
-COUVERTURE OBLIGATOIRE SELON LE DOMAINE DU LIVRABLE (applique le bloc pertinent) :
-- SI SITE/APP WEB → SEO (sitemap.xml, robots.txt, JSON-LD, title/meta/OG par page) ; SÉCURITÉ (corriger les failles dans le code livré si données utilisateur) ; BACKEND dédié si persistance/API/auth ; ACCESSIBILITÉ WCAG AA (contraste, alt, aria, focus).
-- SI LIBRAIRIE / CLI / API (sans front) → dans expected_files : le code source COMPLET, des TESTS unitaires réels, un README avec exemples d'usage, et (CLI) un point d'entrée exécutable / (API) une spec des endpoints. Pas de SEO/maquette.
-- SI DOCUMENT LONG (ebook, business plan, plan de cours, wiki, CV) → table des matières/structure, N sections/chapitres explicites, longueur minimale par section, sources si pertinent (+ pour un cours : exercices ET corrigés).
-- SI DONNÉES / ANALYSE → distingue deux cas. (a) DOCUMENT qui contient des chiffres/tableaux (étude de marché, rapport, synthèse) : des .md/.csv/.json SUFFISENT — n'assigne NI agent code, NI scripts, NI tests. (b) ANALYSE TECHNIQUE REPRODUCTIBLE explicitement demandée (pipeline de traitement, modèle, calcul programmatique réutilisable) : alors seulement un agent code avec script + données + interprétation. Par défaut, considère que c'est le cas (a) sauf si l'utilisateur demande explicitement un traitement programmatique.
-- SI PRÉSENTATION / SLIDES → N slides explicites avec titres + contenu réel (pas de slides vides) et, si utile, des notes de présentateur.
-- SI CONTENU MARKETING (emails, posts, pages) → cohérence cross-canal (même offre/ton/CTA partout), nombre de pièces explicite par canal.
+REQUIRED COVERAGE BY DELIVERABLE DOMAIN (apply the relevant block) :
+- IF WEB SITE/APP → SEO (sitemap.xml, robots.txt, JSON-LD, title/meta/OG per page); SECURITY (fix vulnerabilities in delivered code if user data); DEDICATED BACKEND if persistence/API/auth; WCAG AA ACCESSIBILITY (contrast, alt, aria, focus).
+- IF LIBRARY / CLI / API (no frontend) → in expected_files: COMPLETE source code, real UNIT TESTS, a README with usage examples, and (CLI) an executable entry point / (API) an endpoint spec. No SEO/mockup.
+- IF LONG DOCUMENT (ebook, business plan, course plan, wiki, CV) → table of contents/structure, N explicit sections/chapters, minimum length per section, sources if relevant (+ for a course: exercises AND solutions).
+- IF DATA / ANALYSIS → distinguish two cases. (a) DOCUMENT containing figures/tables (market study, report, synthesis): .md/.csv/.json SUFFICE — do NOT assign a code agent, nor scripts, nor tests. (b) EXPLICITLY REQUESTED REPRODUCIBLE TECHNICAL ANALYSIS (processing pipeline, model, reusable programmatic computation): only then a code agent with script + data + interpretation. By default, consider it case (a) unless the user explicitly requests programmatic processing.
+- IF PRESENTATION / SLIDES → N explicit slides with titles + real content (no empty slides) and, if useful, presenter notes.
+- IF MARKETING CONTENT (emails, posts, pages) → cross-channel consistency (same offer/tone/CTA everywhere), explicit piece count per channel.
 
-PROFONDEUR REQUISE :
-- L'objectif d'un système multi-agents est de produire un résultat SUPÉRIEUR à ce qu'un seul agent ferait
-- Chaque agent doit produire un livrable EXHAUSTIF dans son domaine — pas un survol
-- Exemple : un agent "charte graphique" ne produit pas 1 fichier CSS — il produit un guide de marque complet (philosophie, palette détaillée, typographies avec fallbacks, spacing scale, composants, états, animations, documentation)
-- Exemple : un agent "rédaction" ne produit pas 2 paragraphes par article — il produit 500+ mots par article avec introduction, développement structuré, conclusion
-- Si tu penses qu'un agent pourrait produire 10 fichiers, demande-lui 10 fichiers explicitement
+REQUIRED DEPTH :
+- The goal of a multi-agent system is to produce a result SUPERIOR to what a single agent would do
+- Each agent must produce an EXHAUSTIVE deliverable in its domain — not an overview
+- Example: a "brand guidelines" agent does not produce 1 CSS file — it produces a complete brand guide (philosophy, detailed palette, typefaces with fallbacks, spacing scale, components, states, animations, documentation)
+- Example: a "writing" agent does not produce 2 paragraphs per article — it produces 500+ words per article with introduction, structured development, conclusion
+- If you think an agent could produce 10 files, ask it for 10 files explicitly
 
-SOUS-AGENTS (create_sub_agent) :
-Tu peux créer des SOUS-AGENTS pour diviser le travail d'un agent parent.
-- Utilise create_sub_agent quand un agent a une tâche trop large pour être faite en un seul flux
-- Chaque sous-agent a son propre type, sa propre tâche, et s'exécute AVANT son parent
-- Le parent recevra les résultats de ses sous-agents comme contexte de dépendances
-- Exemple : l'agent "Work" a 3 tâches distinctes (charte graphique, rédaction contenu, intégration HTML) → crée 3 sous-agents de type "work" sous lui
-- Exemple : l'agent "Code" doit coder le frontend ET le backend → crée 2 sous-agents de type "code"
-- Les sous-agents peuvent avoir leurs propres dépendances (depends_on)
-- IMPORTANT : chaque sous-agent est un vrai agent avec multi-turn — il fait PLUSIEURS appels LLM pour compléter sa tâche
-- Préfère les sous-agents aux sous-étapes (steps) pour les tâches volumineuses — les sous-agents sont indépendants et peuvent exploiter le multi-turn
+SUB-AGENTS (create_sub_agent) :
+You can create SUB-AGENTS to divide a parent agent's work.
+- Use create_sub_agent when an agent has a task too broad to be done in a single flow
+- Each sub-agent has its own type, its own task, and executes BEFORE its parent
+- The parent will receive its sub-agents' results as dependency context
+- Example: the "Work" agent has 3 distinct tasks (brand guidelines, content writing, HTML integration) → create 3 sub-agents of type "work" under it
+- Example: the "Code" agent must code the frontend AND the backend → create 2 sub-agents of type "code"
+- Sub-agents can have their own dependencies (depends_on)
+- IMPORTANT: each sub-agent is a real agent with multi-turn — it makes MULTIPLE LLM calls to complete its task
+- Prefer sub-agents over sub-steps (steps) for large tasks — sub-agents are independent and can leverage multi-turn
 
-DOCUMENT LONG — UN SOUS-AGENT PAR CHAPITRE/SECTION (RÈGLE FORTE) :
-- Pour un livrable documentaire long (guide, ebook, rapport en N chapitres/sections, cours), NE crée PAS un seul agent qui écrit tout (il produit 3-4 phrases par chapitre puis s'arrête). Crée UN sous-agent PAR chapitre/section, chacun avec son propre fichier dans expected_files ET son propre checks.minWords (ex: 500-900 mots/chapitre selon la demande). Chaque sous-agent a ainsi tout son budget pour développer son chapitre en profondeur.
-- AGENT DE CONSOLIDATION FINALE : s'il existe une étape « assemblage/mise en page finale », son rôle est d'INCLURE le contenu INTÉGRAL de chaque chapitre source (copier-coller le texte complet), JAMAIS de le résumer ni d'en faire un squelette. Son fichier final doit avoir un checks.minWords ≥ somme des chapitres. Donne-lui explicitement cette consigne dans sa task.
-- PATTERN « PLAN PARTAGÉ » (recommandé pour documents longs) : crée un premier sous-agent « plan / squelette » qui produit la structure du document (table des matières, périmètre de chaque chapitre, fil rouge, terminologie). TOUS les sous-agents chapitre DÉPENDENT de ce plan (depends_on) au lieu de se chaîner entre eux (ch1→ch2→ch3). Chaque chapitre reçoit ainsi le plan complet et sait ce que les autres couvrent — il ne répète pas leur contenu et peut y renvoyer (« comme vu au chapitre 3 »). Résultat : les chapitres s'exécutent EN PARALLÈLE (même vague) tout en restant cohérents, et le livrable est produit beaucoup plus vite.
+LONG DOCUMENT — ONE SUB-AGENT PER CHAPTER/SECTION (STRONG RULE) :
+- For a long documentary deliverable (guide, ebook, N-chapter/section report, course), do NOT create a single agent that writes everything (it produces 3-4 sentences per chapter then stops). Create ONE sub-agent PER chapter/section, each with its own file in expected_files AND its own checks.minWords (e.g. 500-900 words/chapter depending on the request). Each sub-agent thus has its full budget to develop its chapter in depth.
+- FINAL CONSOLIDATION AGENT: if there is a "final assembly/layout" step, its role is to INCLUDE the FULL content of each source chapter (copy-paste the complete text), NEVER to summarize or skeletonize it. Its final file must have a checks.minWords ≥ sum of chapters. Give this instruction explicitly in its task.
+- "SHARED PLAN" PATTERN (recommended for long documents): create a first "plan/skeleton" sub-agent that produces the document structure (table of contents, scope of each chapter, common thread, terminology). ALL chapter sub-agents DEPEND on this plan (depends_on) instead of chaining to each other (ch1→ch2→ch3). Each chapter thus receives the complete plan and knows what others cover — it does not repeat their content and can reference them ("as seen in chapter 3"). Result: chapters execute IN PARALLEL (same wave) while remaining coherent, and the deliverable is produced much faster.
 
-QUAND AJOUTER DES SOUS-ÉTAPES (steps) vs SOUS-AGENTS :
-- Sous-agents : quand les tâches sont INDÉPENDANTES et peuvent être parallélisées (ex: rédiger 3 articles différents)
-- Sous-étapes : quand les tâches sont SÉQUENTIELLES et chacune dépend de la précédente (ex: analyse → conception → production)
-- Maximum 8 sous-étapes par agent, pas de limite stricte sur les sous-agents
+WHEN TO ADD SUB-STEPS (steps) vs SUB-AGENTS :
+- Sub-agents: when tasks are INDEPENDENT and can be parallelized (e.g. writing 3 different articles)
+- Sub-steps: when tasks are SEQUENTIAL and each depends on the previous (e.g. analysis → design → production)
+- Maximum 8 sub-steps per agent, no strict limit on sub-agents
 
-DÉPENDANCES (depends_on) :
-- Utilise le paramètre depends_on pour indiquer quels agents doivent terminer AVANT un autre
-- Exemple : un agent "Intégration" qui dépend de "Design" et "Rédaction" → depends_on: [id_design, id_redaction]
-- Les agents sans depends_on s'exécutent en premier
-- TOUJOURS spécifier depends_on quand un agent a besoin du résultat d'un autre
+DEPENDENCIES (depends_on) :
+- Use the depends_on parameter to indicate which agents must finish BEFORE another
+- Example: an "Integration" agent that depends on "Design" and "Writing" → depends_on: [id_design, id_writing]
+- Agents without depends_on execute first
+- ALWAYS specify depends_on when an agent needs another's result
 
-COHÉRENCE D'IDENTITÉ — CRITIQUE :
-Le projet a UNE seule identité (nom de marque/artiste/produit, positionnement, ton, langue). Tu dois la FIXER une fois et la PROPAGER à TOUTES les tâches.
-- Si la tâche globale précise un nom/une marque, reprends-le tel quel partout.
-- Sinon, CHOISIS un nom unique et écris-le EXPLICITEMENT dans CHAQUE tâche (work, design, code) : "L'artiste/la marque s'appelle « X »".
-- Fixe aussi la LANGUE du livrable et impose-la à tous les agents (pas de mélange français/anglais).
-- Les agents en aval n'ont PAS le droit d'inventer une autre identité : c'est la cause n°1 d'incohérence (deux noms différents entre maquette et contenu).
-- L'agent qui définit l'identité visuelle (work) la définit en premier ; design et code la reçoivent et la respectent À L'IDENTIQUE.
+IDENTITY COHERENCE — CRITICAL :
+The project has ONE single identity (brand/artist/product name, positioning, tone, language). You must FIX it once and PROPAGATE it to ALL tasks.
+- If the global task specifies a name/brand, reuse it as-is everywhere.
+- Otherwise, CHOOSE a unique name and write it EXPLICITLY in EACH task (work, design, code): "The artist/brand is called « X »".
+- Also fix the deliverable LANGUAGE (that of the global task) and impose it on all agents (no mixing languages).
+- Downstream agents do NOT have the right to invent another identity: this is the #1 cause of inconsistency (two different names between mockup and content).
+- The agent that defines the visual identity (work) defines it first; design and code receive it and respect it IDENTICALLY.
 
-RÈGLES :
-- Commence par les agents sans dépendances, puis ceux qui en ont
-- Assure la cohérence entre les tâches (même identité, même langue, pas de contradictions, pas de doublons)
-- Adapte le niveau de détail au type d'agent
-- Tu peux assigner les agents dans l'ordre que tu veux, un par un ou par groupes`;
+RULES :
+- Start with agents without dependencies, then those that have them
+- Ensure consistency between tasks (same identity, same language, no contradictions, no duplicates)
+- Adapt the level of detail to the agent type
+- You can assign agents in any order, one by one or in groups`;
 }
 
 export function buildIterativePlanningUserPrompt(
@@ -1057,24 +1057,24 @@ export function buildIterativePlanningUserPrompt(
       const deps = p.dependencies ?? [];
       const depInfo =
         deps.length > 0
-          ? ` | Dépend de : ${deps.map((d) => linkedProjects.find((lp) => lp.id === d)?.name ?? d).join(", ")}`
+          ? ` | Depends on: ${deps.map((d) => linkedProjects.find((lp) => lp.id === d)?.name ?? d).join(", ")}`
           : "";
-      const roleHint = TYPE_ROLE_HINTS[p.type ?? ""] ?? "Général";
-      return `- ID: "${p.id}" | Nom: "${p.name}" | Type: ${p.type ?? "non défini"} (${roleHint})${depInfo}\n  Compétences : ${p.instructions || "non précisées"}`;
+      const roleHint = TYPE_ROLE_HINTS[p.type ?? ""] ?? "General";
+      return `- ID: "${p.id}" | Name: "${p.name}" | Type: ${p.type ?? "undefined"} (${roleHint})${depInfo}\n  Skills: ${p.instructions || "not specified"}`;
     })
     .join("\n");
 
-  return `TÂCHE GLOBALE À RÉPARTIR :
+  return `GLOBAL TASK TO DISTRIBUTE :
 "${globalTask}"
 
 ${workspaceContext}
 
-AGENTS DISPONIBLES (${linkedProjects.length}) :
+AVAILABLE AGENTS (${linkedProjects.length}) :
 ${agentList}
 
-RAPPEL : Adapte le pipeline au type de livrable.
-- Livrable WEB/APP (interface, site, SPA) → work (design system + contenu) → design (maquettes) → code (implémentation fidèle aux maquettes).
-- Livrable NON-WEB (librairie, API, CLI, rapport, ebook, données, slides, marketing) → N'impose PAS d'agent design ni de pipeline visuel. Assigne directement les rôles pertinents (recherche, work, code) selon ce que le livrable demande réellement.
+REMINDER : Adapt the pipeline to the deliverable type.
+- WEB/APP deliverable (interface, site, SPA) → work (design system + content) → design (mockups) → code (faithful implementation from mockups).
+- NON-WEB deliverable (library, API, CLI, report, ebook, data, slides, marketing) → Do NOT impose a design agent or visual pipeline. Assign the relevant roles directly (research, work, code) based on what the deliverable actually needs.
 
-Analyse la tâche, puis assigne une tâche structurée à chaque agent avec assign_task. Quand tous ont une tâche, appelle finish_planning.`;
+Analyze the task, then assign a structured task to each agent with assign_task. When all have a task, call finish_planning.`;
 }

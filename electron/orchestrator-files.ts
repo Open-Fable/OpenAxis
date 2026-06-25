@@ -2,20 +2,19 @@
 // No instance state, no I/O — kept separate from the execution engine so the
 // (security-sensitive, fuzz-prone) parsing logic is isolated and unit-testable.
 
-// ── Extraction des fichiers depuis la sortie LLM ─────────────────────────────
+// ── Extract files from LLM output ────────────────────────────────────────────
 /**
- * Parse les blocs ```lang filepath: chemin … ``` d'une réponse d'agent.
+ * Parse ```lang filepath: path … ``` blocks from an agent response.
  *
- * Robuste aux fences imbriquées de même longueur : un fichier dont le CONTENU
- * contient ses propres ``` (un README avec des exemples de code, un JSDoc
- * `@example`) ne doit pas être tronqué. La regex naïve `([\s\S]*?)```` se ferme
- * sur la PREMIÈRE fence interne et coupe le fichier en plein milieu. Ici, le
- * contenu d'un bloc va jusqu'à la DERNIÈRE fence de fermeture (longueur ≥ celle
- * de l'ouverture) avant le prochain marqueur `filepath:` ou la fin du texte —
- * les fences internes sont donc préservées comme contenu.
+ * Robust to nested fences of the same length: a file whose CONTENT contains its
+ * own ``` (a README with code examples, a JSDoc `@example`) must not be
+ * truncated. The naive regex `([\s\S]*?)````` closes on the FIRST internal fence
+ * and cuts the file in half. Here, a block's content goes to the LAST closing
+ * fence (length ≥ the opening one) before the next `filepath:` marker or end of
+ * text — so internal fences are preserved as content.
  *
- * Parsing ligne par ligne (pas de méga-regex) → linéaire, sans backtracking
- * catastrophique sur une sortie LLM adverse dans le process principal.
+ * Line-by-line parsing (no mega-regex) → linear, no catastrophic backtracking
+ * on adversarial LLM output in the main process.
  */
 export function parseFilepathBlocks(
   text: string,
@@ -52,7 +51,7 @@ export function parseFilepathBlocks(
   return blocks;
 }
 
-// ── Édition chirurgicale (SEARCH/REPLACE) ────────────────────────────────────
+// ── Surgical editing (SEARCH/REPLACE) ────────────────────────────────────────
 export interface SearchReplaceEdit {
   readonly search: string;
   readonly replace: string;
@@ -87,20 +86,20 @@ function parseSearchReplacePairs(lines: readonly string[]): SearchReplaceEdit[] 
 }
 
 /**
- * Parse les blocs ```edit filepath: chemin … ``` dont le contenu est une suite de
- * paires SEARCH/REPLACE. Permet à un agent de MODIFIER quelques lignes d'un fichier
- * existant sans le réémettre en entier :
+ * Parse ```edit filepath: path … ``` blocks whose content is a series of
+ * SEARCH/REPLACE pairs. Allows an agent to MODIFY a few lines of an existing
+ * file without re-emitting it in full:
  *
  *   ```edit filepath: index.html
  *   <<<<<<< SEARCH
- *   <h1>Ancien</h1>
+ *   <h1>Old</h1>
  *   =======
- *   <h1>Nouveau</h1>
+ *   <h1>New</h1>
  *   >>>>>>> REPLACE
  *   ```
  *
- * Parsing ligne par ligne (pas de méga-regex) → linéaire, sans backtracking
- * catastrophique sur sortie LLM adverse.
+ * Line-by-line parsing (no mega-regex) → linear, no catastrophic backtracking
+ * on adversarial LLM output.
  */
 export function parseEditBlocks(
   text: string,
@@ -135,11 +134,11 @@ export function parseEditBlocks(
 }
 
 /**
- * Applique une suite de paires SEARCH/REPLACE à un contenu. ALL-OR-NOTHING : chaque
- * SEARCH doit correspondre EXACTEMENT une seule fois ; sinon l'édition entière
- * échoue et le contenu d'origine est renvoyé inchangé (l'appelant retombe alors
- * sur la réémission complète du fichier). Le match unique évite d'éditer la
- * mauvaise occurrence ; `replace` est traité comme littéral (pas de motif $).
+ * Applies a series of SEARCH/REPLACE pairs to content. ALL-OR-NOTHING: each
+ * SEARCH must match EXACTLY once; otherwise the entire edit fails and the
+ * original content is returned unchanged (the caller falls back to full file
+ * re-emission). The unique match avoids editing the wrong occurrence; `replace`
+ * is treated as literal (no pattern $).
  */
 export function applyEdits(
   original: string,
@@ -159,7 +158,7 @@ export function applyEdits(
   return { ok: true, content };
 }
 
-// ── Détecteur déterministe de troncature ─────────────────────────────────────
+// ── Deterministic truncation detector ────────────────────────────────────────
 /**
  * Returns a short reason when a file's content looks cut off, else null.
  *
@@ -172,15 +171,15 @@ export function applyEdits(
  */
 export function detectTruncation(content: string): string | null {
   const trimmed = content.replace(/\s+$/, "");
-  if (trimmed.length === 0) return "fichier vide";
+  if (trimmed.length === 0) return "empty file";
 
   // An odd number of ``` fences means a code block was opened but never closed.
   const fenceCount = trimmed.split("```").length - 1;
-  if (fenceCount % 2 !== 0) return "bloc de code non fermé";
+  if (fenceCount % 2 !== 0) return "unclosed code block";
 
   // HTML that opens <html> but never closes it.
   if (/<html[\s>]/i.test(trimmed) && !/<\/html\s*>/i.test(trimmed)) {
-    return "balise </html> manquante";
+    return "missing </html> tag";
   }
 
   // Ends mid-sentence: the last non-empty line is prose that stops on a letter
@@ -190,7 +189,7 @@ export function detectTruncation(content: string): string | null {
   const lastLine = trimmed.slice(trimmed.lastIndexOf("\n") + 1).trim();
   const endsClean = /[.!?:;)\]}>"\x60*|_]$/.test(lastLine) || /^[#\-*|>]/.test(lastLine);
   if (!endsClean && lastLine.length > 30 && /[\p{L},]$/u.test(lastLine)) {
-    return `se termine en milieu de phrase : « …${lastLine.slice(-40)} »`;
+    return `ends mid-sentence: "…${lastLine.slice(-40)}"`;
   }
 
   return null;

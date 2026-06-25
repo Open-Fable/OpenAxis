@@ -22,15 +22,15 @@ const TRIAGE_TOOLS = [
     function: {
       name: "assign_fix",
       description:
-        "Relancer un agent avec une tâche corrective ciblée en réponse au feedback utilisateur.",
+        "Relaunch an agent with a targeted corrective task in response to user feedback.",
       parameters: {
         type: "object",
         properties: {
-          agent_id: { type: "string", description: "ID de l'agent à relancer" },
+          agent_id: { type: "string", description: "ID of the agent to relaunch" },
           fix_task: {
             type: "string",
             description:
-              "Tâche corrective précise : ce qui doit être modifié, dans quels fichiers existants, et le résultat attendu.",
+              "Precise corrective task: what must be modified, in which existing files, and the expected result.",
           },
         },
         required: ["agent_id", "fix_task"],
@@ -41,8 +41,7 @@ const TRIAGE_TOOLS = [
     type: "function",
     function: {
       name: "finish_triage",
-      description:
-        "Terminer le triage quand tous les correctifs nécessaires sont assignés.",
+      description: "Finish triage when all necessary fixes are assigned.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -50,25 +49,25 @@ const TRIAGE_TOOLS = [
 
 function buildTriageSystemPrompt(orchestrator: Project): string {
   const base = orchestrator.instructions || "";
-  return `Tu es un coordinateur de projet IA en phase d'ITÉRATION CORRECTIVE. Une orchestration a déjà produit un rendu complet, et l'utilisateur donne un feedback sur ce rendu.
+  return `You are an AI project coordinator in CORRECTIVE ITERATION phase. An orchestration already produced a complete output, and the user gives feedback on that output.
 
-${base ? `INSTRUCTIONS PERSONNALISÉES :\n${base}\n\n` : ""}TON RÔLE :
-- Analyser le feedback utilisateur et identifier les agents responsables des éléments critiqués
-- Assigner à chaque agent concerné une tâche corrective via l'outil assign_fix
-- Appeler finish_triage quand tous les correctifs sont assignés
+${base ? `CUSTOM INSTRUCTIONS :\n${base}\n\n` : ""}YOUR ROLE :
+- Analyze user feedback and identify the agents responsible for the criticized elements
+- Assign to each concerned agent a corrective task via the assign_fix tool
+- Call finish_triage when all fixes are assigned
 
-RÈGLES CRITIQUES :
-- SÉLECTIVITÉ : ne relance QUE les agents concernés par le feedback. Si le feedback porte sur le visuel, ne relance pas l'agent de recherche. Relance ciblée, PAS tout le projet.
-- MODIFICATION : les fichiers existent déjà dans le workspace (voir l'état du workspace). Chaque fix_task doit référencer les fichiers existants à modifier — jamais une régénération complète.
-- PRÉCISION : chaque fix_task doit être actionnable : quoi changer, où, et le critère de réussite.
-- Tu dois assigner AU MOINS un correctif avant d'appeler finish_triage.`;
+CRITICAL RULES :
+- SELECTIVITY: only relaunch the agents concerned by the feedback. If the feedback is about visuals, do not relaunch the research agent. Targeted relaunch, NOT the whole project.
+- MODIFICATION: files already exist in the workspace (see workspace state). Each fix_task must reference the existing files to modify — never a complete regeneration.
+- PRECISION: each fix_task must be actionable: what to change, where, and the success criterion.
+- You must assign AT LEAST one fix before calling finish_triage.`;
 }
 
 function summarizeNodeResults(previousRun: OrchRun): string {
   const blocks = previousRun.nodeResults.map((r) => {
     const excerpt = r.result
       ? r.result.substring(0, NODE_RESULT_SUMMARY_CHARS)
-      : "(aucun résultat)";
+      : "(no result)";
     return `--- Agent "${r.name}" (ID: ${r.projectId}, statut: ${r.status}) ---\n${excerpt}`;
   });
   return blocks.join("\n\n");
@@ -78,25 +77,25 @@ function buildTriageUserPrompt(ctx: TriageContext): string {
   const agentList = ctx.linked
     .map(
       (p) =>
-        `- "${p.name}" (ID: ${p.id}, type: ${p.type ?? "inconnu"})${p.task ? ` — dernière tâche : ${p.task.substring(0, 200)}` : ""}`,
+        `- "${p.name}" (ID: ${p.id}, type: ${p.type ?? "unknown"})${p.task ? ` — last task: ${p.task.substring(0, 200)}` : ""}`,
     )
     .join("\n");
 
-  return `TÂCHE INITIALE DU RUN PRÉCÉDENT :
+  return `INITIAL TASK OF THE PREVIOUS RUN :
 ${ctx.previousRun.task}
 
-FEEDBACK UTILISATEUR SUR LE RENDU :
+USER FEEDBACK ON THE OUTPUT :
 ${ctx.feedback}
 
-AGENTS DISPONIBLES :
+AVAILABLE AGENTS :
 ${agentList}
 
-RÉSULTATS DU RUN PRÉCÉDENT :
+PREVIOUS RUN RESULTS :
 ${summarizeNodeResults(ctx.previousRun)}
 
 ${ctx.workspaceContext}
 
-Analyse le feedback, puis utilise assign_fix pour chaque agent à relancer (uniquement ceux concernés), et termine avec finish_triage.`;
+Analyze the feedback, then use assign_fix for each agent to relaunch (only the concerned ones), and finish with finish_triage.`;
 }
 
 function parseTriageJsonFallback(
@@ -190,13 +189,13 @@ function handleAssignFix(
     return `Erreur : fix_task vide pour l'agent "${agent.name}".`;
   }
   fixes[agentId] = fixTask;
-  return `Correctif assigné à "${agent.name}". Assigne d'autres correctifs si nécessaire, sinon appelle finish_triage.`;
+  return `Fix assigned to "${agent.name}". Assign other fixes if needed, otherwise call finish_triage.`;
 }
 
 /**
- * Triage LLM : analyse le feedback utilisateur et décide quels agents relancer
- * avec quelles tâches correctives. Tool-calling avec fallback JSON, puis
- * fallback « tous les agents non-skipped » — ne doit jamais échouer.
+ * Triage LLM: analyzes user feedback and decides which agents to relaunch
+ * with which corrective tasks. Tool-calling with JSON fallback, then
+ * fallback all-non-skipped agents — must never fail.
  */
 export async function planIterationFixes(
   ctx: TriageContext,
@@ -210,7 +209,7 @@ export async function planIterationFixes(
 
   for (let iter = 0; iter < MAX_TRIAGE_ITERATIONS; iter++) {
     if (ctx.signal?.aborted) {
-      throw new Error("Orchestration annulée par l'utilisateur.");
+      throw new Error("Orchestration cancelled by user.");
     }
 
     const { message } = await callLLMWithTools(
@@ -268,8 +267,7 @@ export async function planIterationFixes(
         if (Object.keys(fixes).length === 0) {
           messages.push({
             role: "tool",
-            content:
-              "Impossible de terminer : aucun correctif assigné. Utilise assign_fix d'abord.",
+            content: "Cannot finish: no fixes assigned. Use assign_fix first.",
             tool_call_id: toolCall.id,
           });
         } else {
@@ -293,9 +291,9 @@ export async function planIterationFixes(
 }
 
 /**
- * Compose la tâche corrective écrite dans node.task avant exécution.
- * Le reste du pipeline (executeNode, backends, extraction de fichiers)
- * fonctionne ensuite sans modification.
+ * Composes the corrective task written into node.task before execution.
+ * The rest of the pipeline (executeNode, backends, file extraction)
+ * then works without modification.
  */
 export function buildFixTask(
   fixInstruction: string,
@@ -310,33 +308,33 @@ export function buildFixTask(
   const hasDiskContent =
     typeof currentFilesOnDisk === "string" && currentFilesOnDisk.trim().length > 0;
   const sourceBlock = hasDiskContent
-    ? `\nCONTENU ACTUEL DE TES FICHIERS SUR DISQUE (SOURCE DE VÉRITÉ — pars EXACTEMENT de ce contenu, reproduis-le EN ENTIER avec uniquement les corrections demandées) :\n${currentFilesOnDisk}\n`
+    ? `\nCURRENT CONTENT OF YOUR FILES ON DISK (SOURCE OF TRUTH — start EXACTLY from this content, reproduce it IN FULL with only the requested corrections):\n${currentFilesOnDisk}\n`
     : previousResult
-      ? `\nTON RÉSULTAT PRÉCÉDENT (extrait) :\n${previousResult.substring(0, PREVIOUS_RESULT_MAX_CHARS)}\n`
+      ? `\nYOUR PREVIOUS RESULT (excerpt):\n${previousResult.substring(0, PREVIOUS_RESULT_MAX_CHARS)}\n`
       : "";
 
-  return `[ITÉRATION CORRECTIVE]
-FEEDBACK UTILISATEUR :
+  return `[CORRECTIVE ITERATION]
+USER FEEDBACK :
 ${feedback}
 
-CORRECTIF DEMANDÉ :
+REQUESTED FIX :
 ${fixInstruction}
 ${sourceBlock}
-RÈGLES CRITIQUES (édition en place — ne PAS régénérer) :
-- LIS D'ABORD le contenu ACTUEL sur disque du/des fichier(s) concerné(s) : c'est la SOURCE DE VÉRITÉ (pas ton souvenir, pas l'extrait ci-dessus). Pars de ce contenu.
-- Applique UNIQUEMENT les corrections demandées ci-dessus. Tout le reste du fichier doit rester IDENTIQUE, mot pour mot.
-- NE RACCOURCIS JAMAIS : ne résume pas, ne supprime pas de sections déjà complètes, n'enlève pas de détail existant. Le fichier corrigé doit être AU MOINS aussi complet et long qu'avant.
-- Ne touche QU'À TES PROPRES fichiers (ceux que tu as produits). Ne réécris pas les livrables des autres agents.
+CRITICAL RULES (in-place editing — do NOT regenerate) :
+- FIRST READ the CURRENT on-disk content of the affected file(s): that's the SOURCE OF TRUTH (not your memory, not the excerpt above). Start from that content.
+- Apply ONLY the corrections requested above. Everything else in the file must stay IDENTICAL, word for word.
+- NEVER SHORTEN: do not summarize, do not remove already complete sections, do not remove existing detail. The corrected file must be AT LEAST as complete and long as before.
+- Only touch YOUR OWN files (those you produced). Do not rewrite other agents' deliverables.
 
-DEUX FORMATS DE LIVRAISON — choisis selon l'ampleur des changements :
-1) PETITE MODIFICATION (PRÉFÉRÉ) : si seules quelques portions changent, n'émets QUE les portions modifiées via un bloc d'édition, sans réécrire le fichier entier :
-\`\`\`edit filepath: chemin/du/fichier
+TWO DELIVERY FORMATS — choose according to the scope of changes:
+1) SMALL CHANGE (PREFERRED): if only a few portions change, emit ONLY the modified portions via an edit block, without rewriting the entire file:
+\`\`\`edit filepath: path/to/file
 <<<<<<< SEARCH
-(copie EXACTE du texte actuel à remplacer — inclus assez de lignes autour pour que ce passage soit UNIQUE dans le fichier)
+(EXACT copy of the current text to replace — include enough surrounding lines for this passage to be UNIQUE in the file)
 =======
-(le nouveau texte)
+(the new text)
 >>>>>>> REPLACE
 \`\`\`
-Tu peux enchaîner plusieurs paires SEARCH/REPLACE dans le même bloc. Le SEARCH doit correspondre au caractère près au contenu actuel sur disque ; sinon l'édition est rejetée.
-2) RÉÉCRITURE ÉTENDUE : si les changements touchent une grande partie du fichier, réémets-le en entier au format \`\`\`<lang> filepath:, AVEC tout le contenu actuel + les corrections, jamais une version abrégée.`;
+You can chain multiple SEARCH/REPLACE pairs in the same block. The SEARCH must match character-for-character the current on-disk content; otherwise the edit is rejected.
+2) FULL REWRITE: if changes touch a large part of the file, re-emit it in full using the \`\`\`<lang> filepath: format, WITH all the current content + corrections, never an abbreviated version.`;
 }

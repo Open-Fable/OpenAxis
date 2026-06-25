@@ -6,7 +6,7 @@ import type { Project } from "./project-store.js";
 
 type NodeStatus = "done" | "error" | "skipped" | "inactive";
 
-const CIRCULAR_DEP_ERROR = "Dépendance circulaire détectée dans le graphe de projets.";
+const CIRCULAR_DEP_ERROR = "Circular dependency detected in the project graph.";
 
 /**
  * Depth-first topological sort: dependencies come before their dependents.

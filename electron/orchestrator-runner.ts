@@ -3042,7 +3042,7 @@ export class OrchestratorRunner {
       const checkPrompt = buildCompletenessCheckPrompt(node, accumulated);
       const checkResponse = await callLLM(
         node,
-        "Tu évalues la complétude d'un livrable. Réponds uniquement en JSON.",
+        "You evaluate the completeness of a deliverable. Answer in JSON only.",
         checkPrompt,
         this.abortSignal,
         true,
@@ -3353,7 +3353,7 @@ export class OrchestratorRunner {
       );
       const checkResponse = await callLLM(
         node,
-        "Tu évalues la complétude d'un livrable. Réponds uniquement en JSON.",
+        "You evaluate the completeness of a deliverable. Answer in JSON only.",
         checkPrompt,
         this.abortSignal,
         true,

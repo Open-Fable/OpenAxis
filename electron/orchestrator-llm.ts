@@ -45,7 +45,7 @@ function getModel(node: Project, fallback?: string): string {
 
 function checkAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
-    throw new Error("Orchestration annulée par l'utilisateur.");
+    throw new Error("Orchestration cancelled by user.");
   }
 }
 
@@ -90,7 +90,7 @@ export async function callLLM(
   if (!response.ok) {
     const text = await response.text();
     if (response.status === 402) {
-      throw new Error(`Crédits insuffisants sur le fournisseur LLM. ${text}`);
+      throw new Error(`Insufficient credits on the LLM provider. ${text}`);
     }
     throw new Error(`Proxy error: ${text}`);
   }
@@ -135,7 +135,7 @@ export async function callLLMWithTools(
   if (!response.ok) {
     const text = await response.text();
     if (response.status === 402) {
-      throw new Error(`Crédits insuffisants sur le fournisseur LLM. ${text}`);
+      throw new Error(`Insufficient credits on the LLM provider. ${text}`);
     }
     throw new Error(`Proxy error: ${text}`);
   }
@@ -269,7 +269,7 @@ export async function callLLMStreaming(
     clearTimeout(timer);
     const text = await response.text();
     if (response.status === 402) {
-      throw new Error(`Crédits insuffisants sur le fournisseur LLM. ${text}`);
+      throw new Error(`Insufficient credits on the LLM provider. ${text}`);
     }
     throw new Error(`Proxy error (${response.status}): ${text}`);
   }
@@ -277,7 +277,7 @@ export async function callLLMStreaming(
   const reader = response.body?.getReader();
   if (!reader) {
     clearTimeout(timer);
-    throw new Error("Impossible de lire le flux de réponse du proxy.");
+    throw new Error("Unable to read proxy response stream.");
   }
 
   const decoder = new TextDecoder("utf-8");
@@ -317,7 +317,7 @@ export async function callLLMStreaming(
     return accumulatedText;
   } catch (err: unknown) {
     if (orchSignal?.aborted) {
-      throw new Error("Orchestration annulée par l'utilisateur.");
+      throw new Error("Orchestration cancelled by user.");
     }
     if (timeoutSignal.aborted) {
       throw new Error("WATCHDOG_TIMEOUT");
