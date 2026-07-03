@@ -479,6 +479,10 @@ function closeOnGearClick(e) {
   var btns = document.querySelectorAll(sel);
   for (var i = 0; i < btns.length; i++) {
     if (!btns[i].offsetParent) continue;
+    // If the click originated FROM the gear button itself (or a descendant),
+    // skip it — this is the same click that just opened the panel. We only want
+    // to close on a NEW independent click on the gear, not the originating one.
+    if (btns[i].contains(e.target)) continue;
     var r = btns[i].getBoundingClientRect();
     if (
       e.clientX >= r.left &&
