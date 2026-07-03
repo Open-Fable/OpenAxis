@@ -477,12 +477,12 @@ describe("detectTruncation", () => {
   });
 
   it("flags an empty file", () => {
-    expect(detectTruncation("   \n  ")).toBe("fichier vide");
+    expect(detectTruncation("   \n  ")).toBe("empty file");
   });
 
   it("flags an unclosed code fence", () => {
     const md = "# Titre\n\n```js\nconst a = 1;\n";
-    expect(detectTruncation(md)).toBe("bloc de code non fermé");
+    expect(detectTruncation(md)).toBe("unclosed code block");
   });
 
   it("does not flag balanced code fences", () => {
@@ -492,13 +492,13 @@ describe("detectTruncation", () => {
 
   it("flags HTML missing its closing </html>", () => {
     const html = '<!DOCTYPE html>\n<html lang="fr">\n<body><p>Salut</p></body>\n';
-    expect(detectTruncation(html)).toBe("balise </html> manquante");
+    expect(detectTruncation(html)).toBe("missing </html> tag");
   });
 
   it("flags prose cut off mid-sentence", () => {
     const md =
       "# Plan\n\nCampagnes ciblées sur des mots-clés spécifiques liés à la fiscalité et au revenu complémentaire des freelances qui cherchent à optimiser";
-    expect(detectTruncation(md)).toMatch(/milieu de phrase/);
+    expect(detectTruncation(md)).toMatch(/mid-sentence/);
   });
 
   it("does not flag a heading or list item as truncated", () => {

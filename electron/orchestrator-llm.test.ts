@@ -184,7 +184,7 @@ describe("callLLM", () => {
   it("throws a credit-specific error on HTTP 402", async () => {
     fetchMock.mockResolvedValue(jsonResponse({}, false, 402));
 
-    await expect(callLLM(makeNode(), "s", "u")).rejects.toThrow(/Crédits insuffisants/);
+    await expect(callLLM(makeNode(), "s", "u")).rejects.toThrow(/Insufficient credits/);
   });
 
   it("throws a generic proxy error on other non-ok responses", async () => {
@@ -260,7 +260,7 @@ describe("callLLMWithTools", () => {
     fetchMock.mockResolvedValue(jsonResponse({}, false, 402));
 
     await expect(callLLMWithTools(makeNode(), [], [])).rejects.toThrow(
-      /Crédits insuffisants/,
+      /Insufficient credits/,
     );
   });
 
@@ -396,7 +396,7 @@ describe("callLLMStreaming", () => {
     fetchMock.mockResolvedValue(streamResponse([], false, 402));
 
     await expect(callLLMStreaming(makeNode(), "p", 5000)).rejects.toThrow(
-      /Crédits insuffisants/,
+      /Insufficient credits/,
     );
   });
 
@@ -409,7 +409,7 @@ describe("callLLMStreaming", () => {
     });
 
     await expect(callLLMStreaming(makeNode(), "p", 5000)).rejects.toThrow(
-      /Unable to read the/,
+      /Unable to read proxy/,
     );
   });
 
@@ -419,7 +419,7 @@ describe("callLLMStreaming", () => {
 
     await expect(
       callLLMStreaming(makeNode(), "p", 5000, controller.signal),
-    ).rejects.toThrow(/annulée par l'utilisateur/);
+    ).rejects.toThrow(/cancelled by user/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

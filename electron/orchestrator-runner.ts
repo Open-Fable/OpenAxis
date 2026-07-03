@@ -65,6 +65,7 @@ import {
   findServedSiteProblems,
   findCssConsistencyProblems,
   findInvalidJsonFiles,
+  findSyntaxProblems,
   findCsvColumnProblems,
   findPlaceholderDeliverables,
   findUnreferencedModules,
@@ -79,6 +80,7 @@ import {
   findUnwantedWebScaffolding,
   findUselessDesignArtifacts,
   findBrandConsistencyProblems,
+  findNavigationConsistencyProblems,
   validateDeclaredChecks,
   buildServedSiteReport,
   extractJsonObject,
@@ -525,6 +527,8 @@ export class OrchestratorRunner {
   // that produced files but returned a short chat summary isn't judged "trivial".
   private readonly backendFilesWritten = new Map<string, number>();
   private readonly backendWrittenPaths = new Map<string, readonly string[]>();
+  // Files that failed to write physically due to permissions/EACCES, keyed by node id.
+  private readonly failedWrites = new Map<string, string[]>();
   // relPath → owning node id. First node to write a path claims it; later nodes
   // (e.g. during a corrective cycle) cannot overwrite another agent's deliverable.
   // This is what stops the research/design agents from clobbering everyone else's
@@ -569,6 +573,7 @@ export class OrchestratorRunner {
     this.pathWriteLocks.clear();
     this.backendFilesWritten.clear();
     this.backendWrittenPaths.clear();
+    this.failedWrites.clear();
     this.nodeWorkspaces.clear();
     this.correctiveNodeIds = null;
     this.indexWriteLock = Promise.resolve();
@@ -1206,7 +1211,7 @@ export class OrchestratorRunner {
     // and isValidFilePath (in extractAndWriteFiles) still blocks path escapes.
     const nodePathFilter = this.nodeWorkspaces.has(node.id)
       ? () => true
-      : this.buildNodePathFilter(node.id, nodeExpectedFiles);
+      : this.buildNodePathFilter(node, nodeExpectedFiles);
     try {
       let resultText = await this.executeNode(
         node,
@@ -1235,13 +1240,17 @@ export class OrchestratorRunner {
         );
       }
 
-      const writtenFiles = await this.extractAndWriteFiles(
-        resultText,
-        workspaceDir,
-        nodePathFilter,
-        node.id,
-        bwp.length > 0 ? new Set(bwp) : undefined,
-      );
+      const backendWrittenCount = this.backendFilesWritten.get(node.id) ?? 0;
+      const writtenFiles =
+        node.type === "design" && backendWrittenCount > 0
+          ? []
+          : await this.extractAndWriteFiles(
+              resultText,
+              workspaceDir,
+              nodePathFilter,
+              node.id,
+              bwp.length > 0 ? new Set(bwp) : undefined,
+            );
       this.claimOwnership(node.id, writtenFiles);
       if (writtenFiles.length > 0) {
         console.warn(
@@ -1454,6 +1463,17 @@ export class OrchestratorRunner {
       });
 
       const wsContext = await buildWorkspaceContext(workspaceDir);
+
+      // Rebuild the expected-files map from the previous run so the corrective
+      // cycle can inject real disk content into each agent's fix task.
+      // Strategy 1: extract filepath: ... patterns from agent results.
+      // Strategy 2 (fallback): physical disk scan — all files to all ran agents.
+      const expectedFilesMap = await this.rebuildExpectedFilesMapFromRun(
+        previousRun,
+        linkedProjects,
+        workspaceDir,
+      );
+
       const { statuses } = await this.runCorrectiveCycle(
         orchestrator,
         linkedProjects,
@@ -1461,7 +1481,7 @@ export class OrchestratorRunner {
         previousRun,
         workspaceDir,
         wsContext,
-        {},
+        expectedFilesMap,
       );
 
       const hasErrors = Object.values(statuses).includes("error");
@@ -1516,22 +1536,36 @@ export class OrchestratorRunner {
 
     console.warn(`[orchestrator] Triage: ${fixedIds.length} agents to relaunch`);
 
+    // Build the physical file tree once — injected into every agent's fix prompt
+    // so they can navigate/edit the real workspace without guessing file paths.
+    const wsFileTree = await buildWorkspaceContext(workspaceDir)
+      .then((ctx) => {
+        const treeStart = ctx.indexOf("[PHYSICAL FILE TREE ON DISK]");
+        return treeStart >= 0
+          ? ctx.slice(treeStart + "[PHYSICAL FILE TREE ON DISK]\n".length)
+          : "";
+      })
+      .catch(() => "");
+
     for (const p of linkedProjects) {
       if (!fixes[p.id]) continue;
       const prevResult = previousRun.nodeResults.find(
         (r) => r.projectId === p.id,
       )?.result;
-      // Pure-LLM agents have no disk access, so inject the REAL current content of
-      // their own files as the source of truth. Backend agents (OpenCode/Open
-      // Design) read the workspace via their own tools — skip to avoid bloat.
+      // Injecter le contenu réel sur disque pour TOUS les agents concernés (y compris les agents backend)
+      // afin de maximiser la convergence et d'éviter les régressions structurelles.
       let diskContent = "";
-      if (selectBackend(p.type) === null) {
-        const ownedFiles = this.ownedFilesForNode(p.id, expectedFilesMap);
-        if (ownedFiles.length > 0) {
-          diskContent = await this.readDiskEvidence(workspaceDir, ownedFiles);
-        }
+      const ownedFiles = this.ownedFilesForNode(p.id, expectedFilesMap);
+      if (ownedFiles.length > 0) {
+        diskContent = await this.readDiskEvidence(workspaceDir, ownedFiles);
       }
-      const fixTask = buildFixTask(fixes[p.id], feedback, prevResult, diskContent);
+      const fixTask = buildFixTask(
+        fixes[p.id],
+        feedback,
+        prevResult,
+        diskContent,
+        wsFileTree,
+      );
       await saveProject({ ...p, task: fixTask });
       this.sendStatus({ projectId: p.id, status: "idle", task: fixTask });
     }
@@ -1640,8 +1674,10 @@ export class OrchestratorRunner {
       ...(await findCssConsistencyProblems(workspaceDir)),
       ...(await findRenderProblems(workspaceDir)),
       ...(await findBrandConsistencyProblems(workspaceDir)),
+      ...(await findNavigationConsistencyProblems(workspaceDir)),
       // Format-agnostic (non-web) deterministic checks — the floor for weak models.
       ...(await findInvalidJsonFiles(workspaceDir)),
+      ...(await findSyntaxProblems(workspaceDir)),
       ...(await findCsvColumnProblems(workspaceDir)),
       ...(await findPlaceholderDeliverables(workspaceDir)),
       // Consolidation that summarized instead of including full content (A4).
@@ -1719,6 +1755,50 @@ export class OrchestratorRunner {
 
     const llmVerdict = parseQualityVerdict(response);
 
+    const failedWriteIssues: Array<{ agent: string; issue: string; fix: string }> = [];
+    for (const [nodeId, files] of this.failedWrites.entries()) {
+      const agentName =
+        linkedProjects.find((p) => p.id === nodeId)?.name ?? "agent inconnu";
+      for (const f of files) {
+        failedWriteIssues.push({
+          agent: agentName,
+          issue: `Échec d'écriture physique : ${f} n'a pas pu être enregistré sur le disque (erreur EACCES/permission)`,
+          fix: `Vérifier les droits du dossier de destination, chmod de l'arborescence, ou résoudre le conflit d'écriture.`,
+        });
+      }
+    }
+
+    const criticalAuditIssues: Array<{ agent: string; issue: string; fix: string }> = [];
+    if (auditReports) {
+      const lines = auditReports.split("\n");
+      const criticalRe = /(?:🔴|CRITICAL|HIGH|Critique)\s*[:\-]?\s*(.+)/i;
+      for (const line of lines) {
+        const m = criticalRe.exec(line);
+        if (m) {
+          criticalAuditIssues.push({
+            agent: "audit-sécurité",
+            issue: `Alerte critique dans le rapport d'audit : ${m[1].trim()}`,
+            fix: `Corriger le fichier source concerné pour éliminer ce risque avant validation.`,
+          });
+        }
+      }
+    }
+
+    const pathDriftIssues: Array<{ agent: string; issue: string; fix: string }> = [];
+    for (const [filePath, nodeId] of this.fileOwner.entries()) {
+      if (OrchestratorRunner.isSharedPath(filePath)) continue;
+      const expected = expectedFilesMap[nodeId];
+      if (expected && expected.length > 0 && !expected.includes(filePath)) {
+        const agentName =
+          linkedProjects.find((p) => p.id === nodeId)?.name ?? "agent inconnu";
+        pathDriftIssues.push({
+          agent: agentName,
+          issue: `Dérive de chemin : le fichier "${filePath}" a été écrit par l'agent mais n'est pas dans la liste des fichiers attendus (${expected.join(", ")}).`,
+          fix: `Corriger l'agent pour qu'il écrive le fichier au chemin attendu.`,
+        });
+      }
+    }
+
     // Deterministic defects ALWAYS gate, regardless of the LLM's judgment — a
     // model that wrongly says "pass" must not let broken links, uncoded pages or
     // placeholder/escape defects through. Merge them into the verdict and force
@@ -1759,6 +1839,9 @@ export class OrchestratorRunner {
         issue: `${p.sourceFile} → ${p.problem}`,
         fix: `Intégrer ${p.sourceFile} dans une page (via <link>/@import) si utile, sinon le supprimer pour éviter le doublon.`,
       })),
+      ...failedWriteIssues,
+      ...criticalAuditIssues,
+      ...pathDriftIssues,
     ].slice(0, 30);
 
     const llmIssues = llmVerdict?.issues ?? [];
@@ -1818,7 +1901,9 @@ export class OrchestratorRunner {
     const served = [
       ...(await findServedSiteProblems(workspaceDir)),
       ...(await findCssConsistencyProblems(workspaceDir)),
+      ...(await findNavigationConsistencyProblems(workspaceDir)),
       ...(await findInvalidJsonFiles(workspaceDir)),
+      ...(await findSyntaxProblems(workspaceDir)),
       ...(await findCsvColumnProblems(workspaceDir)),
       ...(await findPlaceholderDeliverables(workspaceDir)),
       ...(await findConsolidationShrinkage(workspaceDir)),
@@ -1883,6 +1968,31 @@ export class OrchestratorRunner {
         throw new Error("Orchestration annulée par l'utilisateur.");
       }
 
+      // Reconstruct/enrich the expected files map from the current execution
+      // results and disk state to ensure the auto-correct loop has the real content.
+      const syntheticRunForFiles = buildSyntheticRun(
+        task,
+        orchestrator.id,
+        executionStatuses,
+        executionResults,
+        linkedProjects,
+      );
+      const enrichedExpectedFilesMap = await this.rebuildExpectedFilesMapFromRun(
+        syntheticRunForFiles,
+        linkedProjects,
+        workspaceDir,
+      );
+      // Merge with the existing expectedFilesMap so we preserve any planner metadata.
+      const mergedFilesMap: Record<string, string[]> = {};
+      for (const p of linkedProjects) {
+        mergedFilesMap[p.id] = [
+          ...new Set([
+            ...(expectedFilesMap[p.id] ?? []),
+            ...(enrichedExpectedFilesMap[p.id] ?? []),
+          ]),
+        ];
+      }
+
       const verdict = await this.runQualityGate(
         verifier,
         task,
@@ -1890,7 +2000,7 @@ export class OrchestratorRunner {
         workspaceDir,
         executionStatuses,
         executionResults,
-        expectedFilesMap,
+        mergedFilesMap,
         checksMap,
       );
 
@@ -1925,7 +2035,7 @@ export class OrchestratorRunner {
         syntheticRun,
         workspaceDir,
         wsContext,
-        expectedFilesMap,
+        mergedFilesMap,
         checksMap,
       );
 
@@ -2508,6 +2618,102 @@ export class OrchestratorRunner {
   }
 
   /**
+   * Scans the workspace flat and returns all relative file paths.
+   * Used as fallback when expected_files cannot be inferred from run history.
+   * Excluded: dot-files, node_modules, WORKSPACE_INDEX.md itself.
+   */
+  private async flatScanWorkspaceFiles(workspaceDir: string): Promise<string[]> {
+    const results: string[] = [];
+    const root = path.resolve(workspaceDir);
+    const walk = async (dir: string): Promise<void> => {
+      let entries: import("fs").Dirent[];
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isSymbolicLink()) continue;
+        if (entry.isDirectory()) {
+          await walk(full);
+        } else if (entry.isFile()) {
+          const rel = path.relative(root, full);
+          if (!OrchestratorRunner.isSharedPath(rel)) results.push(rel);
+        }
+      }
+    };
+    await walk(root);
+    return results;
+  }
+
+  /**
+   * Reconstructs an expectedFilesMap for iterate() from the previous run.
+   * Strategy (in order):
+   *   1. Extract `filepath: ...` patterns from each agent's result text.
+   *   2. Fallback: scan the physical workspace and distribute all files to agents
+   *      that have at least one nodeResult (i.e. ran and produced something).
+   */
+  private async rebuildExpectedFilesMapFromRun(
+    previousRun: OrchRun,
+    linkedProjects: readonly Project[],
+    workspaceDir: string,
+  ): Promise<Record<string, readonly string[]>> {
+    const map: Record<string, string[]> = {};
+
+    // Strategy 1 — extract filepath patterns from each agent's result text.
+    // Covers both code-fence format (`filepath: path/to/file`) and
+    // tool-produced write lists (the backend reports written paths).
+    const FILEPATH_RE = /filepath:\s*([^\s`\n'"]+)/gi;
+    let extractedAny = false;
+    for (const r of previousRun.nodeResults) {
+      if (!r.result) continue;
+      const paths: string[] = [];
+      let m: RegExpExecArray | null;
+      FILEPATH_RE.lastIndex = 0;
+      while ((m = FILEPATH_RE.exec(r.result)) !== null) {
+        const p = m[1].trim().replace(/^['"`]|['"`]$/g, "");
+        if (
+          p &&
+          OrchestratorRunner.isValidFilePath(p) &&
+          !OrchestratorRunner.isSharedPath(p)
+        ) {
+          paths.push(p);
+        }
+      }
+      if (paths.length > 0) {
+        map[r.projectId] = [...new Set(paths)];
+        extractedAny = true;
+      }
+    }
+
+    // Strategy 2 — fallback: scan disk and attribute all files to every
+    // agent that actually ran (non-skipped). We don't know ownership, but
+    // giving every agent the full list lets the agent use its knowledge of
+    // which files it created to focus its corrections.
+    if (!extractedAny) {
+      const allFiles = await this.flatScanWorkspaceFiles(workspaceDir);
+      if (allFiles.length > 0) {
+        const ranAgents = new Set(
+          previousRun.nodeResults
+            .filter(
+              (r) =>
+                r.status !== "skipped" &&
+                linkedProjects.some((p) => p.id === r.projectId),
+            )
+            .map((r) => r.projectId),
+        );
+        for (const agentId of ranAgents) {
+          map[agentId] = allFiles;
+        }
+      }
+    }
+
+    return map;
+  }
+
+  /**
    * Reads the actual files a node was expected to produce, from disk, so the
    * output verifier judges ground truth instead of the chat stream. Reports
    * presence/size per expected file and includes capped contents.
@@ -2663,6 +2869,7 @@ export class OrchestratorRunner {
       allProjects,
       executionResults,
       depDiskEvidence,
+      expectedFilesMap,
     );
     const userPrompt = buildNodeUserPrompt(
       node,
@@ -3408,6 +3615,59 @@ export class OrchestratorRunner {
       );
     } else if (node.type === "design") {
       console.warn(`[orchestrator] Exporting renders for OpenDesign: ${node.name}`);
+      const sanitizeId = (raw: string): string => {
+        const clean = raw.replace(/[^A-Za-z0-9._-]/g, "-").substring(0, 120);
+        return `orch-${clean}`;
+      };
+      const projectId = sanitizeId(node.id);
+      const srcDir = path.join(_workspaceDir, "design", projectId);
+
+      const exists = await fs
+        .access(srcDir)
+        .then(() => true)
+        .catch(() => false);
+      if (exists) {
+        const files: string[] = [];
+        const walk = async (dir: string): Promise<void> => {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isSymbolicLink()) continue;
+            if (entry.isDirectory()) {
+              await walk(fullPath);
+            } else if (entry.isFile()) {
+              if (entry.name !== ".DS_Store" && !entry.name.endsWith(".artifact.json")) {
+                files.push(fullPath);
+              }
+            }
+          }
+        };
+        await walk(srcDir);
+
+        const copiedPaths: string[] = [];
+        for (const file of files) {
+          const rel = path.relative(srcDir, file);
+          const dest = path.join(_workspaceDir, rel);
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          await fs.cp(file, dest, { dereference: false });
+
+          this.fileOwner.set(rel, node.id);
+          copiedPaths.push(rel);
+        }
+
+        if (copiedPaths.length > 0) {
+          console.warn(
+            `[orchestrator] Design backend post-process: copied ${copiedPaths.length} files from ${projectId}/ to root workspace: ${copiedPaths.join(", ")}`,
+          );
+          const currentBwp = this.backendWrittenPaths.get(node.id) ?? [];
+          const updatedBwp = [...currentBwp, ...copiedPaths];
+          this.backendWrittenPaths.set(node.id, updatedBwp);
+          this.backendFilesWritten.set(
+            node.id,
+            (this.backendFilesWritten.get(node.id) ?? 0) + copiedPaths.length,
+          );
+        }
+      }
     }
   }
 
@@ -3486,10 +3746,39 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
    * from overwriting siblings' work, and (because an undeclared report is a free
    * path) it also lets a verifier emit its own audit file instead of losing it.
    */
+  private extractPathsFromTask(task: string | undefined): string[] {
+    if (!task) return [];
+    const paths: string[] = [];
+    const matches = task.matchAll(
+      /`([^`\s]+)`|'([^'\s]+)'|"([^"\s]+)"|([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9_\-]+)/g,
+    );
+    for (const match of matches) {
+      const rawPath = match[1] ?? match[2] ?? match[3] ?? match[4];
+      if (rawPath) {
+        const clean = rawPath.replace(/^[./]+/, "").trim();
+        if (
+          clean &&
+          clean.includes(".") &&
+          !clean.includes(":") &&
+          !clean.startsWith("/") &&
+          clean.length > 2
+        ) {
+          paths.push(clean);
+        }
+      }
+    }
+    return paths;
+  }
+
   private buildNodePathFilter(
-    nodeId: string,
+    nodeOrId: Project | string,
     nodeExpectedFiles: readonly string[],
   ): (relPath: string) => boolean {
+    const nodeId = typeof nodeOrId === "string" ? nodeOrId : nodeOrId.id;
+    const task = typeof nodeOrId === "string" ? undefined : nodeOrId.task;
+    const taskPaths = this.extractPathsFromTask(task);
+    const allowedFiles = [...nodeExpectedFiles, ...taskPaths];
+
     // A node on a corrective relaunch may rewrite ITS files but must NOT mint new
     // free paths (that's how a parasitic public/ site got spawned). On a first run
     // free paths are open. The corrective set is authoritative when present;
@@ -3499,7 +3788,7 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
       [...this.fileOwner.values()].includes(nodeId);
     return (p: string): boolean => {
       if (OrchestratorRunner.isSharedPath(p)) return true;
-      if (nodeExpectedFiles.includes(p)) return true;
+      if (allowedFiles.includes(p)) return true;
       const owner = this.fileOwner.get(p);
       if (owner === nodeId) return true;
       if (owner !== undefined) return false; // owned by another agent → refuse
@@ -3731,12 +4020,25 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
           );
           return;
         }
+        // Tentative de correction : rendre le fichier accessible en écriture si existant
+        try {
+          const stat = await fs.stat(fullPath);
+          if (stat.isFile()) {
+            await fs.chmod(fullPath, 0o666);
+          }
+        } catch {
+          // Le fichier n'existe pas ou stat a échoué, on continue normalement
+        }
         await fs.writeFile(fullPath, content, { encoding: "utf-8", flag: "w" });
         seen.add(fullPath);
         written.push(filePath);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[orchestrator:files] Failed to write ${filePath}: ${msg}`);
+        // Enregistrer l'échec pour traitement par la boucle corrective / validation
+        const list = this.failedWrites.get(nodeId) ?? [];
+        list.push(filePath);
+        this.failedWrites.set(nodeId, list);
       }
     });
   }

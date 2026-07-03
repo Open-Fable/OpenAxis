@@ -207,11 +207,11 @@ describe("applyEdits", () => {
 
 describe("detectTruncation", () => {
   it("flags empty content", () => {
-    expect(detectTruncation("   \n  ")).toBe("fichier vide");
+    expect(detectTruncation("   \n  ")).toBe("empty file");
   });
 
   it("flags an unclosed code fence (odd number of ```)", () => {
-    expect(detectTruncation("text\n```\ncode")).toBe("bloc de code non fermé");
+    expect(detectTruncation("text\n```\ncode")).toBe("unclosed code block");
   });
 
   it("passes balanced code fences", () => {
@@ -219,7 +219,7 @@ describe("detectTruncation", () => {
   });
 
   it("flags HTML with <html> but no </html>", () => {
-    expect(detectTruncation("<html><body>hi")).toBe("balise </html> manquante");
+    expect(detectTruncation("<html><body>hi")).toBe("missing </html> tag");
   });
 
   it("passes complete HTML", () => {
@@ -229,7 +229,7 @@ describe("detectTruncation", () => {
   it("flags prose ending mid-sentence", () => {
     const content =
       "This is a long paragraph that clearly stops abruptly without any closing";
-    expect(detectTruncation(content)).toMatch(/milieu de phrase/);
+    expect(detectTruncation(content)).toMatch(/mid-sentence/);
   });
 
   it("does not flag a clean short deliverable", () => {
