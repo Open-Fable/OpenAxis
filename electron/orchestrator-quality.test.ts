@@ -17,6 +17,7 @@ import {
   findBrokenAssetRefs,
   buildBrokenAssetsReport,
   findInvalidJsonFiles,
+  findSyntaxProblems,
   sanitizeChecks,
   validateDeclaredChecks,
   findCsvColumnProblems,
@@ -35,6 +36,7 @@ import {
   findUnwantedWebScaffolding,
   findUselessDesignArtifacts,
   findCssConsistencyProblems,
+  findNavigationConsistencyProblems,
   MIN_RESULT_CHARS,
   MIN_FILE_BYTES,
 } from "./orchestrator-quality.js";
@@ -593,7 +595,7 @@ describe("findDivergentDuplicates", () => {
     );
     const out = await findDivergentDuplicates(tmpDir);
     expect(out.length).toBe(1);
-    expect(out[0].problem).toContain("contenus divergents");
+    expect(out[0].problem).toContain("divergent content");
     expect(out[0].problem).toContain("regulations.md");
   });
 
@@ -638,7 +640,7 @@ describe("findScatteredDuplicates", () => {
     await realFs.writeFile(path.join(tmpDir, "reports/figures.md"), body);
     const out = await findScatteredDuplicates(tmpDir);
     expect(out.length).toBe(1);
-    expect(out[0].problem).toContain("éparpillé dans 3 emplacements");
+    expect(out[0].problem).toContain("scattered");
   });
 
   it("does NOT flag only 2 identical copies (under threshold)", async () => {
@@ -774,7 +776,7 @@ describe("buildMissingFilesPrompt", () => {
     expect(result).toContain("Build the homepage");
     expect(result).toContain("index.html");
     expect(result).toContain("style.css");
-    expect(result).toContain("FICHIERS MANQUANTS");
+    expect(result).toContain("MISSING FILES");
   });
 });
 
@@ -784,7 +786,7 @@ describe("buildTrivialResultPrompt", () => {
     const result = buildTrivialResultPrompt(node);
     expect(result).toContain("Generate a report");
     expect(result).toContain(String(MIN_RESULT_CHARS));
-    expect(result).toContain("RÉSULTAT INSUFFISANT");
+    expect(result).toContain("INSUFFICIENT RESULT");
   });
 });
 
@@ -1095,7 +1097,7 @@ describe("buildAutoFeedback", () => {
       ],
     };
     const result = buildAutoFeedback(verdict);
-    expect(result).toContain("CYCLE QUALITÉ AUTOMATIQUE");
+    expect(result).toContain("AUTO QUALITY CYCLE");
     expect(result).toContain("[Design]");
     expect(result).toContain("[Code]");
     expect(result).toContain("Missing mobile layout");
@@ -1137,7 +1139,7 @@ describe("buildQualityGateUserPrompt", () => {
       htmlHeads: "",
     });
     expect(result).toContain("Build a Python CLI");
-    expect(result).toContain("COMPLÉTUDE");
+    expect(result).toContain("COMPLETENESS");
     expect(result).not.toContain("SEO");
   });
 
@@ -1149,7 +1151,7 @@ describe("buildQualityGateUserPrompt", () => {
       htmlHeads: "<title>Test</title>",
     });
     expect(result).toContain("SEO");
-    expect(result).toContain("ACCESSIBILITÉ");
+    expect(result).toContain("ACCESSIBILITY");
     expect(result).toContain("<title>Test</title>");
   });
 
@@ -1161,7 +1163,7 @@ describe("buildQualityGateUserPrompt", () => {
       htmlHeads: "<title>x</title>",
       cssSnippets: ":root { --color: #A3A3A3; }",
     });
-    expect(result).toContain("CONTRASTE");
+    expect(result).toContain("CONTRAST");
     expect(result).toContain("RESPONSIVE");
     expect(result).toContain("--color: #A3A3A3");
   });
@@ -1173,10 +1175,10 @@ describe("buildQualityGateUserPrompt", () => {
       expectedFilesReport: "ok",
       htmlHeads: "<title>x</title>",
       brokenAssetsReport:
-        'RÉFÉRENCES CASSÉES (détection déterministe) :\n  ✗ gallery.html → "assets/x.svg" (introuvable)',
+        'BROKEN REFERENCES (deterministic detection) :\n  ✗ gallery.html → "assets/x.svg" (introuvable)',
     });
     expect(result).toContain("ASSETS");
-    expect(result).toContain("BLOQUANT");
+    expect(result).toContain("BLOCKING");
     expect(result).toContain("assets/x.svg");
   });
 });
@@ -1250,9 +1252,222 @@ describe("findBrokenAssetRefs / buildBrokenAssetsReport", () => {
       { sourceFile: "a.html", ref: "x.png" },
       { sourceFile: "b.css", ref: "y.jpg" },
     ]);
-    expect(report).toContain("RÉFÉRENCES CASSÉES");
+    expect(report).toContain("BROKEN REFERENCES");
     expect(report).toContain("a.html");
     expect(report).toContain("x.png");
     expect(report).toContain("y.jpg");
+  });
+});
+
+describe("findNavigationConsistencyProblems", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "openaxis-nav-test-"));
+  });
+
+  it("returns empty when there is only one HTML file", async () => {
+    await realFs.writeFile(path.join(tmpDir, "index.html"), "<a>Wiki</a>");
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    expect(probs).toHaveLength(0);
+  });
+
+  it("detects dead navigation links like href='#' with menu keywords", async () => {
+    // The link is INSIDE a <nav> block — this is what the quality gate targets.
+    await realFs.writeFile(
+      path.join(tmpDir, "index.html"),
+      "<html><body><nav><a href='#'>Wiki</a><a href='about.html'>About</a></nav></body></html>",
+    );
+    await realFs.writeFile(
+      path.join(tmpDir, "about.html"),
+      "<html><body><nav><a href='index.html'>Index</a></nav></body></html>",
+    );
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    const dead = probs.filter(
+      (p) => p.problem.includes("navigation mort") && p.problem.includes("Wiki"),
+    );
+    expect(dead.length).toBeGreaterThan(0);
+  });
+
+  it("detects orphan pages and navigation silos", async () => {
+    // index.html points to nothing
+    await realFs.writeFile(
+      path.join(tmpDir, "index.html"),
+      "<html><body>Hello</body></html>",
+    );
+    // silo.html is not linked from index.html and has no outgoing links
+    await realFs.writeFile(
+      path.join(tmpDir, "silo.html"),
+      "<html><body>Silo</body></html>",
+    );
+
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    // silo.html should be flagged as orphan (no incoming links) and silo (no outgoing links)
+    const siloProbs = probs.filter((p) => p.sourceFile === "silo.html");
+    expect(siloProbs.some((p) => p.problem.includes("page orpheline"))).toBe(true);
+    expect(siloProbs.some((p) => p.problem.includes("silo de navigation"))).toBe(true);
+  });
+});
+
+describe("findInvalidJsonFiles line context", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "openaxis-json-test-"));
+  });
+
+  it("extracts exact line content for syntax errors", async () => {
+    const invalidJson = `{\n  "name": "Subaru",\n  "age": 17 (apparence 18),\n  "status": "Vivant"\n}`;
+    await realFs.writeFile(path.join(tmpDir, "test.json"), invalidJson);
+    const probs = await findInvalidJsonFiles(tmpDir);
+    expect(probs).toHaveLength(1);
+    expect(probs[0].problem).toContain("Ligne 3");
+    expect(probs[0].problem).toContain("age");
+  });
+});
+
+// ── findSyntaxProblems (vm.Script-based JS checker) ─────────────────────────
+
+describe("findSyntaxProblems", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "openaxis-syntax-"));
+  });
+
+  it("returns no problems for syntactically valid JS", async () => {
+    await realFs.writeFile(
+      path.join(tmpDir, "valid.js"),
+      'function greet(name) { return "Hello " + name; }\nmodule.exports = { greet };',
+    );
+    const probs = await findSyntaxProblems(tmpDir);
+    expect(probs).toEqual([]);
+  });
+
+  it("detects a syntax error in a .js file", async () => {
+    // Missing closing brace
+    await realFs.writeFile(
+      path.join(tmpDir, "broken.js"),
+      "function broken() { const x = 1;\n// missing }",
+    );
+    const probs = await findSyntaxProblems(tmpDir);
+    expect(probs.map((p) => p.sourceFile)).toContain("broken.js");
+    expect(probs[0].problem).toContain("syntaxe JS");
+  });
+
+  it("also detects syntax errors in .mjs files", async () => {
+    await realFs.writeFile(path.join(tmpDir, "broken.mjs"), "export const x = {;");
+    const probs = await findSyntaxProblems(tmpDir);
+    expect(probs.map((p) => p.sourceFile)).toContain("broken.mjs");
+  });
+
+  it("skips .ts files (TypeScript syntax is not valid JS)", async () => {
+    // TypeScript type annotation — would be a SyntaxError if treated as JS
+    await realFs.writeFile(
+      path.join(tmpDir, "typed.ts"),
+      "function greet(name: string): string { return name; }",
+    );
+    const probs = await findSyntaxProblems(tmpDir);
+    // .ts files must NOT be reported
+    expect(probs.map((p) => p.sourceFile)).not.toContain("typed.ts");
+  });
+
+  it("skips design/ and node_modules/ directories", async () => {
+    await realFs.mkdir(path.join(tmpDir, "design"), { recursive: true });
+    await realFs.writeFile(path.join(tmpDir, "design/broken.js"), "const x = {;");
+    const probs = await findSyntaxProblems(tmpDir);
+    expect(probs.map((p) => p.sourceFile)).not.toContain("design/broken.js");
+  });
+});
+
+// ── findNavigationConsistencyProblems — href="#" in nav blocks ───────────────
+
+describe("findNavigationConsistencyProblems — dead nav links", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await realFs.mkdtemp(path.join(os.tmpdir(), "openaxis-nav-"));
+  });
+
+  const writeHtml = async (name: string, content: string): Promise<void> => {
+    await realFs.writeFile(path.join(tmpDir, name), content);
+  };
+
+  it("flags href='#' links inside a <nav> block when other pages exist", async () => {
+    await writeHtml(
+      "index.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="#">Products</a><a href="about.html">About</a></nav>
+        <main>Home page</main>
+      </body></html>`,
+    );
+    await writeHtml(
+      "about.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="index.html">Home</a><a href="about.html">About</a></nav>
+        <main>About page</main>
+      </body></html>`,
+    );
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    const dead = probs.filter(
+      (p) => p.problem.includes("navigation mort") && p.problem.includes("Products"),
+    );
+    expect(dead.length).toBeGreaterThan(0);
+  });
+
+  it("does NOT flag href='#' when only one HTML file exists (single-page, anchors are valid)", async () => {
+    await writeHtml(
+      "index.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="#section1">Section 1</a><a href="#section2">Section 2</a></nav>
+        <section id="section1">S1</section>
+        <section id="section2">S2</section>
+      </body></html>`,
+    );
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    // With only one page, no dead link or orphan should be reported
+    const dead = probs.filter((p) => p.problem.includes("navigation mort"));
+    expect(dead).toEqual([]);
+  });
+
+  it("does NOT flag href='#' appearing outside nav/header/footer (body anchors)", async () => {
+    await writeHtml(
+      "index.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="about.html">About</a></nav>
+        <main><a href="#">scroll to top</a></main>
+      </body></html>`,
+    );
+    await writeHtml(
+      "about.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="index.html">Home</a></nav>
+        <main>About page</main>
+      </body></html>`,
+    );
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    // "#" link in <main> should NOT be flagged — only nav zone links matter
+    const dead = probs.filter((p) => p.problem.includes("navigation mort"));
+    expect(dead).toEqual([]);
+  });
+
+  it("detects orphan pages unreachable from any other page", async () => {
+    await writeHtml(
+      "index.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="index.html">Home</a></nav>
+        <main>Home</main>
+      </body></html>`,
+    );
+    await writeHtml(
+      "secret.html",
+      `<!DOCTYPE html><html><body>
+        <nav><a href="index.html">Home</a></nav>
+        <main>Secret page — no one links to me</main>
+      </body></html>`,
+    );
+    const probs = await findNavigationConsistencyProblems(tmpDir);
+    const orphans = probs.filter((p) => p.problem.includes("orpheline"));
+    expect(orphans.map((p) => p.sourceFile)).toContain("secret.html");
   });
 });

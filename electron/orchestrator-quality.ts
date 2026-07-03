@@ -1,11 +1,13 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { createHash } from "crypto";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import type { Project, OrchRun, OrchRunNodeResult } from "./project-store.js";
 
 export const MIN_RESULT_CHARS = 200;
 export const MIN_FILE_BYTES = 100;
-export const MAX_AUTO_QUALITY_LOOPS = 2;
+export const MAX_AUTO_QUALITY_LOOPS = 3;
 
 // ── A. Deliverable contracts ───────────────────────────────────────────────────
 
@@ -596,11 +598,110 @@ export async function findInvalidJsonFiles(
         JSON.parse(content);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        let errorContext = "";
+        const lineMatch = /line (\d+) column (\d+)/i.exec(msg);
+        if (lineMatch) {
+          const lineNum = parseInt(lineMatch[1], 10);
+          const lines = content.split(/\r?\n/);
+          if (lineNum > 0 && lineNum <= lines.length) {
+            const badLine = lines[lineNum - 1];
+            errorContext = ` (Ligne ${lineNum}: "${badLine.trim().slice(0, 100)}")`;
+          }
+        }
         problems.push({
           sourceFile: path.relative(workspaceDir, full),
-          problem: `JSON invalide — ne parse pas (${msg.slice(0, 80)})`,
+          problem: `JSON invalide — ne parse pas (${msg.slice(0, 80)})${errorContext}`,
         });
         if (problems.length >= 50) return;
+      }
+    }
+  }
+
+  await walk(path.resolve(workspaceDir), 0);
+  return problems;
+}
+
+const execFileAsync = promisify(execFile);
+
+export async function findSyntaxProblems(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const MAX_FILES = 200;
+  const problems: ServedSiteProblem[] = [];
+  let scanned = 0;
+
+  // Import node:vm lazily so this module stays importable in test environments
+  // that don't need the VM (the import is always available in Node.js >= 14).
+  let vmScript: (new (code: string) => unknown) | undefined;
+  try {
+    // Dynamic import keeps TS happy while targeting ESM
+    const vmMod = await import("node:vm");
+    vmScript = vmMod.Script as typeof vmScript;
+  } catch {
+    // vm unavailable (test sandbox?) — skip JS checks silently
+  }
+
+  async function walk(dir: string, depth: number): Promise<void> {
+    if (depth > 5 || scanned >= MAX_FILES || problems.length >= 50) return;
+    let entries: import("fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (
+        entry.name.startsWith(".") ||
+        entry.name === "node_modules" ||
+        entry.name === "design" ||
+        entry.name === "mockups" ||
+        entry.name === "reports"
+      ) {
+        continue;
+      }
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full, depth + 1);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+
+      const ext = path.extname(entry.name).toLowerCase();
+      // JS/MJS/CJS — checked in-process via vm.Script (parse-only, no execution).
+      // .ts files are intentionally excluded: TypeScript syntax (types, decorators)
+      // is not valid plain JS and would produce false positives.
+      if ((ext === ".js" || ext === ".mjs" || ext === ".cjs") && vmScript) {
+        scanned++;
+        let content: string;
+        try {
+          content = await fs.readFile(full, "utf-8");
+        } catch {
+          continue;
+        }
+        try {
+          // new Script() compiles the AST but never runs the code.
+          new vmScript(content);
+        } catch (e: unknown) {
+          if (e instanceof SyntaxError) {
+            // e.message already includes line/column info from V8
+            const msg = e.message.slice(0, 200);
+            problems.push({
+              sourceFile: path.relative(workspaceDir, full),
+              problem: `Erreur de syntaxe JS : ${msg}`,
+            });
+          }
+        }
+      } else if (ext === ".py") {
+        scanned++;
+        try {
+          await execFileAsync("python3", ["-m", "py_compile", full]);
+        } catch (err: unknown) {
+          const e = err as { stderr?: string; message?: string };
+          problems.push({
+            sourceFile: path.relative(workspaceDir, full),
+            problem: `Erreur de syntaxe Python : ${e.stderr || e.message}`,
+          });
+        }
       }
     }
   }
@@ -1973,4 +2074,123 @@ export async function findBrandConsistencyProblems(
   }
 
   return problems;
+}
+
+export async function findNavigationConsistencyProblems(
+  workspaceDir: string,
+): Promise<readonly ServedSiteProblem[]> {
+  const problems: ServedSiteProblem[] = [];
+  const roots = await discoverServedRoots(workspaceDir);
+
+  for (const { dir } of roots) {
+    const htmls = await collectHtmlUnderRoot(dir, workspaceDir);
+    if (htmls.length <= 1) continue;
+
+    const allPages = new Set<string>();
+    const outgoing = new Map<string, Set<string>>();
+    const incoming = new Map<string, Set<string>>();
+
+    for (const h of htmls) {
+      allPages.add(h.rel);
+      outgoing.set(h.rel, new Set());
+      incoming.set(h.rel, new Set());
+    }
+
+    for (const h of htmls) {
+      // Extract links only from navigation zones (<nav>, <header>, <footer>).
+      // This avoids flagging "#top" anchors, tab widgets, etc. in page bodies.
+      const navBlocks = extractNavBlocks(h.content);
+      const navLinks = navBlocks.flatMap(extractHtmlLinks);
+
+      // Also check ALL links for page graph (to find orphans / silos).
+      const allLinks = extractHtmlLinks(h.content);
+      const hFull = path.resolve(workspaceDir, h.rel);
+      const hDir = path.dirname(hFull);
+
+      // 1. Detect dead href="#" inside navigation zones.
+      // Any link inside a <nav>/<header>/<footer> with href="#" or href=""
+      // is an uncabled link that should point to a real page.
+      for (const link of navLinks) {
+        if (problems.length >= 50) break;
+        const raw = link.href.trim();
+        if (raw === "" || raw === "#") {
+          const textSnippet = link.text.slice(0, 60);
+          if (textSnippet.trim().length > 0) {
+            problems.push({
+              sourceFile: h.rel,
+              problem: `lien de navigation mort — le lien "${textSnippet}" dans la zone de navigation pointe sur "#" au lieu d'une page réelle du site`,
+            });
+          }
+        }
+      }
+
+      // 2. Build the page-to-page graph from ALL links (for orphan/silo detection).
+      for (const link of allLinks) {
+        const cleanedHref = link.href.split("?")[0].split("#")[0].trim();
+        if (!cleanedHref || EXTERNAL_REF.test(link.href)) continue;
+        const targetPath = path.resolve(hDir, cleanedHref);
+        for (const otherPage of allPages) {
+          const otherPageAbs = path.resolve(workspaceDir, otherPage);
+          if (otherPageAbs === targetPath) {
+            outgoing.get(h.rel)!.add(otherPage);
+            incoming.get(otherPage)!.add(h.rel);
+          }
+        }
+      }
+    }
+
+    // 3. Report orphan pages (unreachable) and nav silos (no outgoing links).
+    for (const page of allPages) {
+      if (problems.length >= 50) break;
+      const basename = path.basename(page).toLowerCase();
+      const isHome = basename === "index.html" || basename === "main.html";
+
+      const inc = incoming.get(page)!;
+      if (inc.size === 0 && !isHome) {
+        problems.push({
+          sourceFile: page,
+          problem: `page orpheline — cette page n'est référencée par aucun lien depuis une autre page du site, elle est inaccessible pour le visiteur`,
+        });
+      }
+
+      const out = outgoing.get(page)!;
+      if (out.size === 0) {
+        problems.push({
+          sourceFile: page,
+          problem: `silo de navigation — cette page ne contient aucun lien permettant de naviguer vers une autre page du site (le visiteur est piégé)`,
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * Extracts the content of <nav>, <header> and <footer> blocks from an HTML string.
+ * Used to identify navigation-zone links specifically (avoiding body anchors, tabs, etc.)
+ */
+function extractNavBlocks(html: string): string[] {
+  const blocks: string[] = [];
+  const blockRe = /<(nav|header|footer)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(html)) !== null) {
+    blocks.push(m[2]);
+  }
+  return blocks;
+}
+
+function extractHtmlLinks(content: string): Array<{ href: string; text: string }> {
+  const links: Array<{ href: string; text: string }> = [];
+  const regex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(content)) !== null) {
+    const attrs = m[1];
+    const text = m[2].replace(/<[^>]*>/g, "").trim();
+    const hrefMatch = /href\s*=\s*["']([^"']*)["']/i.exec(attrs);
+    if (hrefMatch) {
+      links.push({ href: hrefMatch[1].trim(), text });
+    }
+  }
+  return links;
 }
