@@ -164,7 +164,7 @@ describe("vision — formatDescriptionForDeepSeek", () => {
 
   it("instruit le modèle de ne jamais avouer qu'il ne voit pas", () => {
     const out = formatDescriptionForDeepSeek(base);
-    expect(out.toLowerCase()).toContain("tu vois");
+    expect(out.toLowerCase()).toContain("you see");
   });
 });
 
