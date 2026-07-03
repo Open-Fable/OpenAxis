@@ -47,19 +47,19 @@ function makeRun(ids: readonly string[]): OrchRun {
 describe("buildFixTask", () => {
   it("embeds the user feedback and the requested fix", () => {
     const out = buildFixTask("Corrige le header", "Le header est cassé");
-    expect(out).toContain("[ITÉRATION CORRECTIVE]");
+    expect(out).toContain("[CORRECTIVE ITERATION]");
     expect(out).toContain("Le header est cassé");
     expect(out).toContain("Corrige le header");
   });
 
   it("omits the previous-result block when no previous result is given", () => {
     const out = buildFixTask("fix", "feedback");
-    expect(out).not.toContain("TON RÉSULTAT PRÉCÉDENT");
+    expect(out).not.toContain("YOUR PREVIOUS RESULT");
   });
 
   it("includes the previous-result block when provided", () => {
     const out = buildFixTask("fix", "feedback", "ancien résultat");
-    expect(out).toContain("TON RÉSULTAT PRÉCÉDENT");
+    expect(out).toContain("YOUR PREVIOUS RESULT");
     expect(out).toContain("ancien résultat");
   });
 
@@ -72,29 +72,42 @@ describe("buildFixTask", () => {
 
   it("always restates the critical rules about modifying existing files", () => {
     const out = buildFixTask("fix", "feedback");
-    expect(out).toContain("RÈGLES CRITIQUES");
-    expect(out).toContain("SOURCE DE VÉRITÉ");
-    expect(out).toContain("NE RACCOURCIS JAMAIS");
+    expect(out).toContain("CRITICAL RULES");
+    expect(out).toContain("SOURCE OF TRUTH");
+    expect(out).toContain("NEVER SHORTEN");
   });
 
   it("injects the real on-disk content when provided", () => {
     const disk = "<html>contenu réel sur disque</html>";
     const out = buildFixTask("fix", "feedback", undefined, disk);
-    expect(out).toContain("CONTENU ACTUEL DE TES FICHIERS SUR DISQUE");
+    expect(out).toContain("CURRENT CONTENT OF YOUR FILES ON DISK");
     expect(out).toContain(disk);
   });
 
   it("prefers on-disk content over the truncated previous-result excerpt", () => {
     const out = buildFixTask("fix", "feedback", "ancien résultat", "fichier disque");
     expect(out).toContain("fichier disque");
-    expect(out).not.toContain("TON RÉSULTAT PRÉCÉDENT");
+    expect(out).not.toContain("YOUR PREVIOUS RESULT");
     expect(out).not.toContain("ancien résultat");
   });
 
   it("falls back to the previous-result excerpt when disk content is empty", () => {
     const out = buildFixTask("fix", "feedback", "ancien résultat", "");
-    expect(out).toContain("TON RÉSULTAT PRÉCÉDENT");
+    expect(out).toContain("YOUR PREVIOUS RESULT");
     expect(out).toContain("ancien résultat");
+  });
+
+  it("injects the workspace file tree when provided", () => {
+    const tree = "├── index.html\n└── style.css";
+    const out = buildFixTask("fix", "feedback", undefined, undefined, tree);
+    expect(out).toContain("[ALL FILES CURRENTLY IN WORKSPACE");
+    expect(out).toContain("index.html");
+    expect(out).toContain("style.css");
+  });
+
+  it("omits the workspace file tree block when not provided", () => {
+    const out = buildFixTask("fix", "feedback");
+    expect(out).not.toContain("[ALL FILES CURRENTLY IN WORKSPACE");
   });
 });
 

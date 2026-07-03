@@ -69,7 +69,7 @@ describe("buildDependencyContext", () => {
 
     const out = buildDependencyContext(node, [dep], results);
 
-    expect(out).toContain("RÉSULTATS DES AGENTS PRÉCÉDENTS");
+    expect(out).toContain("PREVIOUS AGENT RESULTS");
     expect(out).toContain("Designer");
     expect(out).toContain("design");
     expect(out).toContain("Faire les maquettes");
@@ -82,7 +82,7 @@ describe("buildDependencyContext", () => {
 
     const out = buildDependencyContext(node, [dep], new Map());
 
-    expect(out).toContain("(pas encore exécuté)");
+    expect(out).toContain("(not yet executed)");
   });
 
   it("skips dependency ids that do not resolve to a project", () => {
@@ -123,29 +123,29 @@ describe("buildDependencyContext", () => {
     // 6 × 24k = 144k uncapped; the global budget keeps it well under that.
     expect(out.length).toBeLessThan(110_000);
     // Later deps are still named even when their content is dropped.
-    expect(out).toContain("budget de contexte atteint");
+    expect(out).toContain("context budget reached");
   });
 
   it("appends a fidelity mandate when a code node depends on a design agent", () => {
     const dep = makeProject({ id: "dep1", type: "design" });
     const node = makeProject({ id: "p1", type: "code", dependencies: ["dep1"] });
     const out = buildDependencyContext(node, [dep], new Map([["dep1", "maquette"]]));
-    expect(out).toContain("MANDAT DE FIDÉLITÉ");
-    expect(out).toContain("REPRODUIRE À L'IDENTIQUE");
+    expect(out).toContain("FIDELITY MANDATE");
+    expect(out).toContain("reproduce them IDENTICALLY");
   });
 
   it("appends a fidelity mandate when a code node depends on a work agent", () => {
     const dep = makeProject({ id: "dep1", type: "work" });
     const node = makeProject({ id: "p1", type: "code", dependencies: ["dep1"] });
     const out = buildDependencyContext(node, [dep], new Map([["dep1", "charte"]]));
-    expect(out).toContain("MANDAT DE FIDÉLITÉ");
+    expect(out).toContain("FIDELITY MANDATE");
   });
 
   it("does NOT append a fidelity mandate when only a code agent is a dependency", () => {
     const dep = makeProject({ id: "dep1", type: "code" });
     const node = makeProject({ id: "p1", type: "code", dependencies: ["dep1"] });
     const out = buildDependencyContext(node, [dep], new Map([["dep1", "code"]]));
-    expect(out).not.toContain("MANDAT DE FIDÉLITÉ");
+    expect(out).not.toContain("FIDELITY MANDATE");
   });
 
   it("injects per-dependency disk evidence when provided (Problème 7)", () => {
@@ -158,7 +158,7 @@ describe("buildDependencyContext", () => {
       new Map([["dep1", "résumé chat"]]),
       evidence,
     );
-    expect(out).toContain("FICHIERS PRODUITS");
+    expect(out).toContain("PRODUCED FILES");
     expect(out).toContain("schema.json");
     expect(out).toContain('{"k":"v"}');
   });
@@ -167,14 +167,50 @@ describe("buildDependencyContext", () => {
     const dep = makeProject({ id: "dep1", type: "work" });
     const node = makeProject({ id: "p1", type: "work", dependencies: ["dep1"] });
     const out = buildDependencyContext(node, [dep], new Map([["dep1", "x"]]), new Map());
-    expect(out).not.toContain("FICHIERS PRODUITS");
+    expect(out).not.toContain("PRODUCED FILES");
   });
 
   it("does NOT append a fidelity mandate for a verifier node even with design deps", () => {
     const dep = makeProject({ id: "dep1", type: "design" });
     const node = makeProject({ id: "p1", type: "verifier", dependencies: ["dep1"] });
     const out = buildDependencyContext(node, [dep], new Map([["dep1", "maquette"]]));
-    expect(out).not.toContain("MANDAT DE FIDÉLITÉ");
+    expect(out).not.toContain("FIDELITY MANDATE");
+  });
+
+  it("injects the INTERFACE CONTRACT block when depExpectedFilesMap is provided", () => {
+    const dep = makeProject({ id: "dep1", name: "API Agent", type: "code" });
+    const node = makeProject({ id: "p2", type: "code", dependencies: ["dep1"] });
+    const out = buildDependencyContext(
+      node,
+      [dep],
+      new Map([["dep1", "result"]]),
+      undefined,
+      { dep1: ["src/api/router.ts", "src/api/service.ts"] },
+    );
+    expect(out).toContain("INTERFACE CONTRACT");
+    expect(out).toContain("src/api/router.ts");
+    expect(out).toContain("src/api/service.ts");
+    expect(out).toContain("do not invent alternatives");
+  });
+
+  it("omits the INTERFACE CONTRACT block when no files are declared for a dep", () => {
+    const dep = makeProject({ id: "dep1", type: "code" });
+    const node = makeProject({ id: "p2", type: "code", dependencies: ["dep1"] });
+    const out = buildDependencyContext(
+      node,
+      [dep],
+      new Map([["dep1", "result"]]),
+      undefined,
+      { dep1: [] },
+    );
+    expect(out).not.toContain("INTERFACE CONTRACT");
+  });
+
+  it("omits the INTERFACE CONTRACT block when depExpectedFilesMap is not provided", () => {
+    const dep = makeProject({ id: "dep1", type: "code" });
+    const node = makeProject({ id: "p2", type: "code", dependencies: ["dep1"] });
+    const out = buildDependencyContext(node, [dep], new Map([["dep1", "result"]]));
+    expect(out).not.toContain("INTERFACE CONTRACT");
   });
 });
 
@@ -184,14 +220,14 @@ describe("buildPlanningSystemPrompt", () => {
   it("includes custom instructions when present", () => {
     const orch = makeProject({ instructions: "Sois concis." });
     const out = buildPlanningSystemPrompt(orch);
-    expect(out).toContain("INSTRUCTIONS PERSONNALISÉES");
+    expect(out).toContain("CUSTOM INSTRUCTIONS");
     expect(out).toContain("Sois concis.");
   });
 
   it("omits the custom instructions block when instructions are empty", () => {
     const orch = makeProject({ instructions: "" });
     const out = buildPlanningSystemPrompt(orch);
-    expect(out).not.toContain("INSTRUCTIONS PERSONNALISÉES");
+    expect(out).not.toContain("CUSTOM INSTRUCTIONS");
   });
 
   it("describes all agent role types", () => {
@@ -224,7 +260,7 @@ describe("buildPlanningUserPrompt", () => {
       makeProject({ id: "b", name: "Beta", dependencies: ["a"] }),
     ];
     const out = buildPlanningUserPrompt("Tâche", projects, "");
-    expect(out).toContain("Dépend de : Alpha");
+    expect(out).toContain("Depends on: Alpha");
   });
 });
 
@@ -233,7 +269,7 @@ describe("buildPlanningUserPrompt", () => {
 describe("buildNodeSystemPrompt", () => {
   it("uses the code-fence file format by default", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "code" }));
-    expect(out).toContain("FORMAT FICHIERS (OBLIGATOIRE)");
+    expect(out).toContain("FILE FORMAT (REQUIRED)");
     expect(out).toContain("filepath:");
   });
 
@@ -241,23 +277,23 @@ describe("buildNodeSystemPrompt", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "code" }), {
       codeFenceFormat: false,
     });
-    expect(out).toContain("OUTILS FICHIERS");
-    expect(out).toContain("EXÉCUTION IMMÉDIATE");
+    expect(out).toContain("FILE TOOLS");
+    expect(out).toContain("EXECUTE IMMEDIATELY");
   });
 
   it("backend prompt instructs relative paths, no shell, and markdown fallback when codeFenceFormat is false", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "code" }), {
       codeFenceFormat: false,
     });
-    expect(out).toContain("chemins RELATIFS");
-    expect(out).toContain("JAMAIS de chemins absolus");
-    expect(out).toContain("PAS d'accès shell (bash)");
-    expect(out).toContain("DERNIER RECOURS");
+    expect(out).toContain("RELATIVE paths");
+    expect(out).toContain("NEVER absolute paths");
+    expect(out).toContain("shell access");
+    expect(out).toContain("LAST RESORT");
   });
 
   it("injects the design quality rules for a design agent", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "design" }));
-    expect(out).toContain("MAQUETTES VISUELLES");
+    expect(out).toContain("VISUAL MOCKUPS");
   });
 
   it("falls back to code quality rules for an unknown type", () => {
@@ -289,31 +325,28 @@ describe("buildNodeSystemPrompt — compact", () => {
 
   it("uses the short behavior block when compact, full block otherwise", () => {
     const node = makeProject({ type: "code" });
-    expect(buildNodeSystemPrompt(node, { compact: false })).toContain(
-      "COMPORTEMENT ATTENDU",
-    );
+    expect(buildNodeSystemPrompt(node, { compact: false })).toContain("BEHAVIOR");
     const compact = buildNodeSystemPrompt(node, { compact: true });
-    expect(compact).toContain("COMPORTEMENT :");
-    expect(compact).not.toContain("COMPORTEMENT ATTENDU");
+    expect(compact).toContain("BEHAVIOR :");
   });
 
   // Non-régression sécurité : les invariants critiques DOIVENT survivre au compactage.
   it("preserves the secrets → env-var invariant in the compact code rules", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "code" }), { compact: true });
-    expect(out).toContain("environnement");
+    expect(out).toContain("environment");
   });
 
   it("preserves identity coherence in the compact code/work rules", () => {
     const code = buildNodeSystemPrompt(makeProject({ type: "code" }), { compact: true });
     const work = buildNodeSystemPrompt(makeProject({ type: "work" }), { compact: true });
-    expect(code).toContain("identité");
-    expect(work).toContain("identité");
+    expect(code).toContain("identity");
+    expect(work).toContain("identity");
   });
 
   it("preserves the external-image ban in the compact asset policy", () => {
     const out = buildNodeSystemPrompt(makeProject({ type: "design" }), { compact: true });
     expect(out.toLowerCase()).toContain("unsplash");
-    expect(out).toContain("SVG inline");
+    expect(out).toContain("inline SVG");
   });
 
   it("leaves the non-compact (strong) prompt byte-identical to the default", () => {
@@ -330,19 +363,19 @@ describe("buildNodeUserPrompt", () => {
   it("includes the task and the critical reminder", () => {
     const out = buildNodeUserPrompt(makeProject({ task: "Faire X" }), "", "");
     expect(out).toContain("Faire X");
-    expect(out).toContain("RAPPEL CRITIQUE");
+    expect(out).toContain("CRITICAL REMINDER");
   });
 
   it("renders an expected-files contract when files are provided", () => {
     const out = buildNodeUserPrompt(makeProject(), "", "", ["a.html", "b.css"]);
-    expect(out).toContain("CONTRAT DE FICHIERS");
+    expect(out).toContain("FILE CONTRACT");
     expect(out).toContain("- a.html");
     expect(out).toContain("- b.css");
   });
 
   it("omits workspace and dependency sections when empty", () => {
     const out = buildNodeUserPrompt(makeProject(), "", "");
-    expect(out).not.toContain("[ÉTAT DU WORKSPACE]");
+    expect(out).not.toContain("WORKSPACE");
   });
 
   it("appends workspace and dependency context when provided", () => {
@@ -353,23 +386,23 @@ describe("buildNodeUserPrompt", () => {
 
   it("falls back to a default task label when task is missing", () => {
     const out = buildNodeUserPrompt(makeProject({ task: undefined }), "", "");
-    expect(out).toContain("Aucune tâche définie.");
+    expect(out).toContain("No task defined.");
   });
 
   it("uses markdown filepath format by default (codeFenceFormat: true)", () => {
     const out = buildNodeUserPrompt(makeProject(), "", "");
     expect(out).toContain("filepath:");
-    expect(out).not.toContain("outils write/edit");
+    expect(out).not.toContain("write/edit tools");
   });
 
   it("switches to tool-based reminder when codeFenceFormat is false", () => {
     const out = buildNodeUserPrompt(makeProject(), "", "", [], {
       codeFenceFormat: false,
     });
-    expect(out).toContain("outils write/edit");
-    expect(out).toContain("dernier recours");
-    expect(out).toContain("chemins RELATIFS");
-    expect(out).toContain("pas d'accès shell (bash)");
+    expect(out).toContain("write/edit tools");
+    expect(out).toContain("last resort");
+    expect(out).toContain("RELATIVE paths");
+    expect(out).toContain("shell access");
   });
 });
 
@@ -379,7 +412,7 @@ describe("buildContinuationPrompt", () => {
   it("includes attempt counters and the tail of the previous text", () => {
     const prev = "A".repeat(600) + "TAIL_MARKER";
     const out = buildContinuationPrompt(makeProject({ task: "T" }), prev, 2, 3);
-    expect(out).toContain("tentative 2/3");
+    expect(out).toContain("attempt 2/3");
     expect(out).toContain("TAIL_MARKER");
     // Only the last 500 chars are kept, so the very start is dropped
     expect(out).not.toContain("A".repeat(600));
@@ -403,7 +436,7 @@ describe("buildIterationPrompt", () => {
       1,
       4,
     );
-    expect(out).toContain("ITÉRATION 1/4");
+    expect(out).toContain("ITERATION 1/4");
     expect(out).toContain("il manque la home");
   });
 });
@@ -420,7 +453,7 @@ describe("buildVerifyPromptsSystemPrompt", () => {
 
   it("falls back to a default verifier identity", () => {
     const out = buildVerifyPromptsSystemPrompt(makeProject({ instructions: "" }));
-    expect(out).toContain("vérificateur de qualité");
+    expect(out).toContain("instruction quality verifier");
   });
 });
 
@@ -431,7 +464,7 @@ describe("buildVerifyPromptsUserPrompt", () => {
     expect(out).toContain("Global");
     expect(out).toContain("fais X");
     expect(out).toContain("Alpha");
-    expect(out).toContain("CHECKLIST DE VÉRIFICATION");
+    expect(out).toContain("VERIFICATION CHECKLIST");
   });
 });
 
@@ -442,21 +475,21 @@ describe("buildVerifyOutputUserPrompt", () => {
       "petit livrable",
     );
     expect(out).toContain("petit livrable");
-    expect(out).toContain("CRITÈRES SPÉCIFIQUES (code)");
+    expect(out).toContain("SPECIFIC CRITERIA (code)");
   });
 
   it("truncates with a head+tail excerpt for long results", () => {
     const head = "H".repeat(4000);
     const tail = "T".repeat(4000);
     const out = buildVerifyOutputUserPrompt(makeProject(), head + tail);
-    expect(out).toContain("caractères omis");
+    expect(out).toContain("characters omitted");
     // total length reported is the original
-    expect(out).toContain(`${(head + tail).length} caractères`);
+    expect(out).toContain(`${(head + tail).length} characters`);
   });
 
   it("selects design-specific criteria for a design node", () => {
     const out = buildVerifyOutputUserPrompt(makeProject({ type: "design" }), "x");
-    expect(out).toContain("CRITÈRES SPÉCIFIQUES (design)");
+    expect(out).toContain("SPECIFIC CRITERIA (design)");
   });
 
   it("falls back to code criteria for an unknown type", () => {
@@ -464,7 +497,7 @@ describe("buildVerifyOutputUserPrompt", () => {
       makeProject({ type: "mystery" as Project["type"] }),
       "x",
     );
-    expect(out).toContain("CRITÈRES SPÉCIFIQUES (code)");
+    expect(out).toContain("SPECIFIC CRITERIA (code)");
   });
 
   it("treats disk evidence as the source of truth when provided", () => {
@@ -473,16 +506,16 @@ describe("buildVerifyOutputUserPrompt", () => {
       "agent prose summary",
       "✓ src/app.js (1200 octets) :\nconsole.log('hi')",
     );
-    expect(out).toContain("SOURCE DE VÉRITÉ");
+    expect(out).toContain("GROUND TRUTH");
     expect(out).toContain("src/app.js");
-    expect(out).toContain("ne le déclare JAMAIS");
+    expect(out).toContain("never declare it");
     // the agent message is demoted to non-authoritative context
-    expect(out).toContain("NON autoritatif");
+    expect(out).toContain("NOT authoritative");
   });
 
   it("does not add a disk section when no evidence is provided", () => {
     const out = buildVerifyOutputUserPrompt(makeProject({ type: "code" }), "x");
-    expect(out).not.toContain("SOURCE DE VÉRITÉ");
+    expect(out).not.toContain("GROUND TRUTH");
   });
 });
 
@@ -492,15 +525,15 @@ describe("buildBrandComplianceUserPrompt", () => {
   it("embeds the brand guidelines and the evaluation grid", () => {
     const out = buildBrandComplianceUserPrompt("Palette: bleu primaire");
     expect(out).toContain("Palette: bleu primaire");
-    expect(out).toContain("GRILLE D'ÉVALUATION");
-    expect(out).toContain("COULEURS");
+    expect(out).toContain("EVALUATION GRID");
+    expect(out).toContain("COLORS");
   });
 });
 
 describe("buildBrandComplianceSystemPrompt", () => {
   it("falls back to the default brand-guardian identity", () => {
     const out = buildBrandComplianceSystemPrompt(makeProject({ instructions: "" }));
-    expect(out).toContain("gardien de la charte");
+    expect(out).toContain("brand guidelines guardian");
   });
 });
 
@@ -508,7 +541,7 @@ describe("buildBrandComplianceSystemPrompt", () => {
 
 describe("buildWorkspaceIndexSystemPrompt", () => {
   it("returns a non-empty analyst prompt", () => {
-    expect(buildWorkspaceIndexSystemPrompt()).toContain("analyste de documentation");
+    expect(buildWorkspaceIndexSystemPrompt()).toContain("documentation analyst");
   });
 });
 
@@ -530,8 +563,8 @@ describe("buildWorkspaceIndexUserPrompt", () => {
 describe("buildDecomposeSystemPrompt", () => {
   it("includes quality rules and the decomposition role", () => {
     const out = buildDecomposeSystemPrompt(makeProject({ type: "code" }));
-    expect(out).toContain("RÔLE ACTUEL");
-    expect(out).toContain("séquentielles");
+    expect(out).toContain("ROLE");
+    expect(out).toContain("steps");
   });
 });
 
@@ -543,7 +576,7 @@ describe("buildDecomposeUserPrompt", () => {
       "DEP",
     );
     expect(out).toContain("Construire");
-    expect(out).toContain("2 à 8 étapes");
+    expect(out).toContain("Minimum 2 steps, maximum 8");
     expect(out).toContain("WS");
     expect(out).toContain("DEP");
   });
@@ -559,7 +592,7 @@ describe("buildSubStepUserPrompt", () => {
 
   it("renders the step header with 1-based numbering", () => {
     const out = buildSubStepUserPrompt(makeProject(), step, 3, [], "", "");
-    expect(out).toContain("ÉTAPE 2/3 : Étape Deux");
+    expect(out).toContain("STEP 2/3 : Étape Deux");
     expect(out).toContain("Le focus");
     expect(out).toContain("Le livrable");
   });
@@ -567,8 +600,8 @@ describe("buildSubStepUserPrompt", () => {
   it("includes previous results when provided", () => {
     const prev: SubStepResult[] = [{ index: 0, title: "Première", output: "sortie une" }];
     const out = buildSubStepUserPrompt(makeProject(), step, 3, prev, "", "");
-    expect(out).toContain("RÉSULTATS DES ÉTAPES PRÉCÉDENTES");
-    expect(out).toContain("Étape 1 : Première");
+    expect(out).toContain("PREVIOUS STEPS RESULTS");
+    expect(out).toContain("Step 1 : Première");
     expect(out).toContain("sortie une");
   });
 });
@@ -581,7 +614,7 @@ describe("buildSynthesisUserPrompt", () => {
     ];
     const out = buildSynthesisUserPrompt(makeProject({ task: "Big" }), results);
     expect(out).toContain("Big");
-    expect(out).toContain("DES 2 SOUS-ÉTAPES");
+    expect(out).toContain("RESULTS OF 2 SUB-STEPS");
     expect(out).toContain("out-un");
     expect(out).toContain("out-deux");
   });
@@ -590,7 +623,7 @@ describe("buildSynthesisUserPrompt", () => {
 describe("buildSynthesisSystemPrompt", () => {
   it("describes the merge role", () => {
     const out = buildSynthesisSystemPrompt(makeProject());
-    expect(out).toContain("fusionner");
+    expect(out).toContain("merge");
   });
 });
 
@@ -615,7 +648,7 @@ describe("buildIterativePlanningUserPrompt", () => {
     ];
     const out = buildIterativePlanningUserPrompt("Global Task", projects, "WS-STATE");
     expect(out).toContain("Global Task");
-    expect(out).toContain("AGENTS DISPONIBLES (2)");
+    expect(out).toContain("AVAILABLE AGENTS (2)");
     expect(out).toContain("WS-STATE");
     expect(out).toContain("finish_planning");
   });

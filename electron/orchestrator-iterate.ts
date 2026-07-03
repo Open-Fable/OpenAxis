@@ -300,6 +300,7 @@ export function buildFixTask(
   feedback: string,
   previousResult?: string,
   currentFilesOnDisk?: string,
+  workspaceFileTree?: string,
 ): string {
   // When the runner can read the agent's own files from disk, inject their REAL
   // current content as the source of truth. This replaces the truncated 4000-char
@@ -313,13 +314,21 @@ export function buildFixTask(
       ? `\nYOUR PREVIOUS RESULT (excerpt):\n${previousResult.substring(0, PREVIOUS_RESULT_MAX_CHARS)}\n`
       : "";
 
+  // Inject the physical file tree so the agent (including backend/OpenCode agents)
+  // immediately knows every file that currently exists and can navigate/edit them.
+  // This is the critical missing context for corrective iterations.
+  const treeBlock =
+    workspaceFileTree && workspaceFileTree.trim().length > 0
+      ? `\n[ALL FILES CURRENTLY IN WORKSPACE — use these paths for edits]\n${workspaceFileTree}\n`
+      : "";
+
   return `[CORRECTIVE ITERATION]
 USER FEEDBACK :
 ${feedback}
 
 REQUESTED FIX :
 ${fixInstruction}
-${sourceBlock}
+${treeBlock}${sourceBlock}
 CRITICAL RULES (in-place editing — do NOT regenerate) :
 - FIRST READ the CURRENT on-disk content of the affected file(s): that's the SOURCE OF TRUTH (not your memory, not the excerpt above). Start from that content.
 - Apply ONLY the corrections requested above. Everything else in the file must stay IDENTICAL, word for word.

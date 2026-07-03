@@ -4,15 +4,67 @@ import type { Project } from "./project-store.js";
 
 // ── Context helpers ──────────────────────────────────────────────────────────
 
+async function buildPhysicalFileTree(workspaceDir: string): Promise<string> {
+  const maxDepth = 4;
+  const lines: string[] = [];
+
+  async function walk(dir: string, depth: number, prefix: string): Promise<void> {
+    if (depth > maxDepth) return;
+    let entries: import("fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    // Trier : dossiers en premier, puis fichiers
+    entries.sort((a, b) => {
+      if (a.isDirectory() && !b.isDirectory()) return -1;
+      if (!a.isDirectory() && b.isDirectory()) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      if (
+        entry.name.startsWith(".") ||
+        entry.name === "node_modules" ||
+        entry.name === "design"
+      ) {
+        continue;
+      }
+      const isLast = i === entries.length - 1;
+      const pointer = isLast ? "└── " : "├── ";
+      if (entry.isDirectory()) {
+        lines.push(`${prefix}${pointer}📁 ${entry.name}`);
+        const nextPrefix = prefix + (isLast ? "    " : "│   ");
+        await walk(path.join(dir, entry.name), depth + 1, nextPrefix);
+      } else {
+        lines.push(`${prefix}${pointer}📄 ${entry.name}`);
+      }
+    }
+  }
+
+  try {
+    const root = path.resolve(workspaceDir);
+    await walk(root, 0, "");
+  } catch {
+    // Suppress errors during directory traversal
+  }
+  return lines.join("\n") || "(empty workspace)";
+}
+
 export async function buildWorkspaceContext(workspaceDir: string): Promise<string> {
   const indexPath = path.join(workspaceDir, "WORKSPACE_INDEX.md");
+  let content = "";
   try {
-    const content = await fs.readFile(indexPath, "utf-8");
-    const trimmed = content.substring(0, 24000);
-    return `[WORKSPACE STATE]\n${trimmed}`;
+    const fileContent = await fs.readFile(indexPath, "utf-8");
+    content = fileContent.substring(0, 24000);
   } catch {
-    return "[WORKSPACE STATE]\nNo indexed files. The workspace is empty or uninitialized.";
+    content = "No indexed files. The workspace is empty or uninitialized.";
   }
+
+  const tree = await buildPhysicalFileTree(workspaceDir);
+  return `[WORKSPACE STATE]\n${content}\n\n[PHYSICAL FILE TREE ON DISK]\n${tree}`;
 }
 
 export function buildDependencyContext(
@@ -24,6 +76,11 @@ export function buildDependencyContext(
   // nodes (OpenCode) already read the workspace via their tools, so the caller
   // passes nothing for them.
   depDiskEvidence?: ReadonlyMap<string, string>,
+  // Optional per-dependency expected files map (depId → declared file list).
+  // When provided, injects an explicit "INTERFACE CONTRACT" block so the current
+  // agent uses the EXACT paths planned for each dependency — eliminating invented
+  // import paths that cause cross-module breakage.
+  depExpectedFilesMap?: Readonly<Record<string, readonly string[]>>,
 ): string {
   const deps = node.dependencies ?? [];
   if (deps.length === 0) return "";
@@ -79,7 +136,15 @@ export function buildDependencyContext(
         ? `\nPRODUCED FILES (real on-disk content — AUTHORITATIVE) :\n${evidence}`
         : "";
 
-    let block = `${header}\nTask: ${depProject.task ?? "undefined"}\nResult:\n${resultSummary}${evidenceBlock}`;
+    // Interface contract: inject the exact planned file paths for this dependency.
+    // This prevents the current agent from inventing wrong import paths.
+    const contractFiles = depExpectedFilesMap?.[depId];
+    const contractBlock =
+      contractFiles && contractFiles.length > 0
+        ? `\n⚙️ INTERFACE CONTRACT — FILES THIS AGENT WILL PRODUCE (use EXACTLY these paths, do not invent alternatives):\n${contractFiles.map((f) => `  - ${f}`).join("\n")}`
+        : "";
+
+    let block = `${header}${contractBlock}\nTask: ${depProject.task ?? "undefined"}\nResult:\n${resultSummary}${evidenceBlock}`;
     if (totalLen + block.length > MAX_TOTAL_DEP_CONTEXT) {
       block =
         block.substring(0, Math.max(0, MAX_TOTAL_DEP_CONTEXT - totalLen)) +
@@ -248,6 +313,7 @@ ${ASSET_POLICY}`,
 - Check PRESENCE of expected files (expected_files) for each agent
 - Do not invent problems — only report what is actually incorrect
 - Produce a concrete file → fix list for each problem
+- STRICT PROHIBITION OF SIMULATION : You MUST NOT simulate the execution of external tools (e.g., Lighthouse, performance scanners, browser execution, security scanners). You can only analyze the static text and files physically read by your workspace tools. Do not invent metric scores, loading times, or report "simulated tools run" in your report.
 
 IF HTML PAGES ARE PRESENT :
 - Check SEO of each page: <title> ≤60 chars, <meta description> 120-160, OG, JSON-LD, lang, alt
@@ -359,6 +425,11 @@ DECOMPOSITION RULES :
 - Specify SUCCESS CRITERIA (how to verify it's done well)
 - Adapt the level of detail to the agent type
 
+INTERFACE CONTRACTS (CRITICAL RULES) :
+- Explicitly define how dependent agents interact.
+- If agent B depends on agent A: agent A's task must define the EXACT exported names, API endpoints, JSON formats, or relative file paths. Agent B's task must explicitly specify that it MUST consume exactly those assets, paths, and symbols without inventing new ones.
+- No loose communication: all communication between modules must use strict, matching interface names.
+
 RESPONSE FORMAT :
 Return STRICTLY a flat JSON object with no other text or markdown tags.
 Keys are project IDs, values are structured tasks.`;
@@ -392,15 +463,15 @@ ${agentList}
 INSTRUCTIONS :
 Respect the roles per type — "work" handles colors/branding/content, "design" makes mockups AFTER, "code" codes FROM the mockups.
 For each agent, generate a structured task containing:
-1. OBJECTIVE — What the agent must concretely produce
-2. CONTEXT — What it needs to know (dependencies, project constraints)
-3. FORMAT — Expected files/deliverables with their structure
-4. CRITERIA — How to verify the work is correct
+1. OBJECTIVE — What the agent must concretely produce.
+2. CONTEXT — What it needs to know (dependencies, project constraints). Explicitly specify the interface contracts (exact relative paths, function/class/variable exports, API structures) between dependent agents.
+3. FORMAT — Expected files/deliverables with their structure.
+4. CRITERIA — How to verify the work is correct.
 
 EXAMPLE RESPONSE :
 {
-  "p1": "OBJECTIVE: Implement OAuth2 authentication API with refresh tokens.\\nCONTEXT: The application uses Express + PostgreSQL. Routes must be under /api/auth/.\\nFORMAT: Create src/auth/router.ts, src/auth/service.ts, src/auth/types.ts and tests/auth.test.ts.\\nCRITERIA: POST /login, POST /refresh and POST /logout endpoints must work. Unit tests with coverage > 80%.",
-  "p2": "OBJECTIVE: Create the onboarding module's visual style guide.\\nCONTEXT: B2B web application, professional target, modern and clean style.\\nFORMAT: Create design/tokens.css (variables), design/onboarding.css (components), and a design/specs.md document describing choices.\\nCRITERIA: WCAG AA accessibility, mobile/desktop responsive, max 5 color palette."
+  "p1": "OBJECTIVE: Implement OAuth2 authentication API with refresh tokens.\\nCONTEXT: The application uses Express + PostgreSQL. Routes must be under /api/auth/. Export the Router instance as 'authRouter' in src/auth/router.ts.\\nFORMAT: Create src/auth/router.ts, src/auth/service.ts, src/auth/types.ts and tests/auth.test.ts.\\nCRITERIA: POST /login, POST /refresh and POST /logout endpoints must work. Unit tests with coverage > 80%.",
+  "p2": "OBJECTIVE: Create the onboarding module's visual style guide and integrate with authRouter.\\nCONTEXT: B2B web application. Must call p1's API exactly at '/api/auth/login' (using exact authRouter route signatures).\\nFORMAT: Create design/tokens.css (variables), design/onboarding.css (components), and a design/specs.md document describing choices.\\nCRITERIA: WCAG AA accessibility, mobile/desktop responsive, max 5 color palette."
 }`;
 }
 
