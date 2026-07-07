@@ -143,7 +143,7 @@ export async function startProxy(): Promise<string> {
     const clientToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
     if (!auth.startsWith("Bearer ") || !tokenMatches(clientToken)) {
       console.warn(
-        `[proxy] Auth failed for ${req.method} ${req.path}. Expected len=${sessionToken.length} prefix="${sessionToken.slice(0, 6)}...", got len=${clientToken.length} prefix="${clientToken.slice(0, 6)}..."`,
+        `[proxy] Auth failed for ${req.method} ${req.path} — invalid token (len=${clientToken.length})`,
       );
       res.status(401).json({ error: "Unauthorized" });
       return;
