@@ -595,6 +595,29 @@
                       ></span
                     ></label>
                   </div>
+                  <div class="orch-setting-row">
+                    <span
+                      class="orch-setting-label"
+                      data-i18n="proj.detail.missionMode"
+                      >Mode mission (branche git)</span
+                    >
+                    <label class="switch"
+                      ><input type="checkbox" id="orchMissionMode" /><span
+                        class="switch-slider"
+                      ></span
+                    ></label>
+                  </div>
+                  <div class="orch-setting-row" id="orchMissionAutonomyRow" style="display: none">
+                    <span
+                      class="orch-setting-label"
+                      data-i18n="proj.detail.missionAutonomy"
+                      >Autonomie</span
+                    >
+                    <select id="orchMissionAutonomy" class="orch-model-select" style="width: 130px">
+                      <option value="supervised" data-i18n="proj.detail.supervised">Supervis&eacute;</option>
+                      <option value="autonomous" data-i18n="proj.detail.autonomous">Autonome</option>
+                    </select>
+                  </div>
                   <div class="orch-workdir">
                     <svg
                       viewBox="0 0 24 24"
@@ -623,6 +646,12 @@
                     >
                       Choisir
                     </button>
+                  </div>
+                  <div id="orchMissionBranchInfo" class="orch-workdir" style="display: none">
+                    <span style="font-size: 11px; color: var(--text-secondary)">
+                      <span data-i18n="proj.detail.missionBranch">Branche</span>:
+                      <span id="orchMissionBranchName" style="font-family: monospace">—</span>
+                    </span>
                   </div>
                 </div>
               </details>

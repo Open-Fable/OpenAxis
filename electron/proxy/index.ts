@@ -84,6 +84,8 @@ export async function startProxy(): Promise<string> {
     "http://127.0.0.1:5173",
     "http://localhost:4096",
     "http://127.0.0.1:4096",
+    "http://localhost:7456",
+    "http://127.0.0.1:7456",
     "http://localhost:9999",
     "http://127.0.0.1:9999",
   ]);
@@ -548,7 +550,7 @@ export async function startProxy(): Promise<string> {
     const questionRounds: number = typeof qRounds === "number" ? qRounds : 0;
     const MAX_QUESTION_ROUNDS = 3;
     const settings = await loadOrchSettings();
-    const model = reqModel || settings.assistantModel || "deepseek/deepseek-v4-flash";
+    const model = reqModel || settings.assistantModel || "deepseek/deepseek-r1";
 
     const projects = context?.projects || [];
     const workflows = context?.workflows || [];
@@ -884,7 +886,7 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
             const converted = convertGeminiChunkToOpenAI(line.trim());
             if (converted) res.write(converted);
           } else {
-            res.write(line + "\n");
+            res.write(line + "\n\n");
           }
         }
       }
@@ -1577,11 +1579,35 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
         }
       }
 
+      // ── Anthropic: convert OpenAI → Messages API format (after thinking mapping) ──
+      let anthropicBody: string | null = null;
+      if (provider === "anthropic") {
+        const finalMsgs = (finalRest.messages ?? []) as Array<{
+          role: string;
+          content: string | unknown[] | null;
+          tool_calls?: unknown[];
+          tool_call_id?: string;
+          name?: string;
+        }>;
+        const { body: aBody } = convertOpenAIToAnthropic(finalMsgs, {
+          model: upstreamModel ?? model,
+          maxTokens: (finalRest.max_tokens as number) ?? 8192,
+          temperature: finalRest.temperature as number | undefined,
+          stream: (finalRest.stream as boolean) ?? true,
+          thinking: (finalRest as Record<string, unknown>).thinking as unknown,
+          tools: finalRest.tools as unknown[] | undefined,
+          tool_choice: finalRest.tool_choice as unknown,
+        });
+        anthropicBody = JSON.stringify(aBody);
+      }
+
       const upstream = await fetchWithRetry(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body:
-          geminiBody ?? JSON.stringify({ model: upstreamModel ?? model, ...finalRest }),
+          anthropicBody ??
+          geminiBody ??
+          JSON.stringify({ model: upstreamModel ?? model, ...finalRest }),
       });
 
       // ── 4. Vérification immédiate du statut upstream ──
@@ -1681,6 +1707,104 @@ ${availableModels.length > 0 ? availableModels.map((m: string) => `- ${m}`).join
             type: string;
             function: { name: string; arguments: string };
             thought_signature?: string;
+          }> = [];
+          for (const ch of accumulatedChunks) {
+            const m = ch.match(/data: (.+)/);
+            if (m) {
+              try {
+                const p = JSON.parse(m[1]);
+                if (p.choices?.[0]?.delta?.content) {
+                  fullContent += p.choices[0].delta.content;
+                }
+                if (p.choices?.[0]?.delta?.tool_calls) {
+                  toolCalls.push(...p.choices[0].delta.tool_calls);
+                }
+                if (p.usage) finalUsage = p.usage;
+              } catch {
+                /* ignore */
+              }
+            }
+          }
+          const messageObj: Record<string, unknown> = {
+            role: "assistant",
+            content: fullContent || fullResponseContent || null,
+          };
+          if (toolCalls.length > 0) messageObj.tool_calls = toolCalls;
+          const response: Record<string, unknown> = {
+            id: `chatcmpl-${Date.now()}`,
+            object: "chat.completion",
+            created: Math.floor(Date.now() / 1000),
+            model: upstreamModel ?? model,
+            choices: [
+              {
+                index: 0,
+                message: messageObj,
+                finish_reason: toolCalls.length > 0 ? "tool_calls" : "stop",
+                logprobs: null,
+              },
+            ],
+          };
+          if (finalUsage) response.usage = finalUsage;
+          res.setHeader("Content-Type", "application/json");
+          res.json(response);
+        }
+      } else if (provider === "anthropic") {
+        // Anthropic native SSE → OpenAI SSE conversion
+        let buffer = "";
+        const anthropicState = {
+          model: upstreamModel ?? model,
+          messageId: `msg_${Date.now()}`,
+        };
+        const accumulatedChunks: string[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (trimmed.startsWith("event:")) continue;
+            if (!trimmed.startsWith("data:")) continue;
+            const converted = convertAnthropicChunkToOpenAI(trimmed, anthropicState);
+            if (!converted) continue;
+
+            const match = converted.match(/data: (.+)/);
+            if (match) {
+              try {
+                const parsed = JSON.parse(match[1]);
+                const delta = parsed.choices?.[0]?.delta?.content || "";
+                fullResponseContent += delta;
+                if (parsed.usage) {
+                  responseUsage = parsed.usage;
+                }
+              } catch {
+                /* ignore */
+              }
+            }
+
+            if (clientStreaming) {
+              res.write(converted);
+            } else {
+              accumulatedChunks.push(converted);
+            }
+          }
+        }
+
+        if (clientStreaming) {
+          res.write("data: [DONE]\n\n");
+          res.end();
+        } else {
+          let fullContent = "";
+          let finalUsage: Record<string, number> | null = null;
+          const toolCalls: Array<{
+            id: string;
+            type: string;
+            function: { name: string; arguments: string };
           }> = [];
           for (const ch of accumulatedChunks) {
             const m = ch.match(/data: (.+)/);
@@ -2367,6 +2491,205 @@ function convertGeminiChunkToOpenAI(chunk: string): string | null {
   }
 }
 
+function convertOpenAIToAnthropic(
+  messages: Array<{
+    role: string;
+    content: string | unknown[] | null;
+    tool_calls?: unknown[];
+    tool_call_id?: string;
+    name?: string;
+  }>,
+  opts: {
+    model: string;
+    maxTokens?: number;
+    temperature?: number;
+    stream?: boolean;
+    thinking?: unknown;
+    tools?: unknown[];
+    tool_choice?: unknown;
+  },
+): { body: Record<string, unknown> } {
+  const systemMsgs = messages.filter((m) => m.role === "system");
+  const nonSystemMsgs = messages.filter((m) => m.role !== "system");
+
+  const anthropicMessages: Array<Record<string, unknown>> = [];
+
+  for (const m of nonSystemMsgs) {
+    if (m.role === "assistant" && m.tool_calls && Array.isArray(m.tool_calls)) {
+      const content: Array<Record<string, unknown>> = [];
+      if (m.content) content.push({ type: "text", text: String(m.content) });
+      for (const tc of m.tool_calls as Array<{
+        id: string;
+        function: { name: string; arguments: string };
+      }>) {
+        let input: unknown = {};
+        try {
+          input = JSON.parse(tc.function.arguments);
+        } catch {
+          /* keep empty */
+        }
+        content.push({ type: "tool_use", id: tc.id, name: tc.function.name, input });
+      }
+      anthropicMessages.push({ role: "assistant", content });
+    } else if (m.role === "tool") {
+      const toolResult = {
+        type: "tool_result",
+        tool_use_id: m.tool_call_id,
+        content: m.content ?? "",
+      };
+      const prev = anthropicMessages[anthropicMessages.length - 1];
+      if (prev && prev.role === "user" && Array.isArray(prev.content)) {
+        (prev.content as Array<Record<string, unknown>>).push(toolResult);
+      } else {
+        anthropicMessages.push({ role: "user", content: [toolResult] });
+      }
+    } else {
+      anthropicMessages.push({ role: m.role, content: m.content ?? "" });
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    model: opts.model,
+    messages: anthropicMessages,
+    max_tokens: opts.maxTokens ?? 8192,
+  };
+
+  if (opts.temperature !== undefined) body.temperature = opts.temperature;
+  if (opts.stream !== undefined) body.stream = opts.stream;
+  if (opts.thinking) body.thinking = opts.thinking;
+  if (opts.tools && Array.isArray(opts.tools)) {
+    body.tools = (
+      opts.tools as Array<{
+        type: string;
+        function: { name: string; description?: string; parameters?: unknown };
+      }>
+    )
+      .filter((t) => t.type === "function")
+      .map((t) => ({
+        name: t.function.name,
+        ...(t.function.description ? { description: t.function.description } : {}),
+        ...(t.function.parameters ? { input_schema: t.function.parameters } : {}),
+      }));
+  }
+  if (opts.tool_choice !== undefined) body.tool_choice = opts.tool_choice;
+
+  if (systemMsgs.length > 0) {
+    body.system = systemMsgs.map((m) => String(m.content ?? "")).join("\n\n");
+  }
+
+  return { body };
+}
+
+function convertAnthropicChunkToOpenAI(
+  line: string,
+  state: { model: string; messageId: string },
+): string | null {
+  if (!line.startsWith("data:")) return null;
+  const payload = line.slice(5).trim();
+  if (!payload || payload === "[DONE]") return null;
+
+  try {
+    const evt = JSON.parse(payload);
+    const type = evt.type as string;
+
+    if (type === "message_start") {
+      state.messageId = evt.message?.id ?? state.messageId;
+      state.model = evt.message?.model ?? state.model;
+      return null;
+    }
+
+    if (type === "content_block_start") {
+      const block = evt.content_block;
+      if (block?.type === "tool_use") {
+        const openai = {
+          id: `chatcmpl-${state.messageId}`,
+          object: "chat.completion.chunk",
+          model: state.model,
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    index: evt.index ?? 0,
+                    id: block.id,
+                    type: "function",
+                    function: { name: block.name, arguments: "" },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        };
+        return `data: ${JSON.stringify(openai)}\n\n`;
+      }
+      return null;
+    }
+
+    if (type === "content_block_delta") {
+      const delta = evt.delta;
+      if (delta?.type === "text_delta" && delta.text) {
+        const openai = {
+          id: `chatcmpl-${state.messageId}`,
+          object: "chat.completion.chunk",
+          model: state.model,
+          choices: [{ index: 0, delta: { content: delta.text }, finish_reason: null }],
+        };
+        return `data: ${JSON.stringify(openai)}\n\n`;
+      }
+      if (delta?.type === "input_json_delta" && delta.partial_json) {
+        const openai = {
+          id: `chatcmpl-${state.messageId}`,
+          object: "chat.completion.chunk",
+          model: state.model,
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  { index: evt.index ?? 0, function: { arguments: delta.partial_json } },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        };
+        return `data: ${JSON.stringify(openai)}\n\n`;
+      }
+      if (delta?.type === "thinking") {
+        return null;
+      }
+      return null;
+    }
+
+    if (type === "message_delta") {
+      const stopReason = evt.delta?.stop_reason;
+      let finishReason = "stop";
+      if (stopReason === "tool_use") finishReason = "tool_calls";
+      else if (stopReason === "max_tokens") finishReason = "length";
+      const openai: Record<string, unknown> = {
+        id: `chatcmpl-${state.messageId}`,
+        object: "chat.completion.chunk",
+        model: state.model,
+        choices: [{ index: 0, delta: {}, finish_reason: finishReason }],
+      };
+      if (evt.usage) {
+        openai.usage = {
+          prompt_tokens: evt.usage.input_tokens ?? 0,
+          completion_tokens: evt.usage.output_tokens ?? 0,
+          total_tokens: (evt.usage.input_tokens ?? 0) + (evt.usage.output_tokens ?? 0),
+        };
+      }
+      return `data: ${JSON.stringify(openai)}\n\n`;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function resolveReasoningStyle(model: string): "anthropic" | "openai" {
   const m = model.toLowerCase();
   if (m.includes("/")) return "openai";
@@ -2418,8 +2741,11 @@ export function resolveRoute(
   for (const provider of cachedCustomProviders) {
     if (provider.models.includes(model)) {
       const cleanBaseUrl = provider.baseUrl.replace(/\/$/, "");
+      const hasV1 = cleanBaseUrl.endsWith("/v1");
       return {
-        targetUrl: `${cleanBaseUrl}/chat/completions`,
+        targetUrl: hasV1
+          ? `${cleanBaseUrl}/chat/completions`
+          : `${cleanBaseUrl}/v1/chat/completions`,
         headers: { Authorization: `Bearer ${keys.customKeys[provider.id] ?? ""}` },
         model: model,
         provider: "openai",
@@ -2430,12 +2756,13 @@ export function resolveRoute(
   // Aliases for Direct providers
   let upstreamModel = model;
   if (model === "claude-3-7-sonnet-latest") upstreamModel = "claude-3-7-sonnet-20250219";
-  else if (model === "claude-3-5-sonnet-latest" || model === "claude-sonnet-4-6")
+  else if (model === "claude-3-5-sonnet-latest")
     upstreamModel = "claude-3-5-sonnet-20241022";
   else if (model === "claude-3-5-haiku-latest" || model === "claude-haiku-4-5")
     upstreamModel = "claude-3-5-haiku-20241022";
-  else if (model === "claude-3-opus-latest" || model === "claude-opus-4-6")
-    upstreamModel = "claude-3-opus-20240229";
+  else if (model === "claude-3-opus-latest") upstreamModel = "claude-3-opus-20240229";
+  else if (model === "claude-sonnet-4-6") upstreamModel = "claude-sonnet-4-6-20250514";
+  else if (model === "claude-opus-4-6") upstreamModel = "claude-opus-4-6-20250514";
 
   // Discovered local models route to Ollama regardless of "/" in the id
   if (discoveredLocalModels.has(model)) {
@@ -2501,7 +2828,12 @@ export function resolveRoute(
       provider: "anthropic",
     };
   }
-  if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3")) {
+  if (
+    model.startsWith("gpt-") ||
+    model.startsWith("o1") ||
+    model.startsWith("o3") ||
+    model.startsWith("o4")
+  ) {
     // Note: for OpenAI o1 models, they might need different handling if they don't support reasoning_effort yet via standard API
     return {
       targetUrl: "https://api.openai.com/v1/chat/completions",
@@ -2659,8 +2991,6 @@ export function getFullModelCatalog(): ModelCatalogEntry[] {
     { id: "deepseek/deepseek-r1", object: "model", source: "openrouter" },
     { id: "deepseek/deepseek-chat", object: "model", source: "openrouter" },
     { id: "deepseek/deepseek-v3", object: "model", source: "openrouter" },
-    { id: "deepseek/deepseek-v4-pro", object: "model", source: "openrouter" },
-    { id: "deepseek/deepseek-v4-flash", object: "model", source: "openrouter" },
     { id: "meta-llama/llama-3.3-70b-instruct", object: "model", source: "openrouter" },
     {
       id: "google/gemini-2.0-flash-thinking-exp:free",

@@ -4,9 +4,9 @@
   "visionProxyEnabled": true,
   "visionModel": "openbmb/minicpm-v4.6",
   "visionDetailLevel": "high",
-  "aiWorkflowProModel": "deepseek/deepseek-v4-pro",
-  "aiWorkflowFlashModel": "deepseek/deepseek-v4-flash",
-  "aiClassifierModel": "deepseek/deepseek-v4-flash",
+  "aiWorkflowProModel": "deepseek/deepseek-chat",
+  "aiWorkflowFlashModel": "deepseek/deepseek-r1",
+  "aiClassifierModel": "deepseek/deepseek-r1",
   "notifyMode": "other-tab",
   "notifySources": {
     "chat": true,

@@ -712,6 +712,10 @@ function startIteration() {
     if (data.progress) {
       updateTopbarProgress(data.progress.current, data.progress.total);
     }
+    if (data.mutationPlan) {
+      logMutationPlan(data.mutationPlan);
+    }
+    handleNewNodeFromStatus(data);
     updateNodeSubsteps(data.projectId, data.substep, data.status);
     if (
       data.status === "done" ||
@@ -733,6 +737,10 @@ function startIteration() {
         t("proj.exec.logError", { error: data.error || t("proj.exec.errorFallback") }),
         "error",
       );
+    if (data.status === "warning" && data.error)
+      appendOrchLog(t("proj.exec.mutationEscalate", { question: data.error }), "error");
+    if (data.status === "blocked" && data.error)
+      appendOrchLog(t("proj.exec.blocked", { question: data.error }), "error");
     if (data.status === "skipped") appendOrchLog(t("proj.exec.logSkipped"), "skip");
     if (
       data.projectId === selectedOrchestratorId &&
@@ -748,7 +756,12 @@ function startIteration() {
   });
 
   window.openaxis
-    .iterateOrchestration(selectedOrchestratorId, feedback, activeWorkflowId)
+    .iterateOrchestration(
+      selectedOrchestratorId,
+      feedback,
+      activeWorkflowId,
+      selectedNodeId || undefined,
+    )
     .catch(function (err) {
       showTopbarProgress(false);
       document.getElementById("btnExecuteOrch").style.display = "inline-flex";
@@ -762,6 +775,41 @@ function startIteration() {
     });
 
   if (input) input.value = "";
+}
+
+function logMutationPlan(plan) {
+  if (!plan || !plan.mutations) return;
+  appendOrchLog(t("proj.exec.mutationPlan", { count: plan.mutations.length }), "info");
+  plan.mutations.forEach(function (m) {
+    if (m.kind === "assign_fix") {
+      var agent = projects.find(function (p) {
+        return p.id === m.agentId;
+      });
+      appendOrchLog(
+        t("proj.exec.mutationFix", { name: agent ? agent.name : m.agentId }),
+        "info",
+      );
+    } else if (m.kind === "modify_agent") {
+      var agent = projects.find(function (p) {
+        return p.id === m.agentId;
+      });
+      appendOrchLog(
+        t("proj.exec.mutationModify", { name: agent ? agent.name : m.agentId }),
+        "info",
+      );
+    } else if (m.kind === "create_agent") {
+      appendOrchLog(t("proj.exec.mutationCreate", { name: m.name }), "info");
+    }
+  });
+}
+
+function handleNewNodeFromStatus(data) {
+  if (!data.projectId || data.projectId === selectedOrchestratorId) return;
+  var known = projects.find(function (p) {
+    return p.id === data.projectId;
+  });
+  if (known) return;
+  loadProjects();
 }
 
 function initExecution() {
@@ -797,9 +845,62 @@ function initExecution() {
   }
 
   replayStatusBuffer();
+  checkResumableRun();
+}
+
+function checkResumableRun() {
+  if (!selectedOrchestratorId || !window.openaxis.getResumableRun) return;
+  window.openaxis.getResumableRun(selectedOrchestratorId).then(function (state) {
+    if (!state) return;
+    var remaining = Object.values(state.nodeStatuses).filter(function (s) {
+      return s === "pending" || s === "running";
+    }).length;
+    if (remaining === 0) return;
+    showResumeBanner(state, remaining);
+  });
+}
+
+function showResumeBanner(state, remaining) {
+  var existing = document.getElementById("resumeBanner");
+  if (existing) existing.remove();
+
+  var banner = document.createElement("div");
+  banner.id = "resumeBanner";
+  banner.className = "resume-banner";
+  banner.innerHTML =
+    '<span class="resume-banner__text">' +
+    t("proj.exec.resumeBanner", { remaining: remaining }) +
+    "</span>" +
+    '<button class="resume-banner__btn resume-banner__btn--primary" id="btnResumeRun">' +
+    t("proj.exec.resumeBtn") +
+    "</button>" +
+    '<button class="resume-banner__btn resume-banner__btn--secondary" id="btnAbandonRun">' +
+    t("proj.exec.abandonBtn") +
+    "</button>";
+
+  var container = document.getElementById("executionPanel") || document.body;
+  container.prepend(banner);
+
+  document.getElementById("btnResumeRun").onclick = function () {
+    banner.remove();
+    orchStartedAt = Date.now();
+    showTopbarProgress(true);
+    document.getElementById("btnExecuteOrch").style.display = "none";
+    document.getElementById("btnStopOrch").style.display = "inline-flex";
+    appendOrchLog(t("proj.exec.resumeBanner", { remaining: remaining }), "info");
+    switchPanelTab("activity");
+    window.openaxis.resumeOrchestration(state.runId);
+  };
+
+  document.getElementById("btnAbandonRun").onclick = function () {
+    banner.remove();
+    window.openaxis.abandonResumableRun(state.runId);
+  };
 }
 
 function applyNodeStatus(data) {
+  handleNewNodeFromStatus(data);
+  if (data.mutationPlan) logMutationPlan(data.mutationPlan);
   var node = projects.find(function (p) {
     return p.id === data.projectId;
   });

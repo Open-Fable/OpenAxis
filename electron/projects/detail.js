@@ -68,6 +68,17 @@ function openDetailWorkflow() {
         return w.id === activeWorkflowId;
       })
     : null;
+  var missionToggle = document.getElementById("orchMissionMode");
+  var missionAutonomyRow = document.getElementById("orchMissionAutonomyRow");
+  var missionAutonomySelect = document.getElementById("orchMissionAutonomy");
+  if (missionToggle && activeWf) {
+    var mm = activeWf.missionMode;
+    missionToggle.checked = !!(mm && mm.enabled);
+    missionAutonomyRow.style.display = missionToggle.checked ? "flex" : "none";
+    if (missionAutonomySelect && mm) {
+      missionAutonomySelect.value = mm.autonomy || "supervised";
+    }
+  }
   var displayPath = active.path || (activeWf && activeWf.workDir) || "";
   if (displayPath) {
     workdirPath.textContent = displayPath;
@@ -295,6 +306,31 @@ function initDetailPanel() {
       var idx = projects.indexOf(active);
       if (idx !== -1) projects[idx] = updated;
     }
+  };
+
+  document.getElementById("orchMissionMode").onchange = function () {
+    var checked = this.checked;
+    document.getElementById("orchMissionAutonomyRow").style.display = checked
+      ? "flex"
+      : "none";
+    if (!activeWorkflowId) return;
+    var wf = workflows.find(function (w) {
+      return w.id === activeWorkflowId;
+    });
+    if (!wf) return;
+    var autonomy = document.getElementById("orchMissionAutonomy").value || "supervised";
+    wf.missionMode = checked ? { enabled: true, autonomy: autonomy } : { enabled: false };
+    window.openaxis.saveWorkflow(wf);
+  };
+
+  document.getElementById("orchMissionAutonomy").onchange = function () {
+    if (!activeWorkflowId) return;
+    var wf = workflows.find(function (w) {
+      return w.id === activeWorkflowId;
+    });
+    if (!wf || !wf.missionMode || !wf.missionMode.enabled) return;
+    wf.missionMode = { enabled: true, autonomy: this.value };
+    window.openaxis.saveWorkflow(wf);
   };
 
   document.getElementById("btnEditSelectedNode").onclick = function () {

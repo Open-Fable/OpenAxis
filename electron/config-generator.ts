@@ -152,20 +152,16 @@ export async function generateOpenCodeConfig(opts: GenerateOptions): Promise<voi
       models["o3-mini"] = {};
     }
     if (hasDeepSeek) {
-      models["deepseek-v4-flash"] = {};
-      models["deepseek-v4-pro"] = {};
       models["deepseek-chat"] = {};
       models["deepseek-reasoner"] = {};
     }
     if (hasOpenRouter) {
-      models["anthropic/claude-3.7-sonnet"] = {};
-      models["anthropic/claude-3.7-sonnet:thinking"] = {};
+      models["anthropic/claude-sonnet-4-6"] = {};
+      models["anthropic/claude-sonnet-4-6:thinking"] = {};
       models["openai/o1"] = {};
       models["openai/o3-mini"] = {};
       models["deepseek/deepseek-r1"] = {};
       models["deepseek/deepseek-chat"] = {};
-      models["deepseek/deepseek-v4-pro"] = {};
-      models["deepseek/deepseek-v4-flash"] = {};
       models["meta-llama/llama-3.3-70b-instruct"] = {};
     }
     if (installedOllamaModels.has("llama3")) {

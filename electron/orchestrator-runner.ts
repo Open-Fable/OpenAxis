@@ -44,13 +44,59 @@ import {
   type StructuredTool,
 } from "./orchestrator-llm.js";
 
-import { planIterationFixes, buildFixTask } from "./orchestrator-iterate.js";
+import {
+  planMutations,
+  applyMutations,
+  buildFixTask,
+  type MutationBudget,
+  type MutationOutcome,
+} from "./orchestrator-mutate.js";
+import { runReconnaissance, type ReconResult } from "./orchestrator-recon.js";
+import {
+  CommandRunner,
+  buildCommandDefects,
+  type CommandOutcome,
+} from "./orchestrator-commands.js";
+import {
+  writeRunState,
+  clearRunState,
+  buildInitialRunState,
+  updateNodeInState,
+  type PersistedRunState,
+} from "./orchestrator-runstate.js";
+import { ProgressWatchdog, DEFAULT_WATCHDOG_IDLE_MS } from "./orchestrator-watchdog.js";
+import {
+  resolveModelForRole,
+  roleFromProjectType,
+  type AgentRole,
+  type RoleModelOverrides,
+} from "./orchestrator-models.js";
+import {
+  type InterfaceContract,
+  sanitizeInterfaceContract,
+  writeContractsFile,
+  buildContractContextForAgent,
+} from "./orchestrator-contracts.js";
+import { runNodeGate, buildNodeGateFeedback } from "./orchestrator-nodegate.js";
+import { reviewRunDiff } from "./orchestrator-diffreview.js";
+import {
+  beginMission,
+  commitCheckpoint,
+  endMission,
+  createScratchMissionState,
+  listPreexistingFiles,
+  findUndeclaredDiffFiles,
+  type MissionState,
+} from "./orchestrator-mission.js";
 import {
   sanitizeExpectedFiles,
   sanitizeChecks,
+  sanitizeTestContract,
   deriveFloorChecks,
   type ChecksMap,
   type FileChecks,
+  type TestContract,
+  type TestContractsMap,
   isTrivialResult,
   enforceDeliverables,
   checkExpectedFiles,
@@ -375,6 +421,8 @@ interface PlanningResult {
   readonly createdSubAgents: readonly Project[];
   readonly expectedFiles: Record<string, readonly string[]>;
   readonly checks: Record<string, FileChecks>;
+  readonly testContracts: TestContractsMap;
+  readonly interfaceContracts: readonly InterfaceContract[];
 }
 
 const PLANNING_TOOLS = [
@@ -449,6 +497,24 @@ const PLANNING_TOOLS = [
               },
             },
           },
+          delivers_tests: {
+            type: "object",
+            description:
+              "ONLY for 'code' agents: test contract. The agent MUST produce the listed test files, and the specified command (a whitelisted command ID like 'test') will be run to verify them. Omit for non-code agents.",
+            properties: {
+              files: {
+                type: "array",
+                items: { type: "string" },
+                description:
+                  "Test file paths the agent must produce (e.g. ['src/__tests__/utils.test.ts'])",
+              },
+              command: {
+                type: "string",
+                description: "Whitelisted command ID to run (e.g. 'test')",
+              },
+            },
+            required: ["files", "command"],
+          },
         },
         required: ["agent_id", "task"],
       },
@@ -496,6 +562,39 @@ const PLANNING_TOOLS = [
   {
     type: "function",
     function: {
+      name: "declare_interface",
+      description:
+        "Déclarer un contrat d'interface partagé entre agents. Les producteurs DOIVENT l'implémenter exactement, les consommateurs DOIVENT l'utiliser tel quel. Utile pour les types, signatures, schémas partagés entre agents code.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "Nom du contrat (ex: 'UserAPI', 'AuthToken')",
+          },
+          producers: {
+            type: "array",
+            items: { type: "string" },
+            description: "IDs des agents qui implémentent cette interface",
+          },
+          consumers: {
+            type: "array",
+            items: { type: "string" },
+            description: "IDs des agents qui consomment cette interface",
+          },
+          definition: {
+            type: "string",
+            description:
+              "Définition TypeScript/JSON/texte de l'interface (types, signatures, schéma)",
+          },
+        },
+        required: ["name", "definition"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "finish_planning",
       description: "Terminer la planification quand tous les agents ont reçu leur tâche.",
       parameters: { type: "object", properties: {} },
@@ -505,7 +604,15 @@ const PLANNING_TOOLS = [
 
 interface StatusUpdate {
   projectId: string;
-  status: "idle" | "running" | "done" | "error" | "skipped" | "warning" | "inactive";
+  status:
+    | "idle"
+    | "running"
+    | "done"
+    | "error"
+    | "skipped"
+    | "warning"
+    | "inactive"
+    | "blocked";
   task?: string;
   error?: string;
   result?: string;
@@ -514,6 +621,7 @@ interface StatusUpdate {
   substep?: { current: number; total: number; title: string };
   dependencies?: string[];
   workspaceDir?: string;
+  mutationPlan?: unknown;
 }
 
 export class OrchestratorRunner {
@@ -540,6 +648,8 @@ export class OrchestratorRunner {
   // nodeId → isolated git-worktree dir, set for backend nodes running in the
   // parallel-code lane and cleared after the wave merges back.
   private readonly nodeWorkspaces = new Map<string, string>();
+  // Active watchdogs per node — touched from onProgress callbacks in executeNode.
+  private readonly activeWatchdogs = new Map<string, ProgressWatchdog>();
   // Set during a corrective cycle (iterate/auto-quality) to the ids being
   // re-run, so the anti-parasitic free-path guard fires deterministically.
   private correctiveNodeIds: ReadonlySet<string> | null = null;
@@ -548,6 +658,20 @@ export class OrchestratorRunner {
   private tierProfile: TierProfile = STRONG_TIER;
   // Resolved once per run/iterate from orchSettings.maxParallelNodes.
   private maxParallelNodes = 1;
+  // Per-run command runner for executing whitelisted verification commands.
+  private commandRunner: CommandRunner | null = null;
+  // Per-run mission state for brownfield branch management and checkpoints.
+  private missionState: MissionState | null = null;
+  // Pre-existing files in a brownfield repo (for diff contract enforcement).
+  private preexistingFiles: ReadonlySet<string> | null = null;
+  // Per-run mutation budget — limits auto-replans before escalating to user.
+  private mutationBudget: MutationBudget | null = null;
+  // Persisted run state for crash-resume (F1).
+  private persistedRunState: PersistedRunState | null = null;
+  // C9: Interface contracts declared by the planner.
+  private interfaceContracts: readonly InterfaceContract[] = [];
+  // C13: Role-based model overrides (strong/fast tier split).
+  private roleModelOverrides: RoleModelOverrides | undefined = undefined;
 
   constructor(
     private sendStatus: (update: StatusUpdate) => void,
@@ -556,6 +680,10 @@ export class OrchestratorRunner {
 
   get activeOrchestratorId(): string | null {
     return this.currentOrchestratorId;
+  }
+
+  private modelForRole(role: AgentRole): string | undefined {
+    return resolveModelForRole(role, this.fallbackModel, this.roleModelOverrides);
   }
 
   cancel(): void {
@@ -575,8 +703,36 @@ export class OrchestratorRunner {
     this.backendWrittenPaths.clear();
     this.failedWrites.clear();
     this.nodeWorkspaces.clear();
+    for (const wd of this.activeWatchdogs.values()) wd.dispose();
+    this.activeWatchdogs.clear();
     this.correctiveNodeIds = null;
     this.indexWriteLock = Promise.resolve();
+    this.commandRunner = null;
+    this.missionState = null;
+    this.preexistingFiles = null;
+    this.mutationBudget = null;
+    this.persistedRunState = null;
+    this.interfaceContracts = [];
+    this.roleModelOverrides = undefined;
+  }
+
+  private buildCommandRunner(
+    reconResult: ReconResult | undefined,
+    orchestrator: Project,
+    workspaceDir: string,
+  ): CommandRunner | null {
+    const userOverrides = orchestrator.orchSettings?.allowedCommands;
+    if (userOverrides && userOverrides.length > 0) {
+      const commands = userOverrides.map((cmdStr, i) => {
+        const parts = cmdStr.split(/\s+/).filter(Boolean);
+        return { id: parts[0] ?? `cmd-${i}`, argv: parts, source: "user-config" };
+      });
+      return new CommandRunner(commands, workspaceDir);
+    }
+    if (reconResult && reconResult.commands.length > 0) {
+      return new CommandRunner(reconResult.commands, workspaceDir);
+    }
+    return null;
   }
 
   /**
@@ -617,7 +773,7 @@ export class OrchestratorRunner {
 
       // Step 1: Initialize status of all linked nodes to idle
       const linkedIds = orchestrator.linked || [];
-      const linkedProjects = allProjects.filter((p) => linkedIds.includes(p.id));
+      let linkedProjects = allProjects.filter((p) => linkedIds.includes(p.id));
       console.warn(
         `[orchestrator] Linked agents (${linkedProjects.length}):`,
         linkedProjects.map((p) => `${p.name} (${p.type}, model=${p.model || "none"})`),
@@ -654,15 +810,76 @@ export class OrchestratorRunner {
       this.maxParallelNodes = resolveMaxParallelNodes(orchestrator);
       console.warn(`[orchestrator] Max parallel nodes: ${this.maxParallelNodes}`);
 
+      this.roleModelOverrides = orchestrator.orchSettings?.roleModels ?? undefined;
+
       this.sendStatus({ projectId: orchestratorId, status: "running", workspaceDir });
       for (const p of linkedProjects) {
         this.sendStatus({ projectId: p.id, status: "idle" });
+      }
+
+      // Step 1b: Phase 0 — Reconnaissance (before planning)
+      this.sendStatus({
+        projectId: orchestratorId,
+        status: "running",
+        task: "Phase 0 : Reconnaissance du workspace...",
+      });
+      let reconResult: ReconResult | undefined;
+      try {
+        reconResult = await runReconnaissance(
+          workspaceDir,
+          task,
+          orchestrator,
+          this.abortSignal,
+          this.modelForRole("recon"),
+          this.fallbackReasoningEffort,
+        );
+        console.warn(
+          `[orchestrator] Recon complete: stack=${reconResult.stack}, brownfield=${reconResult.isBrownfield}, commands=${reconResult.commands.length}`,
+        );
+      } catch (err) {
+        console.warn(`[orchestrator] Recon failed (non-blocking):`, err);
+      }
+
+      // Build command runner from recon + user overrides
+      this.commandRunner = this.buildCommandRunner(
+        reconResult,
+        orchestrator,
+        workspaceDir,
+      );
+      if (this.commandRunner) {
+        console.warn(
+          `[orchestrator] Command runner ready: ${this.commandRunner.availableIds().join(", ")}`,
+        );
+      }
+
+      // Step 1c: Initialize mission state (brownfield → git branch)
+      const runId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+      if (reconResult?.isBrownfield) {
+        try {
+          this.missionState = await beginMission(workspaceDir, runId);
+          this.preexistingFiles = await listPreexistingFiles(
+            workspaceDir,
+            this.missionState.baselineRef!,
+          );
+          console.warn(
+            `[orchestrator] Mission started: branch=${this.missionState.branch}, preexisting=${this.preexistingFiles.size} files`,
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(
+            `[orchestrator] Mission init failed, falling back to scratch: ${msg}`,
+          );
+          this.missionState = createScratchMissionState(runId, workspaceDir);
+        }
+      } else {
+        this.missionState = createScratchMissionState(runId, workspaceDir);
       }
 
       // Step 2: Orchestrator planning phase (Auto-distribute tasks)
       const wsContext = await buildWorkspaceContext(workspaceDir);
       let tasksMap: Record<string, string> = {};
       let plannedSteps: Record<string, SubStep[]> = {};
+      let testContractsMap: TestContractsMap = {};
       let expectedFilesMap: Record<string, readonly string[]> = {};
       let checksMap: ChecksMap = {};
 
@@ -678,11 +895,22 @@ export class OrchestratorRunner {
           linkedProjects,
           task,
           wsContext,
+          reconResult?.missionContext,
         );
         tasksMap = planResult.tasks;
         plannedSteps = planResult.steps;
         expectedFilesMap = planResult.expectedFiles;
         checksMap = planResult.checks;
+        testContractsMap = planResult.testContracts;
+        this.interfaceContracts = planResult.interfaceContracts;
+
+        // C9: Write interface contracts file if any were declared
+        if (this.interfaceContracts.length > 0) {
+          await writeContractsFile(workspaceDir, this.interfaceContracts);
+          console.warn(
+            `[orchestrator] C9: ${this.interfaceContracts.length} interface contract(s) written`,
+          );
+        }
 
         console.warn(
           `[orchestrator] Planning complete: ${Object.keys(tasksMap).length} tasks, ${Object.keys(plannedSteps).length} with steps, ${planResult.createdSubAgents.length} sub-agents created`,
@@ -690,9 +918,7 @@ export class OrchestratorRunner {
 
         // Integrate sub-agents created during planning
         if (planResult.createdSubAgents.length > 0) {
-          for (const sub of planResult.createdSubAgents) {
-            linkedProjects.push(sub);
-          }
+          linkedProjects = [...linkedProjects, ...planResult.createdSubAgents];
           console.warn(
             `[orchestrator] Sub-agents added to execution:`,
             planResult.createdSubAgents.map((s) => `${s.name} (${s.id}, type=${s.type})`),
@@ -702,21 +928,22 @@ export class OrchestratorRunner {
         // Refresh in-memory projects FIRST so we don't overwrite deps saved by the planner
         const refreshed = await getProjects();
         allProjects = refreshed;
-        for (let i = 0; i < linkedProjects.length; i++) {
-          const fresh = refreshed.find((r) => r.id === linkedProjects[i].id);
-          if (fresh) linkedProjects[i] = fresh;
-        }
+        linkedProjects = linkedProjects.map(
+          (p) => refreshed.find((r) => r.id === p.id) ?? p,
+        );
 
         // Save generated tasks and update in-memory projects so executeNode sees them
-        for (let i = 0; i < linkedProjects.length; i++) {
-          const p = linkedProjects[i];
-          if (tasksMap[p.id]) {
-            const updatedProject = { ...p, task: tasksMap[p.id] };
-            await saveProject(updatedProject);
-            linkedProjects[i] = updatedProject;
-            this.sendStatus({ projectId: p.id, status: "idle", task: tasksMap[p.id] });
-          }
-        }
+        linkedProjects = await Promise.all(
+          linkedProjects.map(async (p) => {
+            if (tasksMap[p.id]) {
+              const updatedProject = { ...p, task: tasksMap[p.id] };
+              await saveProject(updatedProject);
+              this.sendStatus({ projectId: p.id, status: "idle", task: tasksMap[p.id] });
+              return updatedProject;
+            }
+            return p;
+          }),
+        );
         // Refresh allProjects so depContext builders see updated tasks
         allProjects = await getProjects();
       } else {
@@ -724,6 +951,45 @@ export class OrchestratorRunner {
         for (const p of linkedProjects) {
           tasksMap[p.id] = p.task || "";
         }
+      }
+
+      // Step 2c: Persist run state for crash-resume (F1)
+      const agentIds = linkedProjects.map((p) => p.id);
+      this.persistedRunState = buildInitialRunState(
+        runId,
+        orchestratorId,
+        task,
+        workspaceDir,
+        agentIds,
+        tasksMap,
+        expectedFilesMap as Record<string, readonly string[]>,
+        checksMap,
+        this.missionState?.branch,
+        workflowName,
+      );
+      writeRunState(this.persistedRunState).catch((err) =>
+        console.warn(`[orchestrator] Failed to persist run state:`, err),
+      );
+
+      // Step 2d: F4 — inject ephemeral verifier if none exists and mission mode
+      if (!this.metaVerifier(allProjects) && this.missionState?.mode === "brownfield") {
+        const verifierId = `gen-verifier-${runId}`;
+        const ephemeralVerifier: Project = {
+          id: verifierId,
+          name: "Auto-Verifier",
+          instructions:
+            "You are a quality gate verifier. Review each agent's output for correctness, completeness, and adherence to the task.",
+          color: "#9b59b6",
+          type: "verifier",
+          model: this.fallbackModel,
+          generated: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        await saveProject(ephemeralVerifier);
+        linkedProjects = [...linkedProjects, ephemeralVerifier];
+        allProjects = await getProjects();
+        console.warn(`[orchestrator] F4: injected ephemeral verifier ${verifierId}`);
       }
 
       // Step 3: Run Pre-Execution Prompt Verifier (advisory, never blocks)
@@ -796,6 +1062,22 @@ export class OrchestratorRunner {
         tasksMap,
       );
 
+      // Step 5b: Checkpoint after execution wave
+      if (this.missionState?.mode === "brownfield") {
+        try {
+          const doneNodes = Object.entries(executionStatuses)
+            .filter(([, s]) => s === "done")
+            .map(([id]) => id);
+          this.missionState = await commitCheckpoint(
+            this.missionState,
+            "post-execution",
+            doneNodes,
+          );
+        } catch (err) {
+          console.warn(`[orchestrator] Checkpoint failed (non-blocking):`, err);
+        }
+      }
+
       // Step 6: Final Brand and Spec verification
       const hasErrors = Object.values(executionStatuses).includes("error");
       if (!hasErrors && orchestrator.orchSettings?.checkCoherence) {
@@ -855,6 +1137,7 @@ export class OrchestratorRunner {
               expectedFilesMap,
               verifier,
               checksMap,
+              testContractsMap,
             );
           } catch (qErr: unknown) {
             if (this.abortSignal?.aborted) throw qErr;
@@ -870,10 +1153,84 @@ export class OrchestratorRunner {
         }
       }
 
+      // Step 8: Diff contract check (brownfield only)
+      if (this.missionState?.mode === "brownfield" && this.missionState.baselineRef) {
+        try {
+          const allDeclared = new Set<string>();
+          for (const files of Object.values(expectedFilesMap)) {
+            for (const f of files ?? []) allDeclared.add(f);
+          }
+          const undeclared = await findUndeclaredDiffFiles(
+            workspaceDir,
+            this.missionState.baselineRef,
+            allDeclared,
+          );
+          if (undeclared.length > 0) {
+            console.warn(
+              `[orchestrator] Diff contract violation: ${undeclared.length} undeclared files modified: ${undeclared.slice(0, 10).join(", ")}`,
+            );
+          }
+        } catch (err) {
+          console.warn(`[orchestrator] Diff contract check failed (non-blocking):`, err);
+        }
+      }
+
+      // Step 8b: C8 — Diff review before delivery (brownfield only)
+      if (
+        this.missionState?.mode === "brownfield" &&
+        this.missionState.baselineRef &&
+        !Object.values(executionStatuses).includes("error")
+      ) {
+        try {
+          this.sendStatus({
+            projectId: orchestratorId,
+            status: "running",
+            task: "Revue de diff avant livraison…",
+          });
+          const diffReview = await reviewRunDiff(
+            workspaceDir,
+            this.missionState.baselineRef,
+            task,
+            (f) => this.fileOwner.get(f) ?? orchestratorId,
+            orchestrator,
+            this.abortSignal,
+            this.modelForRole("verification"),
+            this.fallbackReasoningEffort,
+          );
+          if (diffReview.issues.length > 0) {
+            console.warn(
+              `[orchestrator] Diff review found ${diffReview.issues.length} issue(s): ${diffReview.reviewSummary}`,
+            );
+          }
+        } catch (err) {
+          console.warn(`[orchestrator] Diff review failed (non-blocking):`, err);
+        }
+      }
+
+      // Step 9: End mission (write report, final checkpoint)
+      if (this.missionState) {
+        const hasErrorsFinal = Object.values(executionStatuses).includes("error");
+        try {
+          await endMission(this.missionState, !hasErrorsFinal);
+          console.warn(
+            `[orchestrator] Mission report written. Branch: ${this.missionState.branch ?? "scratch"}`,
+          );
+        } catch (err) {
+          console.warn(`[orchestrator] Mission end failed (non-blocking):`, err);
+        }
+      }
+
       // Complete orchestrator status
       const hasErrorsFinal = Object.values(executionStatuses).includes("error");
       const finalStatus = hasErrorsFinal ? "error" : "done";
       this.sendStatus({ projectId: orchestratorId, status: finalStatus });
+
+      // Clear persisted run state — run completed normally
+      if (this.persistedRunState) {
+        clearRunState(this.persistedRunState.runId).catch((err) =>
+          console.warn(`[orchestrator] Failed to clear run state:`, err),
+        );
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.sendStatus({ projectId: orchestratorId, status: "error", error: msg });
@@ -1052,7 +1409,8 @@ export class OrchestratorRunner {
       const useWorktrees =
         this.maxParallelNodes > 1 &&
         backendNodes.length > 1 &&
-        (await isScratchWorkspaceReal(workspaceDir)) &&
+        ((await isScratchWorkspaceReal(workspaceDir)) ||
+          this.missionState?.mode === "brownfield") &&
         (await isGitAvailable());
 
       if (useWorktrees) {
@@ -1212,6 +1570,22 @@ export class OrchestratorRunner {
     const nodePathFilter = this.nodeWorkspaces.has(node.id)
       ? () => true
       : this.buildNodePathFilter(node, nodeExpectedFiles);
+
+    const isBackendNode = selectBackend(node.type) !== null;
+    const watchdog = isBackendNode
+      ? new ProgressWatchdog(DEFAULT_WATCHDOG_IDLE_MS, () => {
+          console.warn(
+            `[orchestrator:watchdog] Stall detected for "${node.name}" — aborting node`,
+          );
+          this.sendStatus({
+            projectId: node.id,
+            status: "warning",
+            error: `Aucun progrès depuis ${Math.round(DEFAULT_WATCHDOG_IDLE_MS / 60000)} min`,
+          });
+        })
+      : null;
+    if (watchdog) this.activeWatchdogs.set(node.id, watchdog);
+
     try {
       let resultText = await this.executeNode(
         node,
@@ -1225,6 +1599,8 @@ export class OrchestratorRunner {
         targetWords,
         expectedFilesMap,
       );
+      watchdog?.dispose();
+      this.activeWatchdogs.delete(node.id);
       console.warn(
         `[orchestrator] ✓ Node "${node.name}" executed — result length: ${resultText.length} chars`,
       );
@@ -1284,7 +1660,7 @@ export class OrchestratorRunner {
                   120000,
                   this.abortSignal,
                   nodeSystemPrompt,
-                  this.fallbackModel,
+                  this.modelForRole(roleFromProjectType(node.type)),
                   this.fallbackReasoningEffort,
                 ),
               writeFiles: async (text) => {
@@ -1298,8 +1674,10 @@ export class OrchestratorRunner {
                 this.claimOwnership(node.id, w);
                 return w;
               },
-              onStatus: (msg) =>
-                this.sendStatus({ projectId: node.id, status: "running", task: msg }),
+              onStatus: (msg) => {
+                this.activeWatchdogs.get(node.id)?.touch();
+                this.sendStatus({ projectId: node.id, status: "running", task: msg });
+              },
             },
             nodeChecks,
           );
@@ -1390,15 +1768,43 @@ export class OrchestratorRunner {
         }
       }
 
+      // C3: Per-node mini-gate (code nodes only)
+      if (isBackendNode && this.commandRunner) {
+        const gateResult = await runNodeGate(
+          node,
+          workspaceDir,
+          this.commandRunner,
+          nodeExpectedFiles,
+          (f) => this.fileOwner.get(f) ?? node.id,
+          allProjects.filter((p) => (orchestrator.linked ?? []).includes(p.id)),
+          this.abortSignal,
+        );
+        if (!gateResult.pass) {
+          const gateFeedback = buildNodeGateFeedback(node.name, gateResult);
+          console.warn(
+            `[orchestrator] Node gate failed for "${node.name}":\n${gateFeedback}`,
+          );
+          this.sendStatus({
+            projectId: node.id,
+            status: "warning",
+            error: `Mini-gate: ${gateResult.issues.length} issue(s) — ${gateResult.issues[0]?.issue?.substring(0, 120) ?? ""}`,
+          });
+        }
+      }
+
       executionStatuses[node.id] = "done";
       executionResults.set(node.id, resultText);
       this.sendStatus({ projectId: node.id, status: "done", result: resultText });
       await this.updateWorkspaceIndex(node, resultText, mainWorkspaceDir);
+      this.persistNodeTransition(node.id, "done", resultText);
     } catch (err: unknown) {
+      watchdog?.dispose();
+      this.activeWatchdogs.delete(node.id);
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[orchestrator] Node "${node.name}" failed:`, msg);
       executionStatuses[node.id] = "error";
       this.sendStatus({ projectId: node.id, status: "error", error: msg });
+      this.persistNodeTransition(node.id, "error", msg);
     }
   }
 
@@ -1411,6 +1817,7 @@ export class OrchestratorRunner {
     previousRun: OrchRun,
     workDir?: string,
     workflowName?: string,
+    targetNodeId?: string,
   ): Promise<void> {
     if (this.isRunning) {
       throw new Error("Une orchestration est déjà en cours d'exécution.");
@@ -1442,6 +1849,7 @@ export class OrchestratorRunner {
       this.tierProfile = orchestrator.orchSettings?.adaptToWeakModel
         ? WEAK_TIER
         : STRONG_TIER;
+      this.roleModelOverrides = orchestrator.orchSettings?.roleModels ?? undefined;
 
       const workspaceDir = this.resolveWorkspaceDir(orchestrator, workDir, workflowName);
       const wsExists = await fs
@@ -1474,7 +1882,7 @@ export class OrchestratorRunner {
         workspaceDir,
       );
 
-      const { statuses } = await this.runCorrectiveCycle(
+      const { statuses, outcome } = await this.runCorrectiveCycle(
         orchestrator,
         linkedProjects,
         feedback,
@@ -1482,7 +1890,18 @@ export class OrchestratorRunner {
         workspaceDir,
         wsContext,
         expectedFilesMap,
+        {},
+        targetNodeId,
       );
+
+      if (outcome.kind === "escalate") {
+        this.sendStatus({
+          projectId: orchestratorId,
+          status: "warning",
+          error: outcome.question,
+        });
+        return;
+      }
 
       const hasErrors = Object.values(statuses).includes("error");
       const finalStatus = hasErrors ? "error" : "done";
@@ -1498,9 +1917,183 @@ export class OrchestratorRunner {
     }
   }
 
-  /**
-   * Topological sort to handle dependencies (DAG)
-   */
+  async resume(savedState: PersistedRunState): Promise<void> {
+    if (this.isRunning) {
+      throw new Error("Une orchestration est déjà en cours d'exécution.");
+    }
+
+    this.isRunning = true;
+    this.currentOrchestratorId = savedState.orchestratorId;
+    this.abortController = new AbortController();
+    this.resetPerRunState();
+    this.persistedRunState = savedState;
+
+    try {
+      const allProjects = await getProjects();
+      const orchestrator = allProjects.find((p) => p.id === savedState.orchestratorId);
+      if (!orchestrator || orchestrator.type !== "orchestrator") {
+        throw new Error("L'orchestrateur du run sauvegardé n'existe plus.");
+      }
+
+      const linkedIds = orchestrator.linked || [];
+      const linkedProjects = allProjects.filter((p) => linkedIds.includes(p.id));
+
+      this.fallbackModel = resolveFallbackModel(orchestrator, linkedProjects);
+      this.fallbackReasoningEffort = orchestrator.reasoningEffort || undefined;
+      this.maxParallelNodes = resolveMaxParallelNodes(orchestrator);
+      this.tierProfile = orchestrator.orchSettings?.adaptToWeakModel
+        ? WEAK_TIER
+        : STRONG_TIER;
+      this.roleModelOverrides = orchestrator.orchSettings?.roleModels ?? undefined;
+
+      // Rebuild commandRunner from user overrides (recon results are not persisted)
+      this.commandRunner = this.buildCommandRunner(
+        undefined,
+        orchestrator,
+        savedState.workspaceDir,
+      );
+
+      // Reconstruct missionState for brownfield file-lock enforcement
+      if (savedState.missionBranch) {
+        this.missionState = {
+          runId: savedState.runId,
+          workspaceDir: savedState.workspaceDir,
+          mode: "brownfield",
+          branch: savedState.missionBranch,
+          baselineRef: savedState.lastCheckpointSha ?? "",
+          checkpoints: [],
+          commandOutcomes: [],
+        };
+      }
+
+      const workspaceDir = savedState.workspaceDir;
+      await fs.mkdir(workspaceDir, { recursive: true });
+      await this.ensureWorkspaceIndexFile(workspaceDir);
+
+      // Reconstruct interface contracts from disk if available
+      try {
+        const contractsPath = path.join(workspaceDir, "INTERFACE_CONTRACTS.md");
+        await fs.access(contractsPath);
+        // Contracts file exists — we can't perfectly parse it back to InterfaceContract[],
+        // but the file is already written to disk and agents read it via workspace context.
+        // The buildContractContextForAgent calls in executeNode will return empty for the
+        // resumed nodes since this.interfaceContracts is []. This is acceptable degradation
+        // because the contracts file is already in the workspace and agents can read it.
+      } catch {
+        // No contracts file — nothing to reconstruct
+      }
+
+      // Reset to checkpoint if available (mission mode)
+      if (savedState.lastCheckpointSha && savedState.missionBranch) {
+        try {
+          const { execFileSync } = await import("node:child_process");
+          execFileSync("git", ["reset", "--hard", savedState.lastCheckpointSha], {
+            cwd: workspaceDir,
+          });
+          console.warn(
+            `[orchestrator:resume] Reset to checkpoint ${savedState.lastCheckpointSha}`,
+          );
+        } catch (err) {
+          console.warn(
+            `[orchestrator:resume] Checkpoint reset failed (best-effort):`,
+            err,
+          );
+        }
+      }
+
+      this.sendStatus({
+        projectId: savedState.orchestratorId,
+        status: "running",
+        task: "Reprise du run interrompu…",
+        workspaceDir,
+      });
+
+      // Reinject done results and mark ownership
+      const executionResults = new Map<string, string>();
+      for (const [nodeId, result] of Object.entries(savedState.nodeResults)) {
+        executionResults.set(nodeId, result);
+      }
+      for (const [file, owner] of Object.entries(savedState.fileOwner)) {
+        this.fileOwner.set(file, owner);
+      }
+
+      // Filter to remaining nodes (pending or running at crash time)
+      const remainingIds = Object.entries(savedState.nodeStatuses)
+        .filter(([, s]) => s === "pending" || s === "running")
+        .map(([id]) => id);
+
+      const remainingNodes = linkedProjects.filter((p) => remainingIds.includes(p.id));
+      if (remainingNodes.length === 0) {
+        this.sendStatus({ projectId: savedState.orchestratorId, status: "done" });
+        await clearRunState(savedState.runId);
+        return;
+      }
+
+      console.warn(
+        `[orchestrator:resume] ${remainingNodes.length} nodes remaining: ${remainingNodes.map((n) => n.name).join(", ")}`,
+      );
+
+      // Mark completed nodes
+      for (const [nodeId, status] of Object.entries(savedState.nodeStatuses)) {
+        if (status === "done") {
+          this.sendStatus({ projectId: nodeId, status: "done" });
+        }
+      }
+
+      const wsContext = await buildWorkspaceContext(workspaceDir);
+      const executionOrder = resolveDAG(remainingNodes);
+
+      const executionStatuses: Record<string, "done" | "error" | "skipped" | "inactive"> =
+        {};
+      // Pre-fill done/error/skipped nodes so dep resolution works correctly —
+      // without "error" pre-fill, nodes depending on a failed node would run
+      // because findFailedDependency wouldn't see the failure.
+      for (const [nodeId, status] of Object.entries(savedState.nodeStatuses)) {
+        if (status === "done") executionStatuses[nodeId] = "done";
+        if (status === "skipped") executionStatuses[nodeId] = "skipped";
+        if (status === "error") executionStatuses[nodeId] = "error";
+      }
+
+      const executeNodes =
+        this.maxParallelNodes > 1
+          ? this.executeNodesWaves.bind(this)
+          : this.executeNodesSequence.bind(this);
+
+      const resumeStatuses = await executeNodes(
+        orchestrator,
+        executionOrder,
+        allProjects,
+        executionResults,
+        wsContext,
+        {},
+        workspaceDir,
+        savedState.plan.expectedFilesMap as Record<string, readonly string[]>,
+        savedState.plan.checksMap,
+        savedState.plan.tasksMap,
+      );
+
+      Object.assign(executionStatuses, resumeStatuses);
+
+      const hasErrors = Object.values(executionStatuses).includes("error");
+      const finalStatus = hasErrors ? "error" : "done";
+      this.sendStatus({ projectId: savedState.orchestratorId, status: finalStatus });
+
+      await clearRunState(savedState.runId);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.sendStatus({
+        projectId: savedState.orchestratorId,
+        status: "error",
+        error: msg,
+      });
+      throw err;
+    } finally {
+      this.isRunning = false;
+      this.currentOrchestratorId = null;
+      this.abortController = null;
+    }
+  }
+
   /**
    * Shared corrective cycle: triage feedback → apply fixes → DAG subset → execute.
    * Used by both iterate() (human feedback) and runAutoQualityLoop (auto feedback).
@@ -1514,30 +2107,65 @@ export class OrchestratorRunner {
     wsContext: string,
     expectedFilesMap: Record<string, readonly string[]>,
     checksMap: ChecksMap = {},
+    targetNodeId?: string,
   ): Promise<{
     statuses: Record<string, "done" | "error" | "skipped" | "inactive">;
     results: Map<string, string>;
+    outcome: MutationOutcome;
   }> {
-    const fixes = await planIterationFixes({
+    if (!this.mutationBudget) {
+      this.mutationBudget = { autoRemaining: 2 };
+    }
+
+    const mutationResult = await planMutations({
       orchestrator,
       linked: linkedProjects,
       feedback,
       previousRun,
       workspaceContext: wsContext,
       signal: this.abortSignal,
-      fallbackModel: this.fallbackModel,
+      fallbackModel: this.modelForRole("triage"),
       fallbackReasoningEffort: this.fallbackReasoningEffort,
+      budget: this.mutationBudget,
+      targetNodeId,
+    });
+    this.mutationBudget = mutationResult.budget;
+    const outcome = mutationResult.outcome;
+
+    if (outcome.kind === "escalate") {
+      this.sendStatus({
+        projectId: orchestrator.id,
+        status: "warning",
+        error: outcome.question,
+      });
+      return {
+        statuses: {},
+        results: new Map(),
+        outcome,
+      };
+    }
+
+    const { fixes, newAgents } = await applyMutations(
+      outcome.plan,
+      linkedProjects,
+      orchestrator.id,
+      this.sendStatus.bind(this),
+    );
+
+    this.sendStatus({
+      projectId: orchestrator.id,
+      status: "running",
+      task: `Mutation plan: ${outcome.plan.mutations.length} action(s)`,
+      mutationPlan: outcome.plan,
     });
 
     const fixedIds = Object.keys(fixes);
     if (fixedIds.length === 0) {
-      throw new Error("Le feedback ne cible aucun agent — reformule ta demande.");
+      return { statuses: {}, results: new Map(), outcome };
     }
 
-    console.warn(`[orchestrator] Triage: ${fixedIds.length} agents to relaunch`);
+    console.warn(`[orchestrator] Mutation: ${fixedIds.length} agents to process`);
 
-    // Build the physical file tree once — injected into every agent's fix prompt
-    // so they can navigate/edit the real workspace without guessing file paths.
     const wsFileTree = await buildWorkspaceContext(workspaceDir)
       .then((ctx) => {
         const treeStart = ctx.indexOf("[PHYSICAL FILE TREE ON DISK]");
@@ -1547,13 +2175,12 @@ export class OrchestratorRunner {
       })
       .catch(() => "");
 
-    for (const p of linkedProjects) {
+    const allAgents = [...linkedProjects, ...newAgents];
+    for (const p of allAgents) {
       if (!fixes[p.id]) continue;
       const prevResult = previousRun.nodeResults.find(
         (r) => r.projectId === p.id,
       )?.result;
-      // Injecter le contenu réel sur disque pour TOUS les agents concernés (y compris les agents backend)
-      // afin de maximiser la convergence et d'éviter les régressions structurelles.
       let diskContent = "";
       const ownedFiles = this.ownedFilesForNode(p.id, expectedFilesMap);
       if (ownedFiles.length > 0) {
@@ -1587,10 +2214,9 @@ export class OrchestratorRunner {
       this.maxParallelNodes > 1
         ? this.executeNodesWaves.bind(this)
         : this.executeNodesSequence.bind(this);
-    // These nodes ARE reruns by definition (corrective relaunch). Mark them so
-    // buildNodePathFilter applies the anti-parasitic guard deterministically,
-    // without depending on stale fileOwner state carried across run()/iterate().
-    this.correctiveNodeIds = new Set(fixedIds);
+    // New agents created by mutation are NOT reruns — they get isRerun=false
+    const correctiveIds = fixedIds.filter((id) => !newAgents.some((a) => a.id === id));
+    this.correctiveNodeIds = new Set(correctiveIds);
     let statuses: Record<string, "done" | "error" | "skipped" | "inactive">;
     try {
       statuses = await executeNodes(
@@ -1609,7 +2235,7 @@ export class OrchestratorRunner {
       this.correctiveNodeIds = null;
     }
 
-    return { statuses, results: executionResults };
+    return { statuses, results: executionResults, outcome };
   }
 
   private async runQualityGate(
@@ -1623,6 +2249,7 @@ export class OrchestratorRunner {
     executionResults: ReadonlyMap<string, string>,
     expectedFilesMap: Readonly<Record<string, readonly string[]>>,
     checksMap: ChecksMap = {},
+    testContractsMap: TestContractsMap = {},
   ): Promise<ReturnType<typeof parseQualityVerdict>> {
     this.sendStatus({
       projectId: verifier.id,
@@ -1719,6 +2346,47 @@ export class OrchestratorRunner {
         linkedProjects.find((p) => p.id === nodeId)?.name ?? "agent inconnu";
       for (const f of missing) missingByAgent.push({ agent: agentName, file: f });
     }
+    // C7: Test contracts — check test files exist and attribute to owning agent.
+    const testContractIssues: Array<{ agent: string; issue: string; fix: string }> = [];
+    for (const [nodeId, tc] of Object.entries(testContractsMap)) {
+      const agentName =
+        linkedProjects.find((p) => p.id === nodeId)?.name ?? "agent inconnu";
+      const { missing: missingTests } = await checkExpectedFiles(workspaceDir, tc.files);
+      for (const f of missingTests) {
+        testContractIssues.push({
+          agent: agentName,
+          issue: `Test file "${f}" contracted but missing`,
+          fix: `Create the test file "${f}" as specified in the test contract`,
+        });
+      }
+    }
+
+    // C2: Execute real verification commands (test, typecheck, lint, build)
+    let commandOutcomes: readonly CommandOutcome[] = [];
+    let commandDefects: ReturnType<typeof buildCommandDefects> = [];
+    if (this.commandRunner) {
+      this.sendStatus({
+        projectId: verifier.id,
+        status: "running",
+        task: "Exécution des commandes de vérification…",
+      });
+      // Collect unique command IDs: global whitelist + test contract commands.
+      const commandIds = new Set(this.commandRunner.availableIds());
+      for (const tc of Object.values(testContractsMap)) {
+        if (this.commandRunner.has(tc.command)) commandIds.add(tc.command);
+      }
+      commandOutcomes = await this.commandRunner.runAll(
+        [...commandIds],
+        this.abortSignal,
+      );
+      commandDefects = buildCommandDefects(commandOutcomes, agentOwning, linkedProjects);
+      for (const o of commandOutcomes) {
+        console.warn(
+          `[orchestrator:gate] ${o.command.id}: ${o.ok ? "PASS" : "FAIL"} (${o.durationMs}ms${o.timedOut ? ", timed out" : ""})`,
+        );
+      }
+    }
+
     const brokenAssetsReport = [
       buildBrokenAssetsReport(brokenAssets),
       buildPageCoverageReport(uncodedMockups),
@@ -1749,7 +2417,7 @@ export class OrchestratorRunner {
       userPrompt,
       QUALITY_VERDICT_TOOL,
       this.abortSignal,
-      this.fallbackModel,
+      this.modelForRole("verification"),
       this.fallbackReasoningEffort,
     );
 
@@ -1842,6 +2510,8 @@ export class OrchestratorRunner {
       ...failedWriteIssues,
       ...criticalAuditIssues,
       ...pathDriftIssues,
+      ...commandDefects,
+      ...testContractIssues,
     ].slice(0, 30);
 
     const llmIssues = llmVerdict?.issues ?? [];
@@ -1962,6 +2632,7 @@ export class OrchestratorRunner {
     expectedFilesMap: Record<string, readonly string[]>,
     verifier: Project,
     checksMap: ChecksMap,
+    testContractsMap: TestContractsMap = {},
   ): Promise<void> {
     for (let cycle = 1; cycle <= MAX_AUTO_QUALITY_LOOPS; cycle++) {
       if (this.abortController?.signal.aborted) {
@@ -2002,6 +2673,7 @@ export class OrchestratorRunner {
         executionResults,
         mergedFilesMap,
         checksMap,
+        testContractsMap,
       );
 
       if (!verdict || verdict.pass) {
@@ -2028,7 +2700,7 @@ export class OrchestratorRunner {
       );
       const wsContext = await buildWorkspaceContext(workspaceDir);
 
-      const { statuses, results } = await this.runCorrectiveCycle(
+      const { statuses, results, outcome } = await this.runCorrectiveCycle(
         orchestrator,
         linkedProjects,
         autoFeedback,
@@ -2038,6 +2710,11 @@ export class OrchestratorRunner {
         mergedFilesMap,
         checksMap,
       );
+
+      if (outcome.kind === "escalate") {
+        console.warn(`[orchestrator] Auto-quality escalation: ${outcome.question}`);
+        break;
+      }
 
       for (const [id, status] of Object.entries(statuses)) {
         executionStatuses[id] = status;
@@ -2101,12 +2778,14 @@ export class OrchestratorRunner {
     linked: readonly Project[],
     globalTask: string,
     workspaceContext: string,
+    missionContext?: string,
   ): Promise<PlanningResult> {
     const systemPrompt = buildIterativePlanningSystemPrompt(orchestrator);
     const userPrompt = buildIterativePlanningUserPrompt(
       globalTask,
       linked,
       workspaceContext,
+      missionContext,
     );
 
     const messages: ChatMessage[] = [
@@ -2119,6 +2798,8 @@ export class OrchestratorRunner {
     const steps: Record<string, SubStep[]> = {};
     const expectedFiles: Record<string, readonly string[]> = {};
     const checks: Record<string, FileChecks> = {};
+    const testContracts: Record<string, TestContract> = {};
+    const interfaceContracts: InterfaceContract[] = [];
     const createdSubAgents: Project[] = [];
     const agentIds = new Set(linked.map((p) => p.id));
     const parentDepsAccumulator: Record<string, string[]> = {};
@@ -2135,7 +2816,7 @@ export class OrchestratorRunner {
         messages,
         PLANNING_TOOLS,
         this.abortSignal,
-        this.fallbackModel,
+        this.modelForRole("planning"),
         this.fallbackReasoningEffort,
       );
 
@@ -2164,6 +2845,8 @@ export class OrchestratorRunner {
               createdSubAgents: [],
               expectedFiles: {},
               checks: {},
+              testContracts: {},
+              interfaceContracts: [],
             };
           }
 
@@ -2190,6 +2873,8 @@ export class OrchestratorRunner {
               createdSubAgents: [],
               expectedFiles: {},
               checks: {},
+              testContracts: {},
+              interfaceContracts: [],
             };
           }
 
@@ -2212,6 +2897,8 @@ export class OrchestratorRunner {
           createdSubAgents: [],
           expectedFiles: {},
           checks: {},
+          testContracts: {},
+          interfaceContracts: [],
         };
       }
 
@@ -2271,6 +2958,15 @@ export class OrchestratorRunner {
 
           // Machine-checkable contract, indexed by file path (the system enforces it).
           Object.assign(checks, sanitizeChecks(args.checks));
+
+          // Test contract — only for code agents with whitelisted test commands.
+          if (args.delivers_tests) {
+            const allowedIds = this.commandRunner
+              ? new Set(this.commandRunner.availableIds())
+              : new Set<string>();
+            const tc = sanitizeTestContract(args.delivers_tests, allowedIds);
+            if (tc) testContracts[agentId] = tc;
+          }
 
           const rawSteps = args.steps;
           if (Array.isArray(rawSteps) && rawSteps.length >= 2) {
@@ -2438,6 +3134,23 @@ export class OrchestratorRunner {
             content: `Sous-agent créé : "${subProject.name}" (ID: ${subProject.id}, type: ${subType}). Rattaché à "${parentAgent.name}". Tu peux maintenant assigner des tâches aux agents restants ou créer d'autres sous-agents.`,
             tool_call_id: toolCall.id,
           });
+        } else if (fnName === "declare_interface") {
+          const contract = sanitizeInterfaceContract(args);
+          if (contract) {
+            interfaceContracts.push(contract);
+            messages.push({
+              role: "tool",
+              content: `Interface "${contract.name}" déclarée. Producteurs: ${contract.producers.join(", ") || "aucun"}, Consommateurs: ${contract.consumers.join(", ") || "aucun"}.`,
+              tool_call_id: toolCall.id,
+            });
+          } else {
+            messages.push({
+              role: "tool",
+              content:
+                "Contrat d'interface invalide — name et definition requis, avec au moins un producteur ou consommateur.",
+              tool_call_id: toolCall.id,
+            });
+          }
         } else if (fnName === "finish_planning") {
           const unassigned = linked.filter((p) => !tasks[p.id]);
           if (unassigned.length > 0) {
@@ -2474,7 +3187,15 @@ export class OrchestratorRunner {
       }
     }
 
-    return { tasks, steps, createdSubAgents, expectedFiles, checks };
+    return {
+      tasks,
+      steps,
+      createdSubAgents,
+      expectedFiles,
+      checks,
+      testContracts,
+      interfaceContracts,
+    };
   }
 
   /**
@@ -2498,7 +3219,7 @@ export class OrchestratorRunner {
       userPrompt,
       PROMPT_VERDICT_TOOL,
       this.abortSignal,
-      this.fallbackModel,
+      this.modelForRole("verification"),
       this.fallbackReasoningEffort,
     );
     try {
@@ -2527,6 +3248,28 @@ export class OrchestratorRunner {
    * a paid provider (e.g. DeepSeek) just because a stray verifier project points
    * there. Returns undefined if no verifier exists.
    */
+  private persistNodeTransition(
+    nodeId: string,
+    status: "done" | "error",
+    result?: string,
+  ): void {
+    if (!this.persistedRunState) return;
+    const fileOwnerSnapshot: Record<string, string> = {};
+    for (const [file, owner] of this.fileOwner) {
+      if (owner === nodeId) fileOwnerSnapshot[file] = owner;
+    }
+    this.persistedRunState = updateNodeInState(
+      this.persistedRunState,
+      nodeId,
+      status,
+      result,
+      Object.keys(fileOwnerSnapshot).length > 0 ? fileOwnerSnapshot : undefined,
+    );
+    writeRunState(this.persistedRunState).catch((err) =>
+      console.warn(`[orchestrator] Failed to persist node ${nodeId} transition:`, err),
+    );
+  }
+
   private metaVerifier(allProjects: readonly Project[]): Project | undefined {
     const found = allProjects.find((p) => p.type === "verifier");
     if (!found) return undefined;
@@ -2559,7 +3302,7 @@ export class OrchestratorRunner {
       userPrompt,
       OUTPUT_VERDICT_TOOL,
       this.abortSignal,
-      this.fallbackModel,
+      this.modelForRole("verification"),
       this.fallbackReasoningEffort,
     );
     console.warn(
@@ -2864,13 +3607,19 @@ export class OrchestratorRunner {
         evidenceBudget -= clipped.length;
       }
     }
-    const depContext = buildDependencyContext(
+    const rawDepContext = buildDependencyContext(
       node,
       allProjects,
       executionResults,
       depDiskEvidence,
       expectedFilesMap,
     );
+    // C9: Append interface contract context for this agent
+    const contractContext = buildContractContextForAgent(
+      node.id,
+      this.interfaceContracts,
+    );
+    const depContext = rawDepContext + contractContext;
     const userPrompt = buildNodeUserPrompt(
       node,
       workspaceContext,
@@ -2944,12 +3693,14 @@ export class OrchestratorRunner {
             userPrompt: appUserPrompt,
             fallbackModel: this.fallbackModel,
             signal: this.abortSignal,
-            onProgress: (label) =>
+            onProgress: (label) => {
+              this.activeWatchdogs.get(node.id)?.touch();
               this.sendStatus({
                 projectId: node.id,
                 status: "running",
                 task: label,
-              }),
+              });
+            },
             otherOwnedPaths: otherOwnedPaths.length > 0 ? otherOwnedPaths : undefined,
           },
           (slot) => (pm ? pm.ensureRunning(slot) : Promise.resolve(null)),
@@ -3786,12 +4537,16 @@ Ce fichier répertorie la fonction de chaque fichier du projet et tient à jour 
     const isRerun =
       this.correctiveNodeIds?.has(nodeId) ??
       [...this.fileOwner.values()].includes(nodeId);
+    const preexisting = this.preexistingFiles;
+    const isBrownfield = this.missionState?.mode === "brownfield";
     return (p: string): boolean => {
       if (OrchestratorRunner.isSharedPath(p)) return true;
       if (allowedFiles.includes(p)) return true;
       const owner = this.fileOwner.get(p);
       if (owner === nodeId) return true;
       if (owner !== undefined) return false; // owned by another agent → refuse
+      // Brownfield diff contract: preexisting files are locked unless declared
+      if (isBrownfield && preexisting?.has(p)) return false;
       return !isRerun; // free path: only on the first run
     };
   }

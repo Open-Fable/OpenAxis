@@ -827,7 +827,7 @@ async function refreshModels() {
     });
   if (!found) {
     var dsFlash = state.models.find(function (m) {
-      return m.id === "deepseek/deepseek-v4-flash";
+      return m.id === "deepseek/deepseek-r1";
     });
     state.selectedModel = dsFlash ? dsFlash.id : state.models[0].id;
   }
@@ -1170,7 +1170,7 @@ async function getClassifierModel() {
       /* ignore */
     }
   }
-  return _classifierModel || "deepseek/deepseek-v4-flash";
+  return _classifierModel || "deepseek/deepseek-r1";
 }
 
 async function decideWebSearch(text) {

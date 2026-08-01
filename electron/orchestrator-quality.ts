@@ -81,6 +81,28 @@ export function sanitizeChecks(raw: unknown): ChecksMap {
   return out;
 }
 
+// ── A2. Test contracts ────────────────────────────────────────────────────────
+
+export interface TestContract {
+  readonly files: readonly string[];
+  readonly command: string;
+}
+
+export type TestContractsMap = Readonly<Record<string, TestContract>>;
+
+export function sanitizeTestContract(
+  raw: unknown,
+  allowedCommandIds: ReadonlySet<string>,
+): TestContract | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  const files = sanitizeExpectedFiles(obj.files);
+  if (files.length === 0) return null;
+  const command = typeof obj.command === "string" ? obj.command.trim() : "";
+  if (!command || !allowedCommandIds.has(command)) return null;
+  return { files, command };
+}
+
 // Deterministic floor: even when the planner declares no checks, a prose
 // deliverable (.md/.txt) gets a minimum word count so a 3-sentences-per-chapter
 // guide is caught and relaunched. Never overrides a declared minWords; skips
@@ -251,11 +273,8 @@ export async function enforceDeliverables(
 
 // ── B. Quality gate ─────────────────────────────────────────────────────────
 
-export interface QualityIssue {
-  readonly agent: string;
-  readonly issue: string;
-  readonly fix: string;
-}
+import type { QualityIssue } from "./orchestrator-commands.js";
+export type { QualityIssue };
 
 export interface QualityVerdict {
   readonly pass: boolean;

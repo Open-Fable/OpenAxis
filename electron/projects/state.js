@@ -108,7 +108,7 @@ function getReasoningCategory(modelId) {
   )
     return "openai";
 
-  // DeepSeek reasoning: deepseek-r1, deepseek/r1, deepseek-reasoner, deepseek-v4-flash, deepseek in general
+  // DeepSeek reasoning: deepseek-r1, deepseek/r1, deepseek-reasoner, deepseek in general
   if (
     l.includes("deepseek") &&
     !l.includes("deepseek-chat") &&
@@ -129,7 +129,7 @@ function getReasoningCategory(modelId) {
     return "deepseek";
 
   // Everything else: no reasoning support
-  // deepseek-chat, deepseek-v3, deepseek-v4, gpt-4o, claude-3.5, llama, mistral...
+  // deepseek-chat, deepseek-v3, gpt-4o, claude-3.5, llama, mistral...
   return "none";
 }
 
@@ -253,7 +253,7 @@ async function loadModels() {
         asstSelect.value = currentVal;
       } else {
         var flash = models.find(function (m) {
-          return m.id && m.id.includes("deepseek-v4-flash");
+          return m.id && m.id.includes("deepseek-r1");
         });
         if (flash) asstSelect.value = flash.id;
       }

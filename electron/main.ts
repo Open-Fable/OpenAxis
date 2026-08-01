@@ -1239,6 +1239,13 @@ function ensureRunner(): OrchestratorRunner {
                 : "Orchestration stopped due to an error.",
           });
         }
+        if (update.status === "blocked" || update.status === "warning") {
+          if (update.error) {
+            notifier.notify("orchestrator", {
+              body: `Orchestration needs attention: ${update.error.substring(0, 120)}`,
+            });
+          }
+        }
       },
       () => processManager,
     );
@@ -1257,18 +1264,54 @@ ipcHandle(
 
 ipcHandle(
   "iterate-orchestration",
-  async (_e, id: string, feedback: string, workflowId: string) => {
+  async (_e, id: string, feedback: string, workflowId: string, targetNodeId?: string) => {
     if (!feedback?.trim()) throw new Error("Feedback is empty.");
     const runs = await getOrchRuns(workflowId);
     const previousRun = runs[0];
     if (!previousRun) throw new Error("No previous run found for this workflow.");
     const wf = (await getWorkflows()).find((w) => w.id === workflowId);
-    await ensureRunner().iterate(id, feedback.trim(), previousRun, wf?.workDir, wf?.name);
+    await ensureRunner().iterate(
+      id,
+      feedback.trim(),
+      previousRun,
+      wf?.workDir,
+      wf?.name,
+      targetNodeId,
+    );
   },
 );
 
 ipcHandle("cancel-orchestration", () => {
   runner?.cancel();
+});
+
+ipcHandle("get-resumable-run", async (_e, orchestratorId: string) => {
+  const { readLatestResumable } = await import("./orchestrator-runstate.js");
+  return await readLatestResumable(orchestratorId);
+});
+
+ipcHandle("resume-orchestration", async (_e, runId: string) => {
+  const { readRunState } = await import("./orchestrator-runstate.js");
+  const state = await readRunState(runId);
+  if (!state) throw new Error("Run state not found — cannot resume.");
+  orchStatusBuffer.clear();
+  orchActivityLog.length = 0;
+  await ensureRunner().resume(state);
+});
+
+ipcHandle("abandon-resumable-run", async (_e, runId: string) => {
+  const { clearRunState } = await import("./orchestrator-runstate.js");
+  await clearRunState(runId);
+});
+
+ipcHandle("get-mission-report", async (_e, reportPath: string) => {
+  if (!reportPath) return "";
+  try {
+    const { promises: mfs } = await import("node:fs");
+    return await mfs.readFile(reportPath, "utf-8");
+  } catch {
+    return "";
+  }
 });
 
 ipcHandle("get-orch-status-buffer", () => {
@@ -2126,9 +2169,9 @@ let webSearchEnabled = false;
 let visionProxyEnabled = true;
 let visionModel = "openbmb/minicpm-v4.6";
 let visionDetailLevel = "high";
-let aiWorkflowProModel = "deepseek/deepseek-v4-pro";
-let aiWorkflowFlashModel = "deepseek/deepseek-v4-flash";
-let aiClassifierModel = "deepseek/deepseek-v4-flash";
+let aiWorkflowProModel = "deepseek/deepseek-chat";
+let aiWorkflowFlashModel = "deepseek/deepseek-r1";
+let aiClassifierModel = "deepseek/deepseek-r1";
 let customProviders: Array<{
   id: string;
   name: string;
@@ -2190,9 +2233,9 @@ async function loadSettings(): Promise<void> {
     visionProxyEnabled = !!parsed.visionProxyEnabled;
     visionModel = parsed.visionModel || "openbmb/minicpm-v4.6";
     visionDetailLevel = parsed.visionDetailLevel || "high";
-    aiWorkflowProModel = parsed.aiWorkflowProModel || "deepseek/deepseek-v4-pro";
-    aiWorkflowFlashModel = parsed.aiWorkflowFlashModel || "deepseek/deepseek-v4-flash";
-    aiClassifierModel = parsed.aiClassifierModel || "deepseek/deepseek-v4-flash";
+    aiWorkflowProModel = parsed.aiWorkflowProModel || "deepseek/deepseek-chat";
+    aiWorkflowFlashModel = parsed.aiWorkflowFlashModel || "deepseek/deepseek-r1";
+    aiClassifierModel = parsed.aiClassifierModel || "deepseek/deepseek-r1";
     notifyMode = isNotifyMode(parsed.notifyMode)
       ? parsed.notifyMode
       : DEFAULT_NOTIFY_MODE;
@@ -2218,9 +2261,9 @@ async function loadSettings(): Promise<void> {
     visionProxyEnabled = true;
     visionModel = "openbmb/minicpm-v4.6";
     visionDetailLevel = "high";
-    aiWorkflowProModel = "deepseek/deepseek-v4-pro";
-    aiWorkflowFlashModel = "deepseek/deepseek-v4-flash";
-    aiClassifierModel = "deepseek/deepseek-v4-flash";
+    aiWorkflowProModel = "deepseek/deepseek-chat";
+    aiWorkflowFlashModel = "deepseek/deepseek-r1";
+    aiClassifierModel = "deepseek/deepseek-r1";
     notifyMode = DEFAULT_NOTIFY_MODE;
     notifySources = defaultNotifySources();
     language = detectDefaultLanguage();

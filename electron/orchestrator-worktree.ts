@@ -59,6 +59,10 @@ function git(args: readonly string[], cwd: string): Promise<string> {
   });
 }
 
+export function gitInDir(args: readonly string[], cwd: string): Promise<string> {
+  return git(args, cwd);
+}
+
 // A path is a usable scratch workspace only if it sits strictly inside ~/_orch/.
 // Lexical check (no symlink resolution) — see isScratchWorkspaceReal for the
 // guard actually used before any git mutation.

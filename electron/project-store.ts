@@ -23,6 +23,12 @@ export interface Project {
     // Independent nodes in the same DAG wave run concurrently (pure-LLM lane).
     // Clamped to [1, MAX_PARALLEL_NODES_CAP]; 1 = legacy strictly-sequential.
     readonly maxParallelNodes?: number;
+    // User-declared verification commands (override auto-detected ones from recon).
+    // Each entry is a shell-safe argv string, e.g. "npm run test".
+    readonly allowedCommands?: readonly string[];
+    // C13: optional model overrides per role tier (strong = planning/triage/verify,
+    // fast = execution). When absent, all roles use the single fallbackModel.
+    readonly roleModels?: { readonly strong?: string; readonly fast?: string };
   };
   readonly bypassMemory?: boolean;
   readonly maxRetries?: number;
@@ -46,6 +52,10 @@ export interface Workflow {
   readonly linkedProjectIds: readonly string[];
   readonly agentTypes: Record<string, string>;
   readonly workDir?: string;
+  readonly missionMode?: {
+    readonly enabled: boolean;
+    readonly autonomy?: "supervised" | "autonomous";
+  };
   readonly createdAt: number;
   readonly updatedAt: number;
 }
@@ -393,6 +403,8 @@ export interface OrchRun {
   readonly feedback?: string;
   readonly iteration?: number;
   readonly workspaceDir?: string;
+  readonly missionBranch?: string;
+  readonly missionReportPath?: string;
 }
 
 const HISTORY_PATH = path.join(STORE_DIR, "orch-history.json");

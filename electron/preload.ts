@@ -200,9 +200,22 @@ contextBridge.exposeInMainWorld("openaxis", {
       workDir ?? "",
       workflowName ?? "",
     ),
-  iterateOrchestration: (id: string, feedback: string, workflowId: string) =>
-    ipcRenderer.invoke("iterate-orchestration", id, feedback, workflowId),
+  iterateOrchestration: (
+    id: string,
+    feedback: string,
+    workflowId: string,
+    targetNodeId?: string,
+  ) =>
+    ipcRenderer.invoke("iterate-orchestration", id, feedback, workflowId, targetNodeId),
   cancelOrchestration: () => ipcRenderer.invoke("cancel-orchestration"),
+  getResumableRun: (orchestratorId: string) =>
+    ipcRenderer.invoke("get-resumable-run", orchestratorId),
+  resumeOrchestration: (runId: string) =>
+    ipcRenderer.invoke("resume-orchestration", runId),
+  abandonResumableRun: (runId: string) =>
+    ipcRenderer.invoke("abandon-resumable-run", runId),
+  getMissionReport: (reportPath: string) =>
+    ipcRenderer.invoke("get-mission-report", reportPath),
   getOrchStatusBuffer: () => ipcRenderer.invoke("get-orch-status-buffer"),
   onOrchestrationStatus: (
     cb: (data: {

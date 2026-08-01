@@ -4,19 +4,32 @@ import type { Project } from "./project-store.js";
 
 // ── Context helpers ──────────────────────────────────────────────────────────
 
-async function buildPhysicalFileTree(workspaceDir: string): Promise<string> {
-  const maxDepth = 4;
+export interface FileTreeOptions {
+  readonly maxDepth?: number;
+  readonly maxEntries?: number;
+  readonly includeDotDirs?: boolean;
+}
+
+const DEFAULT_SKIP = new Set(["node_modules", "design"]);
+
+export async function buildPhysicalFileTree(
+  workspaceDir: string,
+  opts?: FileTreeOptions,
+): Promise<string> {
+  const maxDepth = opts?.maxDepth ?? 4;
+  const maxEntries = opts?.maxEntries ?? Infinity;
+  const includeDotDirs = opts?.includeDotDirs ?? false;
   const lines: string[] = [];
+  let entryCount = 0;
 
   async function walk(dir: string, depth: number, prefix: string): Promise<void> {
-    if (depth > maxDepth) return;
+    if (depth > maxDepth || entryCount >= maxEntries) return;
     let entries: import("fs").Dirent[];
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
-    // Trier : dossiers en premier, puis fichiers
     entries.sort((a, b) => {
       if (a.isDirectory() && !b.isDirectory()) return -1;
       if (!a.isDirectory() && b.isDirectory()) return 1;
@@ -24,16 +37,14 @@ async function buildPhysicalFileTree(workspaceDir: string): Promise<string> {
     });
 
     for (let i = 0; i < entries.length; i++) {
+      if (entryCount >= maxEntries) return;
       const entry = entries[i];
-      if (
-        entry.name.startsWith(".") ||
-        entry.name === "node_modules" ||
-        entry.name === "design"
-      ) {
-        continue;
-      }
+      if (!includeDotDirs && entry.name.startsWith(".")) continue;
+      if (DEFAULT_SKIP.has(entry.name)) continue;
+
       const isLast = i === entries.length - 1;
       const pointer = isLast ? "└── " : "├── ";
+      entryCount++;
       if (entry.isDirectory()) {
         lines.push(`${prefix}${pointer}📁 ${entry.name}`);
         const nextPrefix = prefix + (isLast ? "    " : "│   ");
@@ -400,11 +411,13 @@ const TYPE_ROLE_HINTS: Record<string, string> = {
 
 // ── 1. Planning ──────────────────────────────────────────────────────────────
 
+const PLANNING_STABLE_PREFIX = `You are an AI project coordinator. You break down a global task into precise sub-tasks for specialized agents.
+
+ROLE OF EACH AGENT TYPE :`;
+
 export function buildPlanningSystemPrompt(orchestrator: Project): string {
   const base = orchestrator.instructions || "";
-  return `You are an AI project coordinator. You break down a global task into precise sub-tasks for specialized agents.
-
-${base ? `CUSTOM INSTRUCTIONS:\n${base}\n` : ""}ROLE OF EACH AGENT TYPE :
+  return `${PLANNING_STABLE_PREFIX}
 - "recherche" → Investigation, data collection, state of the art
 - "work" → OpenWork: design system (colors, typography, spacing), brand guidelines, content writing, HTML/CSS integration
 - "design" → Open Design: visual mockups ONLY, based on the design system and content already produced by "work"/"recherche"
@@ -432,7 +445,8 @@ INTERFACE CONTRACTS (CRITICAL RULES) :
 
 RESPONSE FORMAT :
 Return STRICTLY a flat JSON object with no other text or markdown tags.
-Keys are project IDs, values are structured tasks.`;
+Keys are project IDs, values are structured tasks.
+${base ? `\nCUSTOM INSTRUCTIONS:\n${base}` : ""}`;
 }
 
 export function buildPlanningUserPrompt(
@@ -991,11 +1005,18 @@ Produce the FINAL deliverable by merging all results above. The result must be c
 
 // ── 9. Iterative planning (agentic loop) ────────────────────────────────────
 
+// ── C14: Stable prompt prefix for cache efficiency ──────────────────────────
+// The large invariant block below is identical across all orchestrator instances.
+// Placing it first maximises prompt-cache hits (APIs like Anthropic/OpenAI cache
+// shared prefixes). The variable part (orchestrator.instructions) is appended
+// at the end where it doesn't break the prefix match.
+const ITERATIVE_PLANNING_STABLE_PREFIX = `You are the coordinator of an AI agent team. You plan tasks iteratively using the provided tools.
+
+ROLE OF EACH AGENT TYPE (CRITICAL — respect this distribution) :`;
+
 export function buildIterativePlanningSystemPrompt(orchestrator: Project): string {
   const base = orchestrator.instructions || "";
-  return `You are the coordinator of an AI agent team. You plan tasks iteratively using the provided tools.
-
-${base ? `CUSTOM INSTRUCTIONS :\n${base}\n` : ""}ROLE OF EACH AGENT TYPE (CRITICAL — respect this distribution) :
+  return `${ITERATIVE_PLANNING_STABLE_PREFIX}
 - "recherche" → Investigation, data collection, state of the art, monitoring. Produces synthesis documents, plans, recommendations.
 - "work" → OpenWork: production of CONTENT and assets — writing (articles, documents, ebook, marketing), structured data (.md/.json/.csv), and for a site: design system (colors, typo, spacing), brand guidelines, HTML/CSS integration. For a visual deliverable, this agent defines the colors, not the designer.
 - "design" → Open Design: creation of web visual MOCKUPS (HTML/CSS) ONLY, relevant ONLY if the deliverable has a UI. It does NOT choose colors or the design system — it RECEIVES them from "work"/"recherche" agents. Only assign a "design" agent for a web site/app.
@@ -1052,6 +1073,12 @@ Example :
     "data/clients.csv": { "format": "csv" }
   }
 DERIVE thresholds from the request CRITERIA ("12 products" → minItems:12 ; "8 chapters" → minSections:8 ; "≥500 words/article" → minWords:500). Do NOT invent thresholds; if a file has no quantified criteria, do not emit checks for it.
+
+TEST CONTRACT (delivers_tests) — ONLY FOR CODE AGENTS :
+For "code" agents that produce testable code, use the "delivers_tests" parameter to declare the test files the agent MUST produce plus the command to run them.
+  delivers_tests: { "files": ["src/__tests__/utils.test.ts"], "command": "test" }
+The "command" must be one of the whitelisted command IDs detected during reconnaissance (typically: "test"). The system verifies test files exist AND runs the command — failing tests = automatic retry.
+Only emit delivers_tests when the task naturally calls for tests (library, API, CLI, utility code). Do NOT add tests for static content, documents, or design mockups.
 
 MEASURABLE CRITERIA — REQUIRED :
 Each assigned task must have MEASURABLE success criteria:
@@ -1115,13 +1142,15 @@ RULES :
 - Start with agents without dependencies, then those that have them
 - Ensure consistency between tasks (same identity, same language, no contradictions, no duplicates)
 - Adapt the level of detail to the agent type
-- You can assign agents in any order, one by one or in groups`;
+- You can assign agents in any order, one by one or in groups
+${base ? `\nCUSTOM INSTRUCTIONS :\n${base}` : ""}`;
 }
 
 export function buildIterativePlanningUserPrompt(
   globalTask: string,
   linkedProjects: readonly Project[],
   workspaceContext: string,
+  missionContext?: string,
 ): string {
   const agentList = linkedProjects
     .map((p) => {
@@ -1135,17 +1164,22 @@ export function buildIterativePlanningUserPrompt(
     })
     .join("\n");
 
+  const missionSection = missionContext
+    ? `\n[MISSION CONTEXT — Phase 0 Reconnaissance]\n${missionContext}\n`
+    : "";
+
   return `GLOBAL TASK TO DISTRIBUTE :
 "${globalTask}"
 
 ${workspaceContext}
-
+${missionSection}
 AVAILABLE AGENTS (${linkedProjects.length}) :
 ${agentList}
 
 REMINDER : Adapt the pipeline to the deliverable type.
 - WEB/APP deliverable (interface, site, SPA) → work (design system + content) → design (mockups) → code (faithful implementation from mockups).
 - NON-WEB deliverable (library, API, CLI, report, ebook, data, slides, marketing) → Do NOT impose a design agent or visual pipeline. Assign the relevant roles directly (research, work, code) based on what the deliverable actually needs.
+- In BROWNFIELD mode: reference EXISTING files from the reconnaissance. Your expected_files MUST include real paths from the file tree. Do NOT invent file paths that don't exist.
 
 Analyze the task, then assign a structured task to each agent with assign_task. When all have a task, call finish_planning.`;
 }

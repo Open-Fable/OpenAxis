@@ -31,8 +31,8 @@
         "anthropic/claude-sonnet-4-5": {},
         "openai/gpt-4o": {},
         "deepseek/deepseek-r1": {},
-        "deepseek/deepseek-v4-pro": {},
-        "deepseek/deepseek-v4-flash": {},
+        "deepseek/deepseek-chat": {},
+        "deepseek/deepseek-r1": {},
         "meta-llama/llama-3.3-70b-instruct": {},
         "llama3": {},
         "mistral": {}

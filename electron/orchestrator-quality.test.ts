@@ -19,6 +19,7 @@ import {
   findInvalidJsonFiles,
   findSyntaxProblems,
   sanitizeChecks,
+  sanitizeTestContract,
   validateDeclaredChecks,
   findCsvColumnProblems,
   findPlaceholderDeliverables,
@@ -1469,5 +1470,57 @@ describe("findNavigationConsistencyProblems — dead nav links", () => {
     const probs = await findNavigationConsistencyProblems(tmpDir);
     const orphans = probs.filter((p) => p.problem.includes("orpheline"));
     expect(orphans.map((p) => p.sourceFile)).toContain("secret.html");
+  });
+});
+
+// ── sanitizeTestContract ────────────────────────────────────────────────────
+
+describe("sanitizeTestContract", () => {
+  const allowed = new Set(["test", "typecheck", "lint"]);
+
+  it("returns a valid test contract", () => {
+    const result = sanitizeTestContract(
+      { files: ["src/utils.test.ts"], command: "test" },
+      allowed,
+    );
+    expect(result).toEqual({
+      files: ["src/utils.test.ts"],
+      command: "test",
+    });
+  });
+
+  it("returns null for non-object input", () => {
+    expect(sanitizeTestContract(null, allowed)).toBeNull();
+    expect(sanitizeTestContract("test", allowed)).toBeNull();
+    expect(sanitizeTestContract(42, allowed)).toBeNull();
+    expect(sanitizeTestContract([], allowed)).toBeNull();
+  });
+
+  it("returns null when files array is empty", () => {
+    const result = sanitizeTestContract({ files: [], command: "test" }, allowed);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when command is not in allowed set", () => {
+    const result = sanitizeTestContract(
+      { files: ["test.ts"], command: "deploy" },
+      allowed,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns null when command is missing", () => {
+    const result = sanitizeTestContract({ files: ["test.ts"] }, allowed);
+    expect(result).toBeNull();
+  });
+
+  it("sanitizes file paths through sanitizeExpectedFiles", () => {
+    const result = sanitizeTestContract(
+      { files: ["../../../etc/passwd", "valid.test.ts"], command: "test" },
+      allowed,
+    );
+    expect(result).not.toBeNull();
+    expect(result!.files).not.toContain("../../../etc/passwd");
+    expect(result!.files).toContain("valid.test.ts");
   });
 });
