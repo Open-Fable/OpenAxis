@@ -24,7 +24,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.2",
+    "@commitlint/cli": "^21.2.0",
     "@commitlint/config-conventional": "^21.0.2",
     "@playwright/test": "^1.50.0",
     "@types/express": "^5.0.0",
